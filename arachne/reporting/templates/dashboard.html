@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Arachne Sentinel &mdash; Canli Tehdit Paneli</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%95%B8%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<canvas id="bg-canvas"></canvas>
+<div class="scanline-overlay"></div>
+
+<nav class="topnav">
+  <div class="brand"><span class="dot"></span> ARACHNE SENTINEL</div>
+  <div class="nav-links">
+    <a href="#genel-bakis">Genel Bakış</a>
+    <a href="#radar">Tehdit Radarı</a>
+    <a href="#canli-akis">Canlı Akış</a>
+    <a href="#mtd">MTD</a>
+    <a href="#honeypot-alerts">Honeypot</a>
+    <a href="#waf">WAF</a>
+    <a href="#scan">Tarama</a>
+  </div>
+  <div class="right">
+    <span class="status-pill"><span class="pulse"></span> Sistem Aktif</span>
+    <a class="ext" href="/report">Statik rapor &rarr;</a>
+    <a class="ext" href="{{ github_url }}" target="_blank" rel="noopener">GitHub &rarr;</a>
+  </div>
+</nav>
+
+<header class="hero reveal in-view">
+  <div class="hero-inner">
+    <div class="eyebrow">SIBER GÜVENLİK ARAŞTIRMA PROJESİ &middot; CANLI OPERASYON KONSOLU</div>
+    <h1 class="glitch" data-text="ARACHNE SENTINEL">ARACHNE SENTINEL</h1>
+    <p class="tagline">
+      Honeypot + açıklanabilir kural motoru + WAF + otonom zafiyet tarayıcı + ML
+      sınıflandırıcı + native ARM64 assembly çekirdeği + Moving Target Defense ile
+      uçtan uca test edilmiş, gerçek verilerle çalışan bir saldırı tespit sistemi.
+    </p>
+    <div class="phase-badges">
+      <span class="phase">&check; Faz 1 <span class="n">Honeypot</span></span>
+      <span class="phase">&check; Faz 2 <span class="n">WAF / Tarayıcı / ML</span></span>
+      <span class="phase">&check; Faz 3 <span class="n">Native ARM64 Assembly</span></span>
+      <span class="phase {{ '' if mtd_stats.total_rotations else 'phase-pending' }}">{{ '&check;'|safe if mtd_stats.total_rotations else '○' }} Faz 4 <span class="n">Moving Target Defense</span></span>
+    </div>
+    <div class="hero-meta">
+      <span class="pill">{{ test_count }} birim testi</span>
+      <span class="pill">{{ 'Native çekirdek AKTİF' if native_active else 'Native çekirdek pasif (Python yedeği)' }}</span>
+      <span class="pill">Topkapı Üniversitesi ekip projesi</span>
+      <span class="pill">{{ now }}</span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+<section id="genel-bakis" class="reveal">
+  <div class="stat-cards">
+    <div class="card c-events">
+      <div class="label">Honeypot Olayı</div>
+      <div class="n" id="n-events">{{ honeypot_stats.total_events }}</div>
+      <div class="sub">Son 10 dakikada görülen toplam bağlantı/istek</div>
+    </div>
+    <div class="card c-alerts">
+      <div class="label">Honeypot Alarmı</div>
+      <div class="n" id="n-alerts">{{ honeypot_stats.total_alerts }}</div>
+      <div class="sub">Kural motorunun tetiklendiği olaylar</div>
+    </div>
+    <div class="card c-waf">
+      <div class="label">WAF: Engellenen / Toplam</div>
+      <div class="n" style="font-size:1.5rem" id="n-waf">{{ waf_stats.blocked_requests }}/{{ waf_stats.total_requests }}</div>
+      <div class="ratio-bar">
+        <div class="blocked-seg" id="waf-blocked-seg" style="width:{{ waf_blocked_pct }}%"></div>
+        <div class="passed-seg" id="waf-passed-seg" style="width:{{ 100 - waf_blocked_pct }}%"></div>
+      </div>
+      <div class="sub" id="waf-pct-label">%{{ waf_blocked_pct }} istek engellendi</div>
+    </div>
+    <div class="card c-scan">
+      <div class="label">Tarama Bulgusu</div>
+      <div class="n" id="n-scan">{{ scan_findings|length }}</div>
+      <div class="sub">Bilinen zafiyet eşleşmesi</div>
+    </div>
+    <div class="card c-native">
+      <div class="label">Native ARM64 Çekirdek</div>
+      <div class="n" style="font-size:1.5rem">{{ 'AKTİF' if native_active else 'PASİF' }}</div>
+      <div class="sub">{{ native_status }}</div>
+    </div>
+    <div class="card c-mtd">
+      <div class="label">Hayalet Admin (Faz 4)</div>
+      <div class="n" style="font-size:1.5rem" id="n-ghost-port">{{ (':' ~ ghost_admin_port) if ghost_admin_port else 'başlatılmadı' }}</div>
+      <div class="sub"><span id="n-mtd-total">{{ mtd_stats.total_rotations }}</span> rotasyon kaydedildi &mdash; python main.py mtd-demo</div>
+    </div>
+  </div>
+</section>
+
+<section id="radar" class="reveal">
+  <h2>🛰️ Canlı Tehdit Radarı</h2>
+  <p class="section-desc">
+    Honeypot servisleri, WAF, zafiyet tarayıcı ve MTD bileşenlerini merkezi bir
+    çekirdek etrafında gösterir. Gerçek bir olay/alarm/WAF isteği/MTD rotasyonu
+    geldiğinde ilgili düğümden merkeze doğru canlı bir sinyal yayılır &mdash;
+    tamamen <code>/api/live</code> üzerinden gelen gerçek verilerle tetiklenir,
+    simülasyon değildir.
+  </p>
+  <div class="section-rule"></div>
+  <div class="radar-panel">
+    <canvas id="radar-canvas"></canvas>
+    <div class="radar-legend">
+      <div class="li"><span class="sw" style="background:#22d3ee"></span> Honeypot servisleri</div>
+      <div class="li"><span class="sw" style="background:#f5a623"></span> WAF</div>
+      <div class="li"><span class="sw" style="background:#22c55e"></span> Zafiyet tarayıcı</div>
+      <div class="li"><span class="sw" style="background:#2dd4bf"></span> Moving Target Defense</div>
+    </div>
+  </div>
+</section>
+
+<section id="canli-akis" class="reveal">
+  <h2>📡 Canlı Saldırı Akışı</h2>
+  <p class="section-desc">Yeni bir olay/alarm/WAF isteği/MTD rotasyonu kaydedildiği an burada belirir (yaklaşık 4 saniyede bir kontrol edilir).</p>
+  <div class="section-rule"></div>
+  <div class="terminal">
+    <div class="terminal-header"><span class="dots"><span></span><span></span><span></span></span> live-feed.log</div>
+    <div class="terminal-body" id="live-feed-body">
+      <div class="feed-empty">Henüz canlı olay yok &mdash; <code>python main.py run</code> veya <code>python main.py mtd-demo</code> çalıştırıldığında burada gerçek zamanlı görünecek.</div>
+    </div>
+  </div>
+</section>
+
+<section id="native" class="reveal">
+  <h2>⚙️ Faz 3 &mdash; Native ARM64 Assembly Çekirdeği</h2>
+  <div class="table-card padded">
+    <p class="reasons" style="max-width:100%; margin:0 0 1rem 0;">
+      Honeypot kural motorunun kullandığı imza taraması
+      (<code>rule_known_signature</code>), elle yazılmış ARM64 assembly ile
+      (<code>arachne/native/arm64/fast_scan.s</code>) hızlandırılır; native
+      kütüphane yoksa (bu ortamda olduğu gibi) otomatik olarak birebir aynı
+      sonucu üreten bir Python yedeğine düşer. Aşağıdaki sayılar bu sayfa her
+      yenilendiğinde canlı olarak hesaplanır (bkz.
+      <code>scripts/benchmark_native_scan.py</code> daha kapsamlı bir
+      kıyaslama için).
+    </p>
+    <table><thead><tr><th>Haystack boyutu</th><th>El-yazımı Python döngüsü</th>
+    <th>Native ARM64 / yedek</th><th>Fark</th></tr></thead><tbody>
+    {% for row in bench_rows %}
+    <tr><td class="mono">{{ row.size }} byte</td><td class="mono">{{ row.naive_ms }} ms</td>
+    <td class="mono">{{ row.native_ms }} ms</td><td class="mono">{{ row.speedup }}x</td></tr>
+    {% endfor %}
+    </tbody></table>
+  </div>
+</section>
+
+<section id="mtd" class="reveal">
+  <h2>👻 Faz 4 &mdash; Moving Target Defense <span class="count">{{ mtd_rotations|length }}</span></h2>
+  <div class="table-card padded">
+    <p class="reasons" style="max-width:100%; margin:0 0 1rem 0;">
+      Korunan yüzeyin kimliği zamanla değişir: honeypot banner'ları periyodik
+      rotasyona uğrar, "hayalet admin" paneli gerçekten port değiştirir, ve
+      lab-içi bir "hayalet DNS" yanıtlayıcısı aynı isim için farklı IP
+      döndürür. Amaç gerçek internete karşı anonimlik iddiası değil,
+      saldırganın parmak izi çıkarma/hedef sabitleme sürecini zorlaştırmak.
+      Başlatmak için: <code>python main.py mtd-demo</code>
+    </p>
+    <table><thead><tr><th>Zaman</th><th>Bileşen</th><th>Eski Kimlik</th><th>Yeni Kimlik</th><th>Sebep</th></tr></thead>
+    <tbody id="tbl-mtd">
+    {% for r in mtd_rotations %}
+    <tr><td class="mono muted">{{ r.timestamp }}</td><td class="mono">{{ r.component }}</td>
+    <td class="mono muted">{{ r.old_identity or '&mdash;' }}</td>
+    <td class="mono">{{ r.new_identity }}</td><td class="reasons">{{ r.reason }}</td></tr>
+    {% else %}
+    <tr class="empty-row"><td colspan="5">Henüz rotasyon yok<span class="hint">python main.py mtd-demo</span></td></tr>
+    {% endfor %}
+    </tbody></table>
+  </div>
+</section>
+
+<section id="honeypot-alerts" class="reveal">
+  <h2>🛑 Honeypot &mdash; Son Alarmlar <span class="count">{{ alerts|length }}</span></h2>
+  <div class="table-card">
+  <table><thead><tr><th>Zaman</th><th>IP</th><th>Şiddet</th><th>Skor</th><th>Sebepler</th></tr></thead>
+  <tbody id="tbl-alerts">
+  {% for a in alerts %}
+  <tr><td class="mono muted">{{a.timestamp}}</td><td class="mono">{{a.source_ip}}</td>
+  <td><span class="badge badge-{{a.severity}}">{{a.severity}}</span></td>
+  <td class="mono">{{a.score}}</td><td class="reasons">{{a.reasons}}</td></tr>
+  {% else %}
+  <tr class="empty-row"><td colspan="5">Henüz alarm yok<span class="hint">honeypot çalışıyor ve saldırı bekleniyor</span></td></tr>
+  {% endfor %}
+  </tbody></table>
+  </div>
+</section>
+
+<section id="honeypot-events" class="reveal">
+  <h2>📡 Honeypot &mdash; Son Olaylar <span class="count">{{ events|length }}</span></h2>
+  <div class="table-card">
+  <table><thead><tr><th>Zaman</th><th>IP</th><th>Servis</th><th>Tip</th><th>Veri (ilk 80 karakter)</th></tr></thead>
+  <tbody id="tbl-events">
+  {% for e in events %}
+  <tr><td class="mono muted">{{e.timestamp}}</td><td class="mono">{{e.source_ip}}</td>
+  <td>{{e.service}}</td><td class="mono">{{e.event_type}}</td>
+  <td class="mono muted">{{ (e.payload or '')[:80] }}</td></tr>
+  {% else %}
+  <tr class="empty-row"><td colspan="5">Henüz olay yok<span class="hint">python main.py run</span></td></tr>
+  {% endfor %}
+  </tbody></table>
+  </div>
+</section>
+
+<section id="waf" class="reveal">
+  <h2>🧱 WAF &mdash; Son İstekler <span class="count">{{ waf_events|length }}</span></h2>
+  <div class="table-card">
+  <table><thead><tr><th>Zaman</th><th>IP</th><th>Metod</th><th>Yol</th><th>Skor</th><th>Durum</th><th>Sebepler</th></tr></thead>
+  <tbody id="tbl-waf">
+  {% for w in waf_events %}
+  <tr><td class="mono muted">{{w.timestamp}}</td><td class="mono">{{w.source_ip}}</td>
+  <td class="mono">{{w.method}}</td><td class="mono">{{w.path}}</td><td class="mono">{{w.score}}</td>
+  <td>{% if w.blocked %}<span class="badge badge-blocked">Engellendi</span>{% else %}<span class="badge badge-passed">Geçti</span>{% endif %}</td>
+  <td class="reasons">{{w.reasons}}</td></tr>
+  {% else %}
+  <tr class="empty-row"><td colspan="7">Henüz WAF isteği yok<span class="hint">python main.py waf-demo</span></td></tr>
+  {% endfor %}
+  </tbody></table>
+  </div>
+</section>
+
+<section id="scan" class="reveal">
+  <h2>🔍 Zafiyet Tarama Bulguları <span class="count">{{ scan_findings|length }}</span></h2>
+  <div class="table-card">
+  <table><thead><tr><th>Zaman</th><th>Hedef</th><th>Port</th><th>Servis</th><th>Şiddet</th><th>Bulgu</th></tr></thead>
+  <tbody id="tbl-scan">
+  {% for f in scan_findings %}
+  <tr><td class="mono muted">{{f.timestamp}}</td><td class="mono">{{f.target}}</td>
+  <td class="mono">{{f.port}}</td><td>{{f.service_guess}}</td>
+  <td><span class="badge badge-{{f.severity}}">{{f.severity}}</span></td>
+  <td class="reasons">{{f.finding}}</td></tr>
+  {% else %}
+  <tr class="empty-row"><td colspan="6">Henüz tarama yapılmadı<span class="hint">python main.py scan --host 127.0.0.1</span></td></tr>
+  {% endfor %}
+  </tbody></table>
+  </div>
+</section>
+
+</div>
+<footer>
+  Arachne Sentinel &mdash; Topkapı Üniversitesi ekip projesi &middot; sadece izole/lab ortamında kullanın &middot;
+  <a href="{{ github_url }}" target="_blank" rel="noopener">Kaynak kod</a>
+</footer>
+
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+</body>
+</html>

@@ -1,13 +1,75 @@
 """Canli izleme paneli (Flask): honeypot + WAF + tarama bulgularini tek
 sayfada birlestirir. Sadece localhost'ta calistirin."""
+import random
+import re
+import string
+import time
 from datetime import datetime, timezone
+from pathlib import Path
 
 from flask import Flask, render_template_string
 
 from .. import storage
+from ..native import signature_engine
 from .report_generator import generate_html_report
 
 app = Flask(__name__)
+
+GITHUB_URL = "https://github.com/KamSecHQ/arachne-sentinel"
+
+
+def _count_tests() -> int:
+    """tests/ altindaki `def test_...` satirlarini sayar - pytest'i
+    calistirmadan, hizli ve her zaman guncel bir sayi verir."""
+    tests_dir = Path(__file__).resolve().parents[2] / "tests"
+    try:
+        total = 0
+        for path in tests_dir.glob("test_*.py"):
+            total += len(re.findall(r"^def test_", path.read_text(encoding="utf-8"), re.M))
+        return total
+    except OSError:
+        return 0
+
+
+def _naive_python_find(hay: str, needle: str) -> int:
+    """az_find ile birebir ayni naif algoritma, saf Python'da (dogru kiyaslama icin)."""
+    n, m = len(hay), len(needle)
+    if m == 0:
+        return 0
+    if m > n:
+        return -1
+    for i in range(n - m + 1):
+        if hay[i:i + m] == needle:
+            return i
+    return -1
+
+
+def _quick_benchmark():
+    """Sayfa her yenilendiginde calisan, hafif (birkaç ms) canli bir olcum.
+    Tam istatistiksel titizlikte degil (bkz. scripts/benchmark_native_scan.py
+    daha ciddi bir kiyaslama icin) ama gercek zamanli, gercek sayilar verir."""
+    rng = random.Random(7)
+    needle = "union select"
+    rows = []
+    for size, repeat in ((2_000, 40), (20_000, 8)):
+        haystack = "".join(rng.choice(string.ascii_lowercase) for _ in range(size)) + needle
+
+        t0 = time.perf_counter()
+        for _ in range(repeat):
+            _naive_python_find(haystack, needle)
+        naive_ms = (time.perf_counter() - t0) * 1000
+
+        t0 = time.perf_counter()
+        for _ in range(repeat):
+            signature_engine.find(haystack, needle)
+        native_ms = (time.perf_counter() - t0) * 1000
+
+        speedup = round(naive_ms / native_ms, 1) if native_ms > 0 else 0
+        rows.append({
+            "size": size, "naive_ms": round(naive_ms, 2),
+            "native_ms": round(native_ms, 3), "speedup": speedup,
+        })
+    return rows
 
 TEMPLATE = """
 <!DOCTYPE html><html lang="tr"><head><meta charset="utf-8">
@@ -43,6 +105,28 @@ body{
 
 .wrap{max-width:1180px; margin:0 auto; padding:0 2rem;}
 
+.hero{
+  margin-top:2rem; padding:1.6rem 1.8rem; border-radius:16px;
+  background:linear-gradient(135deg,rgba(255,77,79,0.08),rgba(77,163,255,0.06) 60%,transparent);
+  border:1px solid var(--border);
+}
+.hero h1{margin:0 0 .3rem 0; font-size:1.7rem; letter-spacing:-.01em;}
+.hero p{margin:0 0 1.1rem 0; color:var(--muted); font-size:.9rem; max-width:640px;}
+.phase-badges{display:flex; flex-wrap:wrap; gap:.55rem; margin-bottom:1rem;}
+.phase{
+  display:flex; align-items:center; gap:.4rem; font-size:.78rem; font-weight:600;
+  padding:.4rem .8rem; border-radius:20px; background:rgba(46,204,113,0.1);
+  border:1px solid rgba(46,204,113,0.3); color:var(--ok);
+}
+.phase .n{opacity:.7; font-weight:700;}
+.hero-meta{display:flex; flex-wrap:wrap; gap:.55rem;}
+.pill{
+  font-size:.75rem; font-weight:600; padding:.35rem .75rem; border-radius:20px;
+  background:var(--panel-2); border:1px solid var(--border); color:var(--text);
+}
+.pill.link{color:var(--accent-2); text-decoration:none;}
+.pill.link:hover{text-decoration:underline;}
+
 .stat-cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:1rem; margin:1.75rem 0;}
 .card{
   background:linear-gradient(160deg,var(--panel-2),var(--panel));
@@ -54,6 +138,7 @@ body{
 .card.c-alerts::before{--accent-card:var(--crit);}
 .card.c-waf::before{--accent-card:var(--warn);}
 .card.c-scan::before{--accent-card:var(--ok);}
+.card.c-native::before{--accent-card:#a78bfa;}
 .card .label{color:var(--muted); font-size:.72rem; text-transform:uppercase; letter-spacing:.06em; margin-bottom:.35rem;}
 .card .n{font-size:1.9rem; font-weight:800; line-height:1;}
 .card .sub{margin-top:.5rem; font-size:.75rem; color:var(--muted);}
@@ -116,6 +201,23 @@ footer{max-width:1180px; margin:3rem auto 0; padding:0 2rem; color:var(--muted);
 
 <div class="wrap">
 
+<div class="hero">
+  <h1>Arachne Sentinel</h1>
+  <p>Honeypot + acilanabilir kural motoru + WAF + otonom zafiyet tarayici + ML siniflandirici
+     + native ARM64 assembly cekirdegi ile uctan uca test edilmis bir saldiri tespit sistemi.</p>
+  <div class="phase-badges">
+    <span class="phase">&check; Faz 1 <span class="n">Honeypot</span></span>
+    <span class="phase">&check; Faz 2 <span class="n">WAF / Tarayici / ML</span></span>
+    <span class="phase">&check; Faz 3 <span class="n">Native ARM64 Assembly</span></span>
+  </div>
+  <div class="hero-meta">
+    <span class="pill">{{ test_count }} birim testi</span>
+    <span class="pill">{{ 'Native cekirdek AKTIF' if native_active else 'Native cekirdek pasif (Python yedegi)' }}</span>
+    <span class="pill">Topkapı Üniversitesi ekip projesi</span>
+    <a class="pill link" href="{{ github_url }}" target="_blank" rel="noopener">Kaynak kod (GitHub) &rarr;</a>
+  </div>
+</div>
+
 <div class="stat-cards">
   <div class="card c-events">
     <div class="label">Honeypot Olayi</div>
@@ -141,7 +243,35 @@ footer{max-width:1180px; margin:3rem auto 0; padding:0 2rem; color:var(--muted);
     <div class="n">{{ scan_findings|length }}</div>
     <div class="sub">Bilinen zafiyet eslesmesi</div>
   </div>
+  <div class="card c-native">
+    <div class="label">Native ARM64 Cekirdek</div>
+    <div class="n" style="font-size:1.5rem">{{ 'AKTIF' if native_active else 'PASIF' }}</div>
+    <div class="sub">{{ native_status }}</div>
+  </div>
 </div>
+
+<section>
+  <h2>⚙️ Faz 3 &mdash; Native ARM64 Assembly Cekirdegi</h2>
+  <div class="table-card" style="padding:1.1rem 1.3rem;">
+    <p class="reasons" style="max-width:100%; margin:0 0 1rem 0;">
+      Honeypot kural motorunun kullandigi imza taramasi
+      (<code>rule_known_signature</code>), elle yazilmis ARM64 assembly ile
+      (<code>arachne/native/arm64/fast_scan.s</code>) hizlandirilir; native
+      kutuphane yoksa (bu ortamda oldugu gibi) otomatik olarak birebir ayni
+      sonucu ureten bir Python yedegine duser. Asagidaki sayilar bu sayfa her
+      yenilendiginde canli olarak hesaplanir (bkz.
+      <code>scripts/benchmark_native_scan.py</code> daha kapsamli bir
+      kiyaslama icin).
+    </p>
+    <table><thead><tr><th>Haystack boyutu</th><th>El-yazimi Python dongusu</th>
+    <th>Native ARM64 / yedek</th><th>Fark</th></tr></thead><tbody>
+    {% for row in bench_rows %}
+    <tr><td class="mono">{{ row.size }} byte</td><td class="mono">{{ row.naive_ms }} ms</td>
+    <td class="mono">{{ row.native_ms }} ms</td><td class="mono">{{ row.speedup }}x</td></tr>
+    {% endfor %}
+    </tbody></table>
+  </div>
+</section>
 
 <section>
   <h2>🛑 Honeypot &mdash; Son Alarmlar <span class="count">{{ alerts|length }}</span></h2>
@@ -229,6 +359,11 @@ def index():
         scan_findings=scan_findings, honeypot_stats=honeypot_stats, waf_stats=waf_stats,
         waf_blocked_pct=waf_blocked_pct,
         now=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC"),
+        test_count=_count_tests(),
+        native_active=signature_engine.NATIVE_ENGINE_ACTIVE,
+        native_status=signature_engine.engine_status(),
+        github_url=GITHUB_URL,
+        bench_rows=_quick_benchmark(),
     )
 
 

@@ -26,3 +26,21 @@ sisteme saldırmaz veya sızmaz.
 gerçek bir zafiyet ya da saldırı tespit ederseniz, bunu ilgili sistemin
 sahibine önce özel olarak bildirin; kamuya açık paylaşım yapmadan önce
 makul bir düzeltme süresi tanıyın.
+
+## Faz 4 (Moving Target Defense) için ek not
+
+`python main.py mtd-demo` komutu, kendi honeypot servislerinizin
+kimliğini (banner sürümü, dinlenen port, sahte bir DNS yanıtı) periyodik
+olarak değiştirir. Bunu doğru anlamak önemli:
+
+- **Bu bir VPN, anonimleştirme aracı veya gerçek internete karşı kimlik
+  gizleme ürünü DEĞİLDİR.** Sadece sizin sahip olduğunuz, izole lab
+  ortamındaki sahte servislerin kimliğini değiştirir.
+- `arachne/mtd/dns_ghost.py`, işletim sisteminizin gerçek DNS ayarlarını
+  **değiştirmez**, port 53'ü **kullanmaz** — sadece belgelenmiş bir lab
+  portunda (varsayılan UDP 5300) çalışan, kendi kendine sorguladığınız
+  bir demo yanıtlayıcısıdır.
+- `arachne/mtd/port_hopper.py`'ın açtığı ek port da (varsayılan
+  9101-9105 havuzu) sadece localhost/izole ağınızda dinler; gerçek bir
+  hedefin kimliğini taklit etmez, sadece kendi sahte "hayalet admin"
+  servisinizin dinlediği portu değiştirir.

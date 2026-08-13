@@ -22,6 +22,8 @@ def generate_html_report(output_path="data/report.html", db_path=None) -> str:
     alerts = storage.get_all_alerts(limit=50, db_path=db_path)
     waf_stats = storage.waf_summary_stats(db_path=db_path)
     scan_findings = storage.get_scan_findings(limit=50, db_path=db_path)
+    mtd_rotations = storage.get_mtd_rotations(limit=50, db_path=db_path)
+    mtd_stats = storage.mtd_summary_stats(db_path=db_path)
     max_ip_count = max((c for _, c in stats["top_ips"]), default=0)
 
     top_ip_rows = "".join(
@@ -45,6 +47,12 @@ def generate_html_report(output_path="data/report.html", db_path=None) -> str:
         f"<td>{f['service_guess']}</td><td>{f['severity']}</td><td>{f['finding']}</td></tr>"
         for f in scan_findings
     ) or "<tr><td colspan='6'>Henuz tarama yapilmadi</td></tr>"
+
+    mtd_rows = "".join(
+        f"<tr><td>{r['timestamp']}</td><td>{r['component']}</td>"
+        f"<td>{r['old_identity'] or '-'}</td><td>{r['new_identity']}</td><td>{r['reason']}</td></tr>"
+        for r in mtd_rotations
+    ) or "<tr><td colspan='5'>Henuz rotasyon yok - once 'python main.py mtd-demo' calistirin</td></tr>"
 
     html = f"""<!DOCTYPE html>
 <html lang="tr">
@@ -71,6 +79,7 @@ def generate_html_report(output_path="data/report.html", db_path=None) -> str:
   <div class="card"><div class="n">{stats['total_alerts']}</div>Toplam alarm (honeypot)</div>
   <div class="card"><div class="n">{waf_stats['blocked_requests']}/{waf_stats['total_requests']}</div>WAF: engellenen/toplam istek</div>
   <div class="card"><div class="n">{len(scan_findings)}</div>Zafiyet taramasi bulgusu</div>
+  <div class="card"><div class="n">{mtd_stats['total_rotations']}</div>MTD rotasyonu (Faz 4)</div>
 </div>
 
 <h2>Siddet Dagilimi (Honeypot)</h2>
@@ -87,6 +96,11 @@ def generate_html_report(output_path="data/report.html", db_path=None) -> str:
 <h2>Zafiyet Tarama Bulgulari</h2>
 <table><tr><th>Zaman</th><th>Hedef</th><th>Port</th><th>Servis</th><th>Siddet</th><th>Bulgu</th></tr>
 {scan_rows}
+</table>
+
+<h2>Faz 4 &mdash; Moving Target Defense Rotasyonlari</h2>
+<table><tr><th>Zaman</th><th>Bilesen</th><th>Eski Kimlik</th><th>Yeni Kimlik</th><th>Sebep</th></tr>
+{mtd_rows}
 </table>
 
 </body>

@@ -119,6 +119,7 @@ body{
   border:1px solid rgba(46,204,113,0.3); color:var(--ok);
 }
 .phase .n{opacity:.7; font-weight:700;}
+.phase.phase-pending{background:rgba(139,147,167,0.08); border-color:rgba(139,147,167,0.25); color:var(--muted);}
 .hero-meta{display:flex; flex-wrap:wrap; gap:.55rem;}
 .pill{
   font-size:.75rem; font-weight:600; padding:.35rem .75rem; border-radius:20px;
@@ -139,6 +140,7 @@ body{
 .card.c-waf::before{--accent-card:var(--warn);}
 .card.c-scan::before{--accent-card:var(--ok);}
 .card.c-native::before{--accent-card:#a78bfa;}
+.card.c-mtd::before{--accent-card:#2dd4bf;}
 .card .label{color:var(--muted); font-size:.72rem; text-transform:uppercase; letter-spacing:.06em; margin-bottom:.35rem;}
 .card .n{font-size:1.9rem; font-weight:800; line-height:1;}
 .card .sub{margin-top:.5rem; font-size:.75rem; color:var(--muted);}
@@ -209,6 +211,7 @@ footer{max-width:1180px; margin:3rem auto 0; padding:0 2rem; color:var(--muted);
     <span class="phase">&check; Faz 1 <span class="n">Honeypot</span></span>
     <span class="phase">&check; Faz 2 <span class="n">WAF / Tarayici / ML</span></span>
     <span class="phase">&check; Faz 3 <span class="n">Native ARM64 Assembly</span></span>
+    <span class="phase {{ '' if mtd_stats.total_rotations else 'phase-pending' }}">{{ '&check;' if mtd_stats.total_rotations else '○' }} Faz 4 <span class="n">Moving Target Defense</span></span>
   </div>
   <div class="hero-meta">
     <span class="pill">{{ test_count }} birim testi</span>
@@ -248,6 +251,11 @@ footer{max-width:1180px; margin:3rem auto 0; padding:0 2rem; color:var(--muted);
     <div class="n" style="font-size:1.5rem">{{ 'AKTIF' if native_active else 'PASIF' }}</div>
     <div class="sub">{{ native_status }}</div>
   </div>
+  <div class="card c-mtd">
+    <div class="label">Hayalet Admin (Faz 4)</div>
+    <div class="n" style="font-size:1.5rem">{{ ':' ~ ghost_admin_port if ghost_admin_port else 'baslatilmadi' }}</div>
+    <div class="sub">{{ mtd_stats.total_rotations }} rotasyon kaydedildi &mdash; python main.py mtd-demo</div>
+  </div>
 </div>
 
 <section>
@@ -268,6 +276,29 @@ footer{max-width:1180px; margin:3rem auto 0; padding:0 2rem; color:var(--muted);
     {% for row in bench_rows %}
     <tr><td class="mono">{{ row.size }} byte</td><td class="mono">{{ row.naive_ms }} ms</td>
     <td class="mono">{{ row.native_ms }} ms</td><td class="mono">{{ row.speedup }}x</td></tr>
+    {% endfor %}
+    </tbody></table>
+  </div>
+</section>
+
+<section>
+  <h2>👻 Faz 4 &mdash; Moving Target Defense <span class="count">{{ mtd_rotations|length }}</span></h2>
+  <div class="table-card" style="padding:1.1rem 1.3rem;">
+    <p class="reasons" style="max-width:100%; margin:0 0 1rem 0;">
+      Korunan yuzeyin kimligi zamanla degisir: honeypot banner'lari periyodik
+      rotasyona ugrar, "hayalet admin" paneli gercekten port degistirir, ve
+      lab-ici bir "hayalet DNS" yanitlayicisi ayni isim icin farkli IP
+      dondurur. Amac gercek internete karsi anonimlik iddiasi degil,
+      saldirganin parmak izi cikarma/hedef sabitleme surecini zorlastirmak.
+      Baslatmak icin: <code>python main.py mtd-demo</code>
+    </p>
+    <table><thead><tr><th>Zaman</th><th>Bilesen</th><th>Eski Kimlik</th><th>Yeni Kimlik</th><th>Sebep</th></tr></thead><tbody>
+    {% for r in mtd_rotations %}
+    <tr><td class="mono muted">{{ r.timestamp }}</td><td class="mono">{{ r.component }}</td>
+    <td class="mono muted">{{ r.old_identity or '&mdash;' }}</td>
+    <td class="mono">{{ r.new_identity }}</td><td class="reasons">{{ r.reason }}</td></tr>
+    {% else %}
+    <tr class="empty-row"><td colspan="5">Henuz rotasyon yok<span class="hint">python main.py mtd-demo</span></td></tr>
     {% endfor %}
     </tbody></table>
   </div>
@@ -349,10 +380,17 @@ def index():
     scan_findings = storage.get_scan_findings(limit=30)
     honeypot_stats = storage.summary_stats()
     waf_stats = storage.waf_summary_stats()
+    mtd_rotations = storage.get_mtd_rotations(limit=30)
+    mtd_stats = storage.mtd_summary_stats()
 
     total_waf = waf_stats.get("total_requests") or 0
     blocked_waf = waf_stats.get("blocked_requests") or 0
     waf_blocked_pct = round((blocked_waf / total_waf) * 100) if total_waf else 0
+
+    ghost_admin_port = next(
+        (r["new_identity"] for r in mtd_rotations if r["component"] == "port:ghost-admin"),
+        None,
+    )
 
     return render_template_string(
         TEMPLATE, alerts=alerts, events=events, waf_events=waf_events,
@@ -364,6 +402,9 @@ def index():
         native_status=signature_engine.engine_status(),
         github_url=GITHUB_URL,
         bench_rows=_quick_benchmark(),
+        mtd_rotations=mtd_rotations,
+        mtd_stats=mtd_stats,
+        ghost_admin_port=ghost_admin_port,
     )
 
 

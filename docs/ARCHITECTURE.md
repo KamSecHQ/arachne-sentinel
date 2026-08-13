@@ -163,6 +163,57 @@ için bağımsız bir demo. İkisini karıştırmak ("hepsi tek bir dev sistem")
 yerine ayrı ayrı, her biri kendi başına savunulabilir iki küçük parça
 olarak tutuldu.
 
+## Faz 4: Moving Target Defense ("hayalet" savunma katmanı)
+
+```
+main.py mtd-demo
+   ├─▶ honeypot/listeners.start_all_services(rotator=IdentityRotator)
+   │       └─ baglanti geldiginde current_banner() cagirilir, arali
+   │          doldiyse rotasyon yapilir ve storage.mtd_rotations'a yazilir
+   ├─▶ mtd/port_hopper.PortHopper.run_forever()
+   │       └─ gercekten bir port havuzunda (9101-9105) periyodik olarak
+   │          kapanip yeniden acilir, her sicrama loglanir
+   └─▶ mtd/dns_ghost.run_forever()
+           └─ udp 5300'de dinler, her sorguda (veya N sorguda bir) farkli
+              bir yerel IP dondurur, her rotasyon loglanir
+```
+
+**Neden buna "hayalet" deniyor ama bir VPN/anonimlik ürünü değil?**
+Projenin ilk tasarım tartışmalarında hedef, "saldırganlara karşı görünmez
+olmak" gibi büyük bir iddiaydı. Bunu iki ayrı soruna ayırdık: (a) *sizi*
+(kullanıcıyı) gerçek internette anonimleştirmek — bu, Tor Project gibi
+tek başına bir şirketin işi, bizim ölçeğimizde gerçekçi değil; (b) *kendi
+korunan sisteminizin* kimliğini saldırgana karşı hareketli/kararsız bir
+hedef haline getirmek — bu, "moving target defense" (MTD) olarak bilinen,
+akademik güvenlik literatüründe (DARPA'nın da fon ayırdığı) gerçek bir
+savunma kategorisi ve tam olarak bizim ölçeğimizde, gerçekten
+uygulanabilir. Faz 4, sadece (b)'yi hedefler.
+
+**Rotasyon neden "tembel" (lazy), ayrı bir arka plan thread'i değil?**
+`IdentityRotator.current_banner()` her çağrıldığında (yani her yeni
+bağlantıda) süresi dolup dolmadığını kontrol eder ve gerekirse o anda
+rotasyon yapar. Bu, honeypot'un tek-thread'li asyncio döngüsüne ek bir
+zamanlayıcı/thread senkronizasyonu karmaşıklığı eklemeden, deterministik
+ve test edilebilir (sahte bir `clock` fonksiyonu enjekte edilebilir)
+kalmasını sağlar.
+
+**`port_hopper.py` gerçekten socket kapatıp yeniden açıyor mu, yoksa
+simülasyon mu?** Gerçekten kapatıp açıyor: `asyncio.start_server`/`Server.
+close()`/`wait_closed()` ile gerçek bir TCP dinleyicisi bir portta durur,
+port havuzundaki bir sonraki portta yeniden başlar. `tests/test_mtd.py`
+bunu gerçek (rastgele, işletim sisteminden alınmış boş) portlarla uçtan
+uca doğrular - hem `hop()` çağrısının portu gerçekten değiştirdiğini hem
+de yeni port üzerinden gerçek bir HTTP isteğinin yanıtlanabildiğini test
+eder.
+
+**`dns_ghost.py` neden kendi DNS paket ayrıştırıcısını yazdı, bir
+kütüphane kullanmadı?** Bilinçli bir tercih (Faz 3'teki "kendi soket
+kodunu yaz" ilkesiyle tutarlı): RFC 1035'in küçük, tek-soru/tek-A-kaydı
+alt kümesini elle ayrıştırıp üretmek, hem "DNS paketi aslında nasıl
+görünür" sorusuna gerçek bir cevap hem de test edilebilir, bağımsız bir
+kod parçası. Gerçek bir üretim DNS sunucusu (BIND, dnsmasq vb.) yerine
+geçmez ve bunu iddia etmiyoruz.
+
 ## Modül sorumlulukları
 
 | Modül | Sorumluluk |
@@ -182,10 +233,13 @@ olarak tutuldu.
 | `arachne/scanner/vuln_scanner.py` | Tarama + eşleştirmeyi birleştirip storage'a yazar |
 | `arachne/detection/training_data.py` | ML modeli için etiketli örnek veri |
 | `arachne/detection/ml_classifier.py` | TF-IDF + Logistic Regression sınıflandırıcı |
-| `main.py` | CLI giriş noktası (`run` / `report` / `dashboard` / `waf-demo` / `scan` / `train-ml`) |
+| `main.py` | CLI giriş noktası (`run` / `report` / `dashboard` / `waf-demo` / `scan` / `train-ml` / `mtd-demo`) |
 | `scripts/demo_attack.py` | Honeypot için kendi kendini test eden saldırı simülasyonu |
 | `scripts/demo_waf_attack.py` | WAF için kendi kendini test eden saldırı simülasyonu |
 | `arachne/native/arm64/fast_scan.s` | ARM64 assembly imza tarama çekirdeği (`az_find`, `az_scan_multi`) |
 | `arachne/native/signature_engine.py` | ctypes köprüsü + platform-bağımsız Python yedeği |
 | `arachne/native/tools/byte_inspector.s` | Bağımsız native CLI: dosyada bilinen imza taraması |
 | `scripts/benchmark_native_scan.py` | Native vs el-yazımı Python vs Python stdlib dürüst kıyaslaması |
+| `arachne/mtd/identity_rotator.py` | Honeypot banner/sürüm kimliğinin periyodik rotasyonu |
+| `arachne/mtd/port_hopper.py` | Gerçekten port değiştiren "hayalet admin" servisi |
+| `arachne/mtd/dns_ghost.py` | Lab-içi, rotasyonlu sahte DNS yanıtlayıcısı |

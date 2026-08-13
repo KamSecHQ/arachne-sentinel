@@ -47,10 +47,21 @@ sonuçlarla dikkat çekmek — her alarmın *neden* verildiği açıkça görül
   (`arachne/native/tools/byte_inspector.s`)
 - Detaylar ve dürüst kıyaslama: [arachne/native/README.md](arachne/native/README.md)
 
+**Faz 4 — Moving Target Defense ("hayalet" savunma katmanı):**
+- **Banner/sürüm rotasyonu** (`arachne/mtd/identity_rotator.py`): honeypot
+  servisleri zamanla farklı bir sürüm gösterir, parmak izi çıkarmayı zorlaştırır
+- **Gerçekten port değiştiren "hayalet admin" servisi**
+  (`arachne/mtd/port_hopper.py`): periyodik olarak farklı bir portta yeniden açılır
+- **Lab-içi "hayalet DNS" yanıtlayıcısı** (`arachne/mtd/dns_ghost.py`): aynı
+  isim sorgulandığında rotasyonlu farklı bir (yerel) IP döner
+- ⚠️ Bu bir VPN/anonimlik ürünü değildir — gerçek internete karşı kimlik
+  gizleme iddiası taşımaz, sadece kendi izole lab ortamınızdaki sahte
+  servislerin kimliğini değiştirir. Detaylar: docs/ARCHITECTURE.md "Faz 4"
+
 **Ortak:**
-- **Otomatik HTML raporu** (honeypot + WAF + tarama bulgularını tek sayfada
-  birleştirir) ve **canlı web paneli** (`arachne/reporting/`)
-- **39 birim testi** (`tests/`) ve kendi kendini test eden demo saldırı
+- **Otomatik HTML raporu** (honeypot + WAF + tarama + MTD rotasyonlarını tek
+  sayfada birleştirir) ve **canlı web paneli** (`arachne/reporting/`)
+- **49 birim testi** (`tests/`) ve kendi kendini test eden demo saldırı
   scriptleri (`scripts/`)
 
 ## Kurulum
@@ -96,6 +107,10 @@ python3 -c "from arachne.native import signature_engine as s; print(s.engine_sta
 
 # 10) Native vs Python dürüst kıyaslaması
 python3 scripts/benchmark_native_scan.py
+
+# 11) Moving Target Defense demosu (Faz 4) - honeypot banner rotasyonu +
+#     gercekten port degistiren hayalet admin + lab-ici hayalet DNS
+python main.py mtd-demo
 ```
 
 ## Testler

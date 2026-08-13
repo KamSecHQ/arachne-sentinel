@@ -75,15 +75,47 @@ x86-64) edinildiğinde aynı fonksiyonların x86-64 (NASM/GAS) versiyonu
 eklenerek iki mimari arasında bir performans/taşınabilirlik karşılaştırması
 yapılabilir; uluslararası CTF'lere (Google CTF, DEF CON quals gibi) katılım.
 
-## Faz 4 — Yıl 3-4: Moving Target Defense ve stretch-goal'lar
+## Faz 4 — Moving Target Defense: "hayalet" savunma katmanı (tamamlandı)
 
-- Yalnızca izole lab/VM ortamında: dinamik port/servis rotasyonu (moving
-  target defense) simülasyonu
-- DDoS tespiti için basit trafik-anomali analizi (yine izole ortamda,
-  gerçek internet trafiğine karşı değil)
-- Trafik gizleme / anonimlik kavramını kanıtlayan küçük ölçekli bir
-  prototip (tam bir VPN ürünü değil — bu ölçek tek başına ayrı bir şirketin
-  işi, bkz. Tor Project)
+- [x] **Banner/sürüm rotasyonu** (`arachne/mtd/identity_rotator.py`):
+  honeypot servisleri zaman içinde farklı bir sürüm banner'ı gösterir; bir
+  saldırgan iki farklı taramada iki farklı "sürüm" görür, güvenilir bir
+  parmak izi (fingerprint) çıkaramaz. Saat enjekte edilebilir, deterministik
+  test edildi.
+- [x] **Gerçekten port değiştiren "hayalet admin" servisi**
+  (`arachne/mtd/port_hopper.py`): bir port havuzu içinde periyodik olarak
+  kapanıp başka bir portta yeniden açılır; saldırgan önceki taramada
+  bulduğu portu tekrar denerse artık orada kimse yoktur. Her sıçrama
+  `mtd_rotations` tablosuna kaydedilir.
+- [x] **Lab-içi "hayalet DNS" yanıtlayıcısı** (`arachne/mtd/dns_ghost.py`):
+  DNS paket formatının minimal bir alt kümesini elle ayrıştırıp üreten,
+  aynı isim sorgulandığında rotasyonlu farklı bir (yerel) IP döndüren bir
+  UDP yanıtlayıcı — "DNS tabanlı moving target defense" kavramının somut,
+  çalışan bir kanıtı. Gerçek sistem DNS'ini değiştirmez, port 53
+  kullanmaz (bkz. docs/ETHICS_AND_LEGAL.md).
+- [x] `python main.py mtd-demo` ile üçü birden başlatılabilir; canlı
+  panelde ve statik raporda ayrı bir "Faz 4" bölümü, tüm rotasyonları
+  zaman çizelgesi olarak gösterir.
+- [x] 10 yeni birim testi (toplam 49) — banner rotasyonunun zamanlaması,
+  DNS paket ayrıştırma/üretme round-trip'i, port hopper'ın gerçek
+  soket bağlama/kapatma davranışı dahil.
+
+**Bilinçli kapsam sınırlaması ve netlik:** Bu faz **gerçek internete karşı
+bir VPN/anonimlik ürünü değildir** — böyle bir ürün, tek başına ayrı bir
+şirketin işi (bkz. Tor Project, ticari VPN sağlayıcıları). Burada
+kurduğumuz şey, akademik güvenlik literatüründe tanınan "moving target
+defense" kavramının küçük ama gerçek, test edilmiş bir uygulaması: kendi
+korunan (sahte) yüzeyinizin kimliği zamanla değişir, böylece saldırganın
+harita çıkarma/hedef sabitleme süreci zorlaşır. Bu, "sizi görünmez
+yaparız" gibi abartılı bir pazarlama iddiası yerine, ölçülebilir ve
+savunulabilir bir mühendislik iddiasıdır — tam da bu projenin baştan beri
+takip ettiği ilkeye uygun (bkz. "Sabit ilkeler" bölümü).
+
+**Sıradaki hedef (stretch-goal, isteğe bağlı):** DDoS tespiti için basit
+trafik-anomali analizi (yine izole ortamda, gerçek internet trafiğine
+karşı değil); ikinci bilgisayar edinildiğinde x86-64 assembly versiyonu
+(bkz. Faz 3 notu); uluslararası CTF'lere (Google CTF, DEF CON quals gibi)
+katılım.
 
 ## Sabit ilkeler (her fazda geçerli)
 

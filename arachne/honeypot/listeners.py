@@ -50,13 +50,17 @@ def _evaluate_and_log_alarm(source_ip):
     return result
 
 
-async def _handle_generic(service_name: str, dest_port: int, reader, writer):
+async def _handle_generic(service_name: str, dest_port: int, reader, writer, rotator=None):
     source_ip, source_port = _peer_info(writer)
     storage.log_event(source_ip, service_name, "connect", source_port=source_port,
                        dest_port=dest_port)
     logger.info("baglanti: %s -> %s (port %s)", source_ip, service_name, dest_port)
 
-    banner = config.FAKE_SERVICES[service_name].get("banner")
+    # Faz 4 (Moving Target Defense) aktifse rotator'dan zaman icinde degisen
+    # banner'i kullan; aktif degilse (varsayilan) config.py'deki sabit
+    # banner'i kullan - davranis Faz 1-3 ile birebir ayni kalir.
+    banner = (rotator.current_banner(service_name) if rotator else None) \
+        or config.FAKE_SERVICES[service_name].get("banner")
     try:
         if banner:
             writer.write(banner.encode(errors="ignore"))
@@ -74,9 +78,9 @@ async def _handle_generic(service_name: str, dest_port: int, reader, writer):
     _evaluate_and_log_alarm(source_ip)
 
 
-def _make_generic_handler(service_name: str, dest_port: int):
+def _make_generic_handler(service_name: str, dest_port: int, rotator=None):
     async def handler(reader, writer):
-        await _handle_generic(service_name, dest_port, reader, writer)
+        await _handle_generic(service_name, dest_port, reader, writer, rotator=rotator)
     return handler
 
 
@@ -117,9 +121,14 @@ async def _handle_http_admin(dest_port: int, reader, writer):
     _evaluate_and_log_alarm(source_ip)
 
 
-async def start_all_services():
+async def start_all_services(rotator=None):
     """Config.FAKE_SERVICES icinde tanimli tum sahte servisleri baslatir ve
-    sonsuza kadar (Ctrl+C ile durdurulana dek) calistirir."""
+    sonsuza kadar (Ctrl+C ile durdurulana dek) calistirir.
+
+    rotator verilirse (bkz. arachne/mtd/identity_rotator.py), servisler
+    sabit banner yerine zaman icinde donen bir banner kullanir (Faz 4:
+    Moving Target Defense) - varsayilan (rotator=None) davranis Faz 1-3
+    ile birebir aynidir."""
     storage.init_db()
     servers = []
     for service_name, cfg in config.FAKE_SERVICES.items():
@@ -127,7 +136,7 @@ async def start_all_services():
         if service_name == "http-admin":
             handler = lambda r, w, p=port: _handle_http_admin(p, r, w)
         else:
-            handler = _make_generic_handler(service_name, port)
+            handler = _make_generic_handler(service_name, port, rotator=rotator)
         server = await asyncio.start_server(handler, "0.0.0.0", port)
         servers.append(server)
         logger.info("%s honeypot dinlemede: 0.0.0.0:%s", service_name, port)

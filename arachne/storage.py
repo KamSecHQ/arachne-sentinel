@@ -49,10 +49,20 @@ CREATE TABLE IF NOT EXISTS scan_findings (
     severity TEXT
 );
 
+CREATE TABLE IF NOT EXISTS mtd_rotations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    timestamp TEXT NOT NULL,
+    component TEXT NOT NULL,
+    old_identity TEXT,
+    new_identity TEXT NOT NULL,
+    reason TEXT
+);
+
 CREATE INDEX IF NOT EXISTS idx_events_ip_time ON events(source_ip, timestamp);
 CREATE INDEX IF NOT EXISTS idx_alerts_ip_time ON alerts(source_ip, timestamp);
 CREATE INDEX IF NOT EXISTS idx_waf_ip_time ON waf_events(source_ip, timestamp);
 CREATE INDEX IF NOT EXISTS idx_scan_target_time ON scan_findings(target, timestamp);
+CREATE INDEX IF NOT EXISTS idx_mtd_component_time ON mtd_rotations(component, timestamp);
 """
 
 
@@ -175,6 +185,39 @@ def get_scan_findings(target=None, limit=200, db_path=None):
     params.append(limit)
     with get_conn(db_path) as conn:
         return [dict(row) for row in conn.execute(query, params).fetchall()]
+
+
+def log_mtd_rotation(component, new_identity, old_identity=None, reason=None, db_path=None):
+    with get_conn(db_path) as conn:
+        conn.execute(
+            "INSERT INTO mtd_rotations (timestamp, component, old_identity, "
+            "new_identity, reason) VALUES (?, ?, ?, ?, ?)",
+            (_now(), component, old_identity, new_identity, reason),
+        )
+
+
+def get_mtd_rotations(component=None, limit=200, db_path=None):
+    query = "SELECT * FROM mtd_rotations"
+    params = []
+    if component:
+        query += " WHERE component = ?"
+        params.append(component)
+    query += " ORDER BY timestamp DESC LIMIT ?"
+    params.append(limit)
+    with get_conn(db_path) as conn:
+        return [dict(row) for row in conn.execute(query, params).fetchall()]
+
+
+def mtd_summary_stats(db_path=None):
+    with get_conn(db_path) as conn:
+        total = conn.execute("SELECT COUNT(*) c FROM mtd_rotations").fetchone()["c"]
+        by_component = conn.execute(
+            "SELECT component, COUNT(*) c FROM mtd_rotations GROUP BY component"
+        ).fetchall()
+        return {
+            "total_rotations": total,
+            "by_component": {r["component"]: r["c"] for r in by_component},
+        }
 
 
 def summary_stats(db_path=None):

@@ -5,3 +5,7 @@ venv/
 data/*.db
 data/report.html
 .DS_Store
+arachne/native/arm64/build/
+arachne/native/tools/build/
+*.dylib
+*.o

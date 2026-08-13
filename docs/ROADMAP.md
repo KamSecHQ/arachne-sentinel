@@ -33,14 +33,47 @@ bir ürüne kademeli olarak büyütme planını içerir.
 olgunlukta bir "araştırma projesi" paketi (rapor + demo + kod) hazırlamak —
 elimizdeki sistem artık bunun icin teknik olarak yeterli olgunlukta.
 
-## Faz 3 — Yıl 2: Düşük seviye bileşenler
+## Faz 3 — düşük seviye bileşen: ARM64 assembly imza tarama çekirdeği (tamamlandı)
 
-- C ve Assembly bilgisi olgunlaştıkça: basit bir imza/pattern tabanlı
-  tespit modülünün düşük seviye (C/asm) bir versiyonu, ya da küçük bir
-  ikili analiz (binary analysis) yardımcı aracı
-- Bu fazın hedefi "100 katman" değil — **az ama gerçekten sizin yazdığınız,
-  savunabileceğiniz** bir düşük seviye bileşen eklemek
-- Uluslararası CTF'lere (Google CTF, DEF CON quals gibi) katılım
+- [x] Honeypot kural motorunun (`rule_known_signature`) merkezinde yer alan
+  "bu payload'da bilinen bir saldırı imzası var mı?" sorusunu cevaplayan
+  gerçek bir işlevsel çekirdek, elle yazılmış **ARM64 assembly** ile
+  (`arachne/native/arm64/fast_scan.s`) — Apple Silicon (M-serisi) Mac'lerde
+  native olarak derlenip çalışır
+- [x] `az_find` (tek imza arama) ve `az_scan_multi` (32'ye kadar imzayı tek
+  taramada bitmask olarak döndüren toplu tarama) fonksiyonları, AAPCS64
+  (standart ARM64 çağırma kuralı) ile C/Python'dan doğrudan çağrılabilir
+- [x] Python tarafında `ctypes` köprüsü (`arachne/native/signature_engine.py`)
+  — native kütüphane yoksa (Intel Mac, Linux, CI, henüz derlenmemiş kurulum)
+  **otomatik ve sessizce** birebir aynı sonucu üreten bir Python yedeğine
+  düşer; davranış hiçbir zaman platforma bağlı değişmez, sadece hız değişir
+- [x] Bağımsız bir CLI aracı (`arachne/native/tools/byte_inspector.s`) —
+  projeden tamamen ayrı, tek başına çalışan bir ikili; gerçek dosya G/Ç'si
+  (`fopen`/`fread`/`fclose`) ve `printf` çağrılarını doğrudan assembly'den
+  yapar
+- [x] Doğrulama: mantık önce Linux ARM64 üzerinde (`qemu-aarch64` ile gerçek
+  CPU emülasyonu) 20.000+ rastgele (fuzz) test + el ile yazılmış kenar durum
+  testleriyle kanıtlandı, ardından Mach-O/Apple clang'e özgü farklarla
+  (`_` sembol öneki, `@PAGE`/`@PAGEOFF` adresleme) Mac'e taşındı
+- [x] Dürüst kıyaslama scripti (`scripts/benchmark_native_scan.py`): "el
+  yazımı Python döngüsü vs el yazımı assembly" ve "Python'un kendi
+  `str.find()`'ı vs assembly" ayrı ayrı ölçülür — abartılı "assembly her
+  zaman kazanır" iddiası yerine farkın nereden geldiği gösterilir
+- [x] 39 birim testi (29 + 10 yeni), hepsi native motor pasifken de (Python
+  yedeği üzerinden) geçiyor — CI/sandbox gibi Apple Silicon olmayan
+  ortamlarda proje bozulmuyor
+
+**Bilinçli kapsam sınırlaması:** WAF katmanının regex tabanlı imza motoru
+(`arachne/waf/rules.py`) bu fazın kapsamı DIŞINDA tutuldu — elle yazılmış bir
+regex motoru, doğruluğu kanıtlanması çok daha zor bir güvenlik riski olurdu.
+Assembly çekirdeği, honeypot'un daha basit alt-string eşleşmesine
+odaklandı; bu "az ama gerçekten sizin yazdığınız, savunabileceğiniz" ilkesine
+uygun bir seçimdir.
+
+**Sıradaki hedef (Faz 3 devamı, isteğe bağlı):** İkinci bilgisayar (Windows/
+x86-64) edinildiğinde aynı fonksiyonların x86-64 (NASM/GAS) versiyonu
+eklenerek iki mimari arasında bir performans/taşınabilirlik karşılaştırması
+yapılabilir; uluslararası CTF'lere (Google CTF, DEF CON quals gibi) katılım.
 
 ## Faz 4 — Yıl 3-4: Moving Target Defense ve stretch-goal'lar
 

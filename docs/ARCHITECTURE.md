@@ -110,6 +110,59 @@ NVD API gibi güncel bir kaynakla değiştirilmesi gerektiği README'de ve
 ROADMAP'te açıkça belirtiliyor (yanlış/abartılı bir "gerçek zamanlı CVE
 tarayıcısı" iddiası olmasın diye).
 
+## Faz 3: ARM64 assembly imza tarama çekirdeği
+
+```
+detection/rules.py (rule_known_signature)
+        │
+        ▼
+native/signature_engine.py  ── ctypes ──▶  native/arm64/fast_scan.s  (Apple Silicon)
+        │                                    (az_find / az_scan_multi)
+        │ (native yoksa/uyumsuz platform)
+        ▼
+   Python fallback (bytes.find tabanlı, BİREBİR aynı sonuç)
+
+native/tools/byte_inspector.s  ── bağımsız CLI, projeden ayrı çalışır
+```
+
+**Neden ctypes köprüsü + zorunlu Python yedeği, sadece native değil?**
+Projenin geri kalanı (dolayısıyla testleri, CI'ı, honeypot'un doğruluğu) bir
+tek platforma (Apple Silicon Mac) bağımlı olamaz. `signature_engine.py` bu
+yüzden native kütüphaneyi *fırsatçı* bir hızlandırma olarak ele alır: varsa
+kullanır, yoksa aynı girdi/çıktı sözleşmesine sahip bir Python fonksiyonuna
+sessizce düşer. `rule_known_signature`'ın davranışı (hangi imza, hangi
+sırada eşleşir) her iki yolda da birebir aynıdır — bunu hem el ile yazılmış
+hem fuzz testlerle doğruladık. Bu, "assembly'yi göstermek için assembly
+kullanmak" yerine, gerçekten kullanılan bir bileşeni hızlandırmak demektir.
+
+**Neden ARM64 (Apple Silicon), x86-64 değil?** Elimizdeki donanım MacBook
+M3 — native derlenmiş bir `.dylib`'in gerçekten çalıştığını uçtan uca
+görebileceğimiz tek mimari bu. x86-64 çoğu CTF/eğitim materyalinin standardı
+olduğu için ikinci bir bilgisayar edinildiğinde ayrı bir hedef olarak
+eklenmesi planlanıyor (bkz. ROADMAP.md); iki mimariyi aynı anda "doğru"
+yapmaya çalışmak bu fazda kapsamı gereksiz büyütürdü.
+
+**Mantık nasıl doğrulandı, sadece "derlendi, çalıştı" mı?** Hayır — bu
+sandbox x86_64 Linux olduğu için Apple'ın Mach-O ARM64 ikili biçimini
+doğrudan çalıştıramıyoruz. Bunun yerine iki adımlı bir doğrulama yapıldı:
+(1) aynı assembly mantığı, sembol isimlendirmesi dışında değiştirilmeden,
+`aarch64-linux-gnu-as`/`gcc` ile **gerçek ARM64 makine koduna** derlenip
+`qemu-aarch64` üzerinde (donanım seviyesinde CPU emülasyonu, yorumlama
+değil) 20.000+ rastgele girdiyle C'nin `strstr`'ına karşı fuzz test edildi
+— 0 uyuşmazlık; (2) Mac'e taşınırken SADECE Mach-O/Apple clang'e özgü
+sözdizimi farkları uygulandı: dış sembollere `_` öneki (`az_find` →
+`_az_find`, tıpkı C derleyicisinin her zaman yaptığı gibi) ve adresleme için
+GNU/ELF'in `:lo12:` yerine Apple'ın `@PAGE`/`@PAGEOFF` eki. Hesaplama
+mantığının kendisi (register kullanımı, karşılaştırma/döngü sırası)
+dokunulmadan taşındı.
+
+**`byte_inspector` neden ayrı, projeye entegre olmayan bir araç?** Bilinçli
+bir tercih: `fast_scan.s` gerçek bir üretim bileşeni (WAF/honeypot'un
+kullandığı), `byte_inspector` ise saf assembly + libc I/O pratiği yapmak
+için bağımsız bir demo. İkisini karıştırmak ("hepsi tek bir dev sistem")
+yerine ayrı ayrı, her biri kendi başına savunulabilir iki küçük parça
+olarak tutuldu.
+
 ## Modül sorumlulukları
 
 | Modül | Sorumluluk |
@@ -132,3 +185,7 @@ tarayıcısı" iddiası olmasın diye).
 | `main.py` | CLI giriş noktası (`run` / `report` / `dashboard` / `waf-demo` / `scan` / `train-ml`) |
 | `scripts/demo_attack.py` | Honeypot için kendi kendini test eden saldırı simülasyonu |
 | `scripts/demo_waf_attack.py` | WAF için kendi kendini test eden saldırı simülasyonu |
+| `arachne/native/arm64/fast_scan.s` | ARM64 assembly imza tarama çekirdeği (`az_find`, `az_scan_multi`) |
+| `arachne/native/signature_engine.py` | ctypes köprüsü + platform-bağımsız Python yedeği |
+| `arachne/native/tools/byte_inspector.s` | Bağımsız native CLI: dosyada bilinen imza taraması |
+| `scripts/benchmark_native_scan.py` | Native vs el-yazımı Python vs Python stdlib dürüst kıyaslaması |

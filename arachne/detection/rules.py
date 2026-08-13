@@ -17,6 +17,7 @@ docs/ROADMAP.md).
 from collections import Counter
 
 from .. import config
+from ..native import signature_engine
 
 # Bilinen saldiri imzalari: kategori -> aranacak alt string'ler (kucuk harfe
 # cevrilmis payload icinde aranir)
@@ -52,17 +53,24 @@ def rule_brute_force(events):
 
 
 def rule_known_signature(events):
-    """Gonderilen veri (payload) icinde bilinen bir saldiri imzasi var mi?"""
+    """Gonderilen veri (payload) icinde bilinen bir saldiri imzasi var mi?
+
+    Asil eslesme mantigi `native.signature_engine` uzerinden calisir: Apple
+    Silicon Mac'te elle yazilmis ARM64 assembly (bkz.
+    arachne/native/arm64/fast_scan.s) ile, diger her platformda ayni sonucu
+    ureten bir Python yedegiyle. Hangi yolun aktif oldugu davranisi
+    DEGISTIRMEZ - sadece calisma hizini etkiler (bkz. docs/ARCHITECTURE.md,
+    scripts/benchmark_native_scan.py)."""
     for e in events:
         payload = (e.get("payload") or "").lower()
         if not payload:
             continue
         for attack_name, signatures in ATTACK_SIGNATURES.items():
-            for sig in signatures:
-                if sig in payload:
-                    return True, (
-                        f"Bilinen saldiri imzasi tespit edildi: {attack_name} (icerik: '{sig}')"
-                    ), 50
+            matched = signature_engine.contains_any(payload, signatures)
+            if matched:
+                return True, (
+                    f"Bilinen saldiri imzasi tespit edildi: {attack_name} (icerik: '{matched[0]}')"
+                ), 50
     return False, None, 0
 
 

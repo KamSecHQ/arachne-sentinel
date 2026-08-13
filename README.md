@@ -38,10 +38,19 @@ sonuçlarla dikkat çekmek — her alarmın *neden* verildiği açıkça görül
   TF-IDF + Logistic Regression ile, kural motoruna ek bir sinyal olarak
   çalışan, hafif obfuske edilmiş varyasyonları da yakalayabilen bir model
 
+**Faz 3 — Native ARM64 assembly imza tarama çekirdeği:**
+- Honeypot kural motorunun kullandığı imza taramasının çekirdeği, elle
+  yazılmış **ARM64 assembly** ile (`arachne/native/arm64/fast_scan.s`) —
+  Apple Silicon (M-serisi) Mac'lerde native çalışır, diğer platformlarda
+  otomatik olarak birebir aynı sonucu üreten bir Python yedeğine düşer
+- Projeden bağımsız, tek başına çalışan bir native CLI aracı
+  (`arachne/native/tools/byte_inspector.s`)
+- Detaylar ve dürüst kıyaslama: [arachne/native/README.md](arachne/native/README.md)
+
 **Ortak:**
 - **Otomatik HTML raporu** (honeypot + WAF + tarama bulgularını tek sayfada
   birleştirir) ve **canlı web paneli** (`arachne/reporting/`)
-- **29 birim testi** (`tests/`) ve kendi kendini test eden demo saldırı
+- **39 birim testi** (`tests/`) ve kendi kendini test eden demo saldırı
   scriptleri (`scripts/`)
 
 ## Kurulum
@@ -80,6 +89,13 @@ python main.py scan --host 127.0.0.1
 
 # 8) ML sınıflandırıcısını yeniden eğitin (opsiyonel, ilk kullanımda otomatik eğitilir)
 python main.py train-ml
+
+# 9) (Apple Silicon Mac) Native ARM64 assembly imza tarama çekirdeğini derleyin
+cd arachne/native/arm64 && make && cd ../../..
+python3 -c "from arachne.native import signature_engine as s; print(s.engine_status())"
+
+# 10) Native vs Python dürüst kıyaslaması
+python3 scripts/benchmark_native_scan.py
 ```
 
 ## Testler

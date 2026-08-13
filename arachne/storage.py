@@ -27,8 +27,32 @@ CREATE TABLE IF NOT EXISTS alerts (
     reasons TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS waf_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    timestamp TEXT NOT NULL,
+    source_ip TEXT NOT NULL,
+    method TEXT,
+    path TEXT,
+    score INTEGER NOT NULL,
+    blocked INTEGER NOT NULL,
+    reasons TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS scan_findings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    timestamp TEXT NOT NULL,
+    target TEXT NOT NULL,
+    port INTEGER NOT NULL,
+    service_guess TEXT,
+    banner TEXT,
+    finding TEXT,
+    severity TEXT
+);
+
 CREATE INDEX IF NOT EXISTS idx_events_ip_time ON events(source_ip, timestamp);
 CREATE INDEX IF NOT EXISTS idx_alerts_ip_time ON alerts(source_ip, timestamp);
+CREATE INDEX IF NOT EXISTS idx_waf_ip_time ON waf_events(source_ip, timestamp);
+CREATE INDEX IF NOT EXISTS idx_scan_target_time ON scan_findings(target, timestamp);
 """
 
 
@@ -103,6 +127,54 @@ def has_prior_alert(source_ip, db_path=None):
             "SELECT COUNT(*) as c FROM alerts WHERE source_ip = ?", (source_ip,)
         ).fetchone()
         return row["c"] > 0
+
+
+def log_waf_event(source_ip, method, path, score, blocked, reasons, db_path=None):
+    with get_conn(db_path) as conn:
+        conn.execute(
+            "INSERT INTO waf_events (timestamp, source_ip, method, path, score, "
+            "blocked, reasons) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (_now(), source_ip, method, path, score, int(blocked),
+             json.dumps(reasons, ensure_ascii=False)),
+        )
+
+
+def get_waf_events(limit=200, db_path=None):
+    with get_conn(db_path) as conn:
+        rows = conn.execute(
+            "SELECT * FROM waf_events ORDER BY timestamp DESC LIMIT ?", (limit,)
+        ).fetchall()
+        return [dict(row) for row in rows]
+
+
+def waf_summary_stats(db_path=None):
+    with get_conn(db_path) as conn:
+        total = conn.execute("SELECT COUNT(*) c FROM waf_events").fetchone()["c"]
+        blocked = conn.execute(
+            "SELECT COUNT(*) c FROM waf_events WHERE blocked = 1"
+        ).fetchone()["c"]
+        return {"total_requests": total, "blocked_requests": blocked}
+
+
+def log_scan_finding(target, port, service_guess, banner, finding, severity, db_path=None):
+    with get_conn(db_path) as conn:
+        conn.execute(
+            "INSERT INTO scan_findings (timestamp, target, port, service_guess, "
+            "banner, finding, severity) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (_now(), target, port, service_guess, banner, finding, severity),
+        )
+
+
+def get_scan_findings(target=None, limit=200, db_path=None):
+    query = "SELECT * FROM scan_findings"
+    params = []
+    if target:
+        query += " WHERE target = ?"
+        params.append(target)
+    query += " ORDER BY timestamp DESC LIMIT ?"
+    params.append(limit)
+    with get_conn(db_path) as conn:
+        return [dict(row) for row in conn.execute(query, params).fetchall()]
 
 
 def summary_stats(db_path=None):

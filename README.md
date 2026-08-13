@@ -18,16 +18,31 @@ teknolojisi, IDS, WAF) küçük ölçekli ama **gerçekten çalışan** bir vers
 olarak tasarlandı. Amaç büyük iddialarla değil, ölçülebilir ve savunulabilir
 sonuçlarla dikkat çekmek — her alarmın *neden* verildiği açıkça görülebilir.
 
-## Özellikler (v0.1)
+## Özellikler
 
+**Faz 1 — Honeypot ve tespit motoru:**
 - **4 sahte servis**: SSH, FTP, MySQL, HTTP "admin panel" (`arachne/honeypot/`)
 - **SQLite tabanlı olay/alarm günlüğü** (`arachne/storage.py`)
 - **Açıklanabilir kural motoru** (`arachne/detection/`): port taraması,
   brute-force, bilinen SQLi/XSS/command-injection/path-traversal imzaları,
   çoklu servis keşfi, tekrarlayan saldırgan tespiti
-- **Otomatik HTML raporu** ve **canlı web paneli** (`arachne/reporting/`)
-- **13 birim testi** (`tests/`) ve kendi kendini test eden bir demo saldırı
-  scripti (`scripts/demo_attack.py`)
+
+**Faz 2 — WAF, otonom tarayıcı ve ML sınıflandırıcı:**
+- **WAF katmanı** (`arachne/waf/`): herhangi bir WSGI uygulamasının önüne
+  konabilen, regex tabanlı imza motoru + rate-limiting içeren middleware;
+  bilinçli olarak zafiyetli, tamamen yerel bir demo uygulaması ile birlikte
+  gelir (`arachne/waf/demo_app.py`)
+- **Otonom zafiyet tarayıcı** (`arachne/scanner/`): bağımsız port tarama +
+  banner grabbing + bilinen zafiyet eşleştirme
+- **ML tabanlı saldırı sınıflandırıcısı** (`arachne/detection/ml_classifier.py`):
+  TF-IDF + Logistic Regression ile, kural motoruna ek bir sinyal olarak
+  çalışan, hafif obfuske edilmiş varyasyonları da yakalayabilen bir model
+
+**Ortak:**
+- **Otomatik HTML raporu** (honeypot + WAF + tarama bulgularını tek sayfada
+  birleştirir) ve **canlı web paneli** (`arachne/reporting/`)
+- **29 birim testi** (`tests/`) ve kendi kendini test eden demo saldırı
+  scriptleri (`scripts/`)
 
 ## Kurulum
 
@@ -51,6 +66,20 @@ python main.py report          # -> data/report.html
 
 # 4) Ya da canlı paneli açın
 python main.py dashboard        # -> http://127.0.0.1:5000
+
+# 5) WAF-korumalı demo web uygulamasını başlatın (ayrı bir terminalde)
+python main.py waf-demo         # -> http://127.0.0.1:8090
+# Karşılaştırma için WAF'sız versiyonu deneyin:
+python main.py waf-demo --unprotected
+
+# 6) WAF'ı gerçek saldırılarla test edin
+python scripts/demo_waf_attack.py
+
+# 7) Otonom port/zafiyet taraması yapın
+python main.py scan --host 127.0.0.1
+
+# 8) ML sınıflandırıcısını yeniden eğitin (opsiyonel, ilk kullanımda otomatik eğitilir)
+python main.py train-ml
 ```
 
 ## Testler

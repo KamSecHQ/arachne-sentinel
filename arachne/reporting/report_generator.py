@@ -20,6 +20,8 @@ def _bar(count, max_count, max_width_px=200):
 def generate_html_report(output_path="data/report.html", db_path=None) -> str:
     stats = storage.summary_stats(db_path=db_path)
     alerts = storage.get_all_alerts(limit=50, db_path=db_path)
+    waf_stats = storage.waf_summary_stats(db_path=db_path)
+    scan_findings = storage.get_scan_findings(limit=50, db_path=db_path)
     max_ip_count = max((c for _, c in stats["top_ips"]), default=0)
 
     top_ip_rows = "".join(
@@ -37,6 +39,12 @@ def generate_html_report(output_path="data/report.html", db_path=None) -> str:
         f"<td>{a['severity']}</td><td>{a['score']}</td><td>{a['reasons']}</td></tr>"
         for a in alerts
     ) or "<tr><td colspan='5'>Henuz alarm yok</td></tr>"
+
+    scan_rows = "".join(
+        f"<tr><td>{f['timestamp']}</td><td>{f['target']}</td><td>{f['port']}</td>"
+        f"<td>{f['service_guess']}</td><td>{f['severity']}</td><td>{f['finding']}</td></tr>"
+        for f in scan_findings
+    ) or "<tr><td colspan='6'>Henuz tarama yapilmadi</td></tr>"
 
     html = f"""<!DOCTYPE html>
 <html lang="tr">
@@ -59,20 +67,26 @@ def generate_html_report(output_path="data/report.html", db_path=None) -> str:
 <p>Olusturulma zamani: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
 
 <div class="stat-cards">
-  <div class="card"><div class="n">{stats['total_events']}</div>Toplam olay</div>
-  <div class="card"><div class="n">{stats['total_alerts']}</div>Toplam alarm</div>
-  <div class="card"><div class="n">{len(stats['top_ips'])}</div>Farkli kaynak IP</div>
+  <div class="card"><div class="n">{stats['total_events']}</div>Toplam olay (honeypot)</div>
+  <div class="card"><div class="n">{stats['total_alerts']}</div>Toplam alarm (honeypot)</div>
+  <div class="card"><div class="n">{waf_stats['blocked_requests']}/{waf_stats['total_requests']}</div>WAF: engellenen/toplam istek</div>
+  <div class="card"><div class="n">{len(scan_findings)}</div>Zafiyet taramasi bulgusu</div>
 </div>
 
-<h2>Siddet Dagilimi</h2>
+<h2>Siddet Dagilimi (Honeypot)</h2>
 <table><tr><th>Siddet</th><th>Adet</th></tr>{severity_rows}</table>
 
-<h2>En Aktif Kaynak IP'ler</h2>
+<h2>En Aktif Kaynak IP'ler (Honeypot)</h2>
 <table><tr><th>IP</th><th>Olay Sayisi</th><th></th></tr>{top_ip_rows}</table>
 
-<h2>Son Alarmlar</h2>
+<h2>Son Alarmlar (Honeypot)</h2>
 <table><tr><th>Zaman</th><th>IP</th><th>Siddet</th><th>Skor</th><th>Sebepler</th></tr>
 {alert_rows}
+</table>
+
+<h2>Zafiyet Tarama Bulgulari</h2>
+<table><tr><th>Zaman</th><th>Hedef</th><th>Port</th><th>Servis</th><th>Siddet</th><th>Bulgu</th></tr>
+{scan_rows}
 </table>
 
 </body>

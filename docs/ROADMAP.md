@@ -14,19 +14,24 @@ bir ürüne kademeli olarak büyütme planını içerir.
 - Statik HTML raporu + canlı Flask paneli
 - 13 birim testi, kendi kendini test eden demo saldırı scripti
 
-## Faz 2 — Ay 3-8: WAF katmanı + otonom zafiyet tarayıcı + ilk ML modeli
+## Faz 2 — WAF katmanı + otonom zafiyet tarayıcı + ilk ML modeli (tamamlandı)
 
-- Ayrı bir modül olarak SQLi/XSS için imza tabanlı bir "web application
-  firewall" (WAF) katmanı — honeypot dışında gerçek bir test uygulamasının
-  önüne konabilir
-- Açık kaynak araçları (ör. `python-nmap` sarmalayıcı) kullanarak basit,
-  otomatik bir zafiyet tarama + raporlama modülü
-- `events` tablosunda biriken veriyle (gerekirse halka açık honeypot veri
-  setleriyle desteklenerek) ilk **denetimli öğrenme tabanlı** saldırı
-  sınıflandırıcısı — kural motorunun *yanında*, onun yerine değil (kural
-  motoru açıklanabilirlik sağlamaya devam eder)
-- Hedef çıktı: TEKNOFEST / TÜBİTAK 2209-A başvurusu için yeterli olgunlukta
-  bir "araştırma projesi" paketi (rapor + demo + kod)
+- [x] Ayrı bir modül olarak SQLi/XSS/command-injection/path-traversal için
+  regex tabanlı bir "web application firewall" (WAF) middleware'i — gerçek
+  bir test uygulamasının (`arachne/waf/demo_app.py`) önüne konup istekleri
+  gerçekten engelliyor (403), rate-limiting de dahil
+- [x] Bağımsız (nmap gerektirmeyen) port tarama + banner grabbing + bilinen
+  zafiyet eşleştirme yapan otonom bir zafiyet tarayıcı (`arachne/scanner/`)
+- [x] İlk **denetimli öğrenme tabanlı** saldırı sınıflandırıcısı (TF-IDF +
+  Logistic Regression) — kural motorunun *yanında*, onun yerine değil
+- [x] Honeypot + WAF + tarama bulgularını tek bir sayfada birleştiren
+  güncellenmiş rapor
+- [x] 16 yeni birim testi (toplam 29), uçtan uca demo scriptleriyle
+  doğrulandı
+
+**Sıradaki hedef:** TEKNOFEST / TÜBİTAK 2209-A başvurusu için yeterli
+olgunlukta bir "araştırma projesi" paketi (rapor + demo + kod) hazırlamak —
+elimizdeki sistem artık bunun icin teknik olarak yeterli olgunlukta.
 
 ## Faz 3 — Yıl 2: Düşük seviye bileşenler
 

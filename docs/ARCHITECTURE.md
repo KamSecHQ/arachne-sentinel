@@ -56,6 +56,60 @@ içindeki eşiklerle karşılaştırılıp bir şiddet seviyesine (`low` / `medi
 / `high` / `critical`) dönüştürülür. `ALERT_MIN_SCORE` eşiğinin altındaki
 skorlar alarma dönüşmez (gürültüyü azaltmak için).
 
+## Faz 2: WAF, tarayıcı ve ML katmanı
+
+```
+istemci (tarayıcı/istemci)
+        │  HTTP isteği
+        ▼
+┌─────────────────────┐        ┌──────────────────┐
+│ waf/middleware.py    │──────▶│  storage (SQLite) │
+│ (WSGI middleware)    │  log  │   waf_events       │
+└──────────┬───────────┘        └──────────────────┘
+           │ engellenmediyse
+           ▼
+┌─────────────────────┐
+│ waf/demo_app.py       │  (bilinçli zafiyetli, korunan gerçek uygulama)
+└─────────────────────┘
+
+scanner/vuln_scanner.py ──▶ scanner/port_scanner.py (banner grabbing)
+                        └─▶ scanner/known_vulnerabilities.py (eşleştirme)
+                        └─▶ storage.log_scan_finding()
+
+detection/rules.py ──▶ detection/ml_classifier.py (TF-IDF + LogisticRegression)
+```
+
+**Neden WAF ayrı bir katman, honeypot kuralları değil?** Honeypot pasif
+gözlem yapar (kimse gerçekten bir şeyi korumuyor), WAF ise gerçek bir
+uygulamayı *aktif olarak* korur — isteği ya geçirir ya da 403 ile
+engeller. Bu farklı bir sorumluluk olduğu için ayrı bir modül (`arachne/waf/`)
+ve ayrı, daha hassas regex tabanlı imzalar (`waf/rules.py`) kullanıyoruz;
+honeypot'un basit alt-string eşleşmesi burada çok fazla yanlış pozitif
+üretirdi.
+
+**URL-decode neden kritik?** WAF, HTTP isteklerini (query string, form
+body) percent-encoded haliyle alır (`'` karakteri `%27` olarak gelir).
+İmza taramasını decode etmeden yapmak saldırıların WAF'ı atlamasına yol
+açar — bunu geliştirme sırasında gerçekten yaşadık (ilk versiyonda SQLi/XSS
+denemeleri WAF'ı atlatıyordu), `urllib.parse.unquote_plus` ile düzelttik.
+Bu, gerçek WAF ürünlerinin de dikkat etmesi gereken klasik bir tuzak.
+
+**Neden ML modeli kural motorunun *yerine* değil de *yanına* eklendi?**
+Kural motoru açıklanabilir ama sadece bildiği imzaları yakalar. Küçük,
+elle derlenmiş bir eğitim verisiyle (`detection/training_data.py`) eğitilen
+TF-IDF + Logistic Regression modeli, karakter n-gram'ları sayesinde hafif
+değiştirilmiş varyasyonları da yakalayabilir — ama tek başına güvenilir
+değildir (küçük veri seti). Bu yüzden `rule_ml_classifier` diğer kurallarla
+birlikte, ek bir sinyal olarak çalışır; kararı tek başına vermez.
+
+**Zafiyet tarayıcı neden `nmap` yerine kendi soket kodunu kullanıyor?**
+Bağımlılıksız olsun, herkesin bilgisayarında ekstra bir sistem paketi
+kurmasına gerek kalmasın diye. `known_vulnerabilities.py` içindeki liste
+bilinçli olarak küçük ve tarihi örneklerden oluşuyor — gerçek bir üründe
+NVD API gibi güncel bir kaynakla değiştirilmesi gerektiği README'de ve
+ROADMAP'te açıkça belirtiliyor (yanlış/abartılı bir "gerçek zamanlı CVE
+tarayıcısı" iddiası olmasın diye).
+
 ## Modül sorumlulukları
 
 | Modül | Sorumluluk |
@@ -67,5 +121,14 @@ skorlar alarma dönüşmez (gürültüyü azaltmak için).
 | `arachne/detection/scorer.py` | Kuralları çalıştırıp toplam skor/alarm üretir |
 | `arachne/reporting/report_generator.py` | Statik HTML rapor |
 | `arachne/reporting/dashboard.py` | Canlı Flask paneli |
-| `main.py` | CLI giriş noktası (`run` / `report` / `dashboard`) |
-| `scripts/demo_attack.py` | Kendi kendini test eden saldırı simülasyonu |
+| `arachne/waf/rules.py` | Regex tabanlı WAF imzaları + rate-limit ayarları |
+| `arachne/waf/middleware.py` | WSGI middleware: inceler, loglar, gerekirse 403 döner |
+| `arachne/waf/demo_app.py` | Bilinçli zafiyetli demo Flask uygulaması |
+| `arachne/scanner/port_scanner.py` | Bağımsız port tarama + banner grabbing |
+| `arachne/scanner/known_vulnerabilities.py` | Küçük, elle derlenmiş demo zafiyet veri seti |
+| `arachne/scanner/vuln_scanner.py` | Tarama + eşleştirmeyi birleştirip storage'a yazar |
+| `arachne/detection/training_data.py` | ML modeli için etiketli örnek veri |
+| `arachne/detection/ml_classifier.py` | TF-IDF + Logistic Regression sınıflandırıcı |
+| `main.py` | CLI giriş noktası (`run` / `report` / `dashboard` / `waf-demo` / `scan` / `train-ml`) |
+| `scripts/demo_attack.py` | Honeypot için kendi kendini test eden saldırı simülasyonu |
+| `scripts/demo_waf_attack.py` | WAF için kendi kendini test eden saldırı simülasyonu |

@@ -84,6 +84,25 @@ def rule_repeated_offender(events, has_prior_alert):
     return False, None, 0
 
 
+def rule_ml_classifier(events):
+    """Payload'lari ML tabanli siniflandiriciya sorar (Faz 2). Kural setinin
+    tam olarak eslesmedigi, hafif degistirilmis/obfuske edilmis saldiri
+    varyasyonlarini yakalamak icin kural motoruna EK bir sinyal saglar."""
+    from .ml_classifier import classify  # tembel import: sklearn'i sadece gerektiginde yukle
+
+    for e in events:
+        payload = e.get("payload") or ""
+        if not payload.strip():
+            continue
+        is_malicious, confidence = classify(payload)
+        if is_malicious and confidence >= 0.7:
+            return True, (
+                f"ML siniflandirici supheli isaretledi (guven: {confidence:.2f})"
+            ), 35
+    return False, None, 0
+
+
 # scorer.py, IP'ye ozel gecmisi bilmesi gereken rule_repeated_offender haric
 # tum kurallari otomatik olarak calistirir.
-ALL_RULES = [rule_port_scan, rule_brute_force, rule_known_signature, rule_multi_service_probe]
+ALL_RULES = [rule_port_scan, rule_brute_force, rule_known_signature,
+             rule_multi_service_probe, rule_ml_classifier]

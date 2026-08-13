@@ -61,7 +61,7 @@ sonuçlarla dikkat çekmek — her alarmın *neden* verildiği açıkça görül
 **Ortak:**
 - **Otomatik HTML raporu** (honeypot + WAF + tarama + MTD rotasyonlarını tek
   sayfada birleştirir) ve **canlı web paneli** (`arachne/reporting/`)
-- **49 birim testi** (`tests/`) ve kendi kendini test eden demo saldırı
+- **51 birim testi** (`tests/`) ve kendi kendini test eden demo saldırı
   scriptleri (`scripts/`)
 
 ## Kurulum

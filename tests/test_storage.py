@@ -38,3 +38,19 @@ def test_summary_stats_counts_events_and_top_ips():
     stats = storage.summary_stats(db_path=db)
     assert stats["total_events"] == 4
     assert stats["top_ips"][0] == ("5.5.5.5", 3)
+
+
+def test_alerts_timeline_buckets_recent_alerts_into_last_bucket():
+    db = _tmp_db()
+    storage.log_alert("1.1.1.1", 80, "high", ["test"], db_path=db)
+    storage.log_alert("2.2.2.2", 90, "critical", ["test"], db_path=db)
+    counts = storage.alerts_timeline(buckets=6, bucket_minutes=5, db_path=db)
+    assert len(counts) == 6
+    assert sum(counts) == 2
+    assert counts[-1] == 2  # az once loglanan alarmlar en yeni (son) dilimde olmali
+
+
+def test_alerts_timeline_empty_db_returns_all_zero_buckets():
+    db = _tmp_db()
+    counts = storage.alerts_timeline(buckets=4, bucket_minutes=10, db_path=db)
+    assert counts == [0, 0, 0, 0]

@@ -101,6 +101,8 @@ def _gather_dashboard_data():
         None,
     )
 
+    alerts_timeline = storage.alerts_timeline(buckets=12, bucket_minutes=5)
+
     return {
         "alerts": alerts,
         "events": events,
@@ -112,6 +114,7 @@ def _gather_dashboard_data():
         "mtd_rotations": mtd_rotations,
         "mtd_stats": mtd_stats,
         "ghost_admin_port": ghost_admin_port,
+        "alerts_timeline": alerts_timeline,
     }
 
 

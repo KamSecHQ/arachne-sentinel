@@ -16,6 +16,7 @@
   <div class="brand"><span class="dot"></span> ARACHNE SENTINEL</div>
   <div class="nav-links">
     <a href="#genel-bakis">Genel Bakış</a>
+    <a href="#istihbarat">Saldırgan İstihbaratı</a>
     <a href="#radar">Tehdit Radarı</a>
     <a href="#canli-akis">Canlı Akış</a>
     <a href="#mtd">MTD</a>
@@ -24,11 +25,14 @@
     <a href="#scan">Tarama</a>
   </div>
   <div class="right">
+    <button id="sound-toggle" class="sound-toggle" type="button" title="Kritik alarmlarda ses uyarısı" aria-pressed="false">🔇 Ses</button>
     <span class="status-pill"><span class="pulse"></span> Sistem Aktif</span>
     <a class="ext" href="/report">Statik rapor &rarr;</a>
     <a class="ext" href="{{ github_url }}" target="_blank" rel="noopener">GitHub &rarr;</a>
   </div>
 </nav>
+
+<div id="toast-root" class="toast-root" aria-live="polite"></div>
 
 <header class="hero reveal in-view">
   <div class="hero-inner">
@@ -91,6 +95,35 @@
       <div class="label">Hayalet Admin (Faz 4)</div>
       <div class="n" style="font-size:1.5rem" id="n-ghost-port">{{ (':' ~ ghost_admin_port) if ghost_admin_port else 'başlatılmadı' }}</div>
       <div class="sub"><span id="n-mtd-total">{{ mtd_stats.total_rotations }}</span> rotasyon kaydedildi &mdash; python main.py mtd-demo</div>
+    </div>
+  </div>
+</section>
+
+<section id="istihbarat" class="reveal">
+  <h2>🎯 Saldırgan İstihbaratı</h2>
+  <p class="section-desc">En aktif kaynak IP'ler ve son 60 dakikadaki alarm yoğunluğu &mdash; ikisi de gerçek verilerden, canlı olarak güncellenir.</p>
+  <div class="section-rule"></div>
+  <div class="intel-grid">
+    <div class="table-card padded">
+      <h3 class="mini-h">En Aktif Saldırgan IP'ler</h3>
+      <div id="top-ips-list" class="ip-bars">
+        {% set max_ip_count = honeypot_stats.top_ips[0][1] if honeypot_stats.top_ips else 0 %}
+        {% for ip, count in honeypot_stats.top_ips %}
+        <div class="ip-row">
+          <span class="mono ip-addr">{{ ip }}</span>
+          <div class="ip-bar-track"><div class="ip-bar-fill" style="width:{{ (count / max_ip_count * 100) if max_ip_count else 0 }}%"></div></div>
+          <span class="mono ip-count">{{ count }}</span>
+        </div>
+        {% else %}
+        <p class="feed-empty">Henüz kaynak IP verisi yok.</p>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="table-card padded">
+      <h3 class="mini-h">Alarm Zaman Çizelgesi <span class="muted" style="font-weight:400; font-size:.7rem;">(son 60 dk, 5 dk dilimler)</span></h3>
+      <div class="timeline-panel">
+        <canvas id="timeline-canvas"></canvas>
+      </div>
     </div>
   </div>
 </section>

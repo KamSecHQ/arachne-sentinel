@@ -220,6 +220,25 @@ def mtd_summary_stats(db_path=None):
         }
 
 
+def alerts_timeline(buckets=12, bucket_minutes=5, db_path=None):
+    """Son `buckets * bucket_minutes` dakikayi esit dilimlere bolup her
+    dilimdeki alarm sayisini dondurur (liste, en eskiden en yeniye siralı).
+    Canli paneldeki 'Alarm Zaman Cizelgesi' mini grafigini besler."""
+    total_minutes = buckets * bucket_minutes
+    edges = [total_minutes - k * bucket_minutes for k in range(buckets + 1)]
+    with get_conn(db_path) as conn:
+        counts = []
+        for i in range(buckets):
+            start, end = edges[i], edges[i + 1]
+            row = conn.execute(
+                "SELECT COUNT(*) c FROM alerts WHERE timestamp > datetime('now', ?) "
+                "AND timestamp <= datetime('now', ?)",
+                (f"-{start} minutes", f"-{end} minutes"),
+            ).fetchone()
+            counts.append(row["c"])
+        return counts
+
+
 def summary_stats(db_path=None):
     with get_conn(db_path) as conn:
         total_events = conn.execute("SELECT COUNT(*) c FROM events").fetchone()["c"]

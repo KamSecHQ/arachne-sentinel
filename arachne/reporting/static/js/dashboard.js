@@ -248,6 +248,121 @@
   })();
 
   /* ============================================================
+   * 2b) Alarm zaman cizelgesi (mini bar chart) - /api/live'daki
+   *     GERCEK alerts_timeline dizisiyle her poll'da yeniden cizilir
+   * ============================================================ */
+  const Timeline = (function () {
+    const canvas = document.getElementById("timeline-canvas");
+    if (!canvas) return { update() {} };
+    const ctx = canvas.getContext("2d");
+    let current = [];
+
+    function draw() {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const w = canvas.clientWidth, h = canvas.clientHeight;
+      if (!w || !h) return;
+      canvas.width = w * dpr; canvas.height = h * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, w, h);
+
+      const n = current.length || 12;
+      const max = Math.max(1, ...current);
+      const padBottom = 16, padTop = 6;
+      const barW = w / n;
+
+      // yatay izgara
+      ctx.strokeStyle = "rgba(120,150,180,0.1)";
+      ctx.lineWidth = 1;
+      [0.25, 0.5, 0.75].forEach((f) => {
+        const y = padTop + (h - padTop - padBottom) * f;
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+      });
+
+      current.forEach((count, i) => {
+        const bh = count === 0 ? 0 : Math.max(3, ((h - padTop - padBottom) * count) / max);
+        const x = i * barW + barW * 0.18;
+        const bw = barW * 0.64;
+        const y = h - padBottom - bh;
+        const grad = ctx.createLinearGradient(0, y, 0, h - padBottom);
+        grad.addColorStop(0, "rgba(255,59,69,0.9)");
+        grad.addColorStop(1, "rgba(34,211,238,0.55)");
+        ctx.fillStyle = count > 0 ? grad : "rgba(120,150,180,0.15)";
+        const r = Math.min(4, bw / 2);
+        ctx.beginPath();
+        ctx.moveTo(x, y + r);
+        ctx.arc(x + r, y + r, r, Math.PI, 1.5 * Math.PI);
+        ctx.arc(x + bw - r, y + r, r, 1.5 * Math.PI, 0);
+        ctx.lineTo(x + bw, h - padBottom);
+        ctx.lineTo(x, h - padBottom);
+        ctx.closePath();
+        ctx.fill();
+      });
+
+      ctx.font = "500 9px 'JetBrains Mono', monospace";
+      ctx.fillStyle = "rgba(139,147,167,0.8)";
+      ctx.textAlign = "left";
+      ctx.fillText("60 dk önce", 2, h - 3);
+      ctx.textAlign = "right";
+      ctx.fillText("şimdi", w - 2, h - 3);
+    }
+
+    window.addEventListener("resize", draw);
+    function update(counts) { current = counts || []; draw(); }
+    return { update };
+  })();
+
+  /* ============================================================
+   * 2c) Ses uyarisi + toast bildirimi (kritik/yuksek alarmlar icin)
+   * ============================================================ */
+  const AlertSignal = (function () {
+    const btn = document.getElementById("sound-toggle");
+    const toastRoot = document.getElementById("toast-root");
+    let audioCtx = null;
+    let enabled = false;
+
+    if (btn) {
+      btn.addEventListener("click", () => {
+        enabled = !enabled;
+        btn.classList.toggle("on", enabled);
+        btn.setAttribute("aria-pressed", String(enabled));
+        btn.textContent = enabled ? "🔊 Ses" : "🔇 Ses";
+        if (enabled && !audioCtx) {
+          try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+          catch (e) { /* Web Audio desteklenmiyor - sessizce yoksay */ }
+        }
+        if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
+      });
+    }
+
+    function beep() {
+      if (!enabled || !audioCtx) return;
+      const t0 = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = "square";
+      osc.frequency.setValueAtTime(880, t0);
+      osc.frequency.exponentialRampToValueAtTime(440, t0 + 0.18);
+      gain.gain.setValueAtTime(0.0001, t0);
+      gain.gain.exponentialRampToValueAtTime(0.06, t0 + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.22);
+      osc.connect(gain).connect(audioCtx.destination);
+      osc.start(t0); osc.stop(t0 + 0.24);
+    }
+
+    function toast(title, body) {
+      if (!toastRoot) return;
+      const el = document.createElement("div");
+      el.className = "toast";
+      el.innerHTML = `<div class="tt">${title}</div><div class="tb">${body}</div>`;
+      toastRoot.appendChild(el);
+      setTimeout(() => el.remove(), 5000);
+    }
+
+    function notify(title, body) { beep(); toast(title, body); }
+    return { notify };
+  })();
+
+  /* ============================================================
    * 3) Sayac animasyonu (stat kartlari)
    * ============================================================ */
   function animateCount(el, to) {
@@ -291,6 +406,22 @@
     if (!ts) return "";
     const parts = String(ts).split(" ");
     return esc(parts[1] || ts);
+  }
+
+  function renderTopIps(topIps) {
+    const root = document.getElementById("top-ips-list");
+    if (!root) return;
+    if (!topIps.length) {
+      root.innerHTML = `<p class="feed-empty">Henüz kaynak IP verisi yok.</p>`;
+      return;
+    }
+    const max = topIps[0][1] || 1;
+    root.innerHTML = topIps.map(([ip, count]) => `
+      <div class="ip-row">
+        <span class="mono ip-addr">${esc(ip)}</span>
+        <div class="ip-bar-track"><div class="ip-bar-fill" style="width:${(count / max) * 100}%"></div></div>
+        <span class="mono ip-count">${esc(count)}</span>
+      </div>`).join("");
   }
 
   /* ============================================================
@@ -362,6 +493,10 @@
     const ghostEl = document.getElementById("n-ghost-port");
     if (ghostEl) ghostEl.textContent = data.ghost_admin_port ? (":" + data.ghost_admin_port) : "baslatilmadi";
 
+    // --- saldirgan istihbarati: zaman cizelgesi + top IP listesi ---
+    Timeline.update(data.alerts_timeline);
+    renderTopIps(data.honeypot_stats.top_ips || []);
+
     // --- yeni kayitlari tespit et + radar/feed/flash tetikle ---
     if (!state.firstLoad) {
       for (const a of data.alerts) {
@@ -372,6 +507,12 @@
             `<span class="t">${timePart(a.ts || a.timestamp)}</span>` +
             `<span class="tag alert">ALARM</span>${esc(a.source_ip)} — ${esc(a.severity)} (skor ${esc(a.score)})`
           );
+          if (a.severity === "critical" || a.severity === "high") {
+            AlertSignal.notify(
+              `${a.severity === "critical" ? "KRİTİK" : "YÜKSEK"} ALARM`,
+              `${esc(a.source_ip)} — skor ${esc(a.score)}`
+            );
+          }
         }
       }
       for (const e of data.events) {

@@ -22,6 +22,17 @@ def _peer_info(writer):
     return (peer[0], peer[1]) if peer else ("unknown", None)
 
 
+def _is_blocked(source_ip):
+    """SOAR engelleme listesini sorgular (sicak yol - her baglantida cagrilir).
+
+    Tembel import: soar paketi yuklenemezse honeypot yine de calisir."""
+    try:
+        from ..soar import blocklist
+        return blocklist.is_blocked(source_ip)
+    except Exception:
+        return False
+
+
 async def _read_payload(reader):
     try:
         data = await asyncio.wait_for(
@@ -40,18 +51,59 @@ async def _close(writer):
         pass
 
 
-def _evaluate_and_log_alarm(source_ip):
+def _attack_classes_for_ip(source_ip):
+    """SOAR playbook secimi icin bu IP'nin saldiri siniflarini belirler.
+
+    Faz 5'in tersine muhendislik motorunu kullanir; boylece SOAR, sadece
+    skora degil saldirinin TURUNE gore de playbook secebilir."""
+    try:
+        from ..reverse.attack_analyzer import analyze_ip
+        events = storage.get_recent_events(source_ip=source_ip,
+                                            since_seconds=config.DEFAULT_LOOKBACK_SECONDS)
+        return analyze_ip(source_ip, events).get("attack_classes", [])
+    except Exception:
+        logger.debug("Saldiri sinifi analizi basarisiz", exc_info=True)
+        return []
+
+
+def _evaluate_and_log_alarm(source_ip, soar_enabled=False):
     result = scorer.evaluate_ip(source_ip)
     if result["triggered_alert"]:
         logger.warning(
             "ALARM! kaynak=%s skor=%s siddet=%s sebepler=%s",
             source_ip, result["score"], result["severity"], result["reasons"],
         )
+        # Faz 7: otonom mudahale. Varsayilan olarak KAPALIdir - Faz 1-3
+        # davranisi hicbir sekilde degismesin diye. `soar-demo` komutu ile
+        # acikca etkinlestirilir.
+        if soar_enabled:
+            try:
+                from ..soar.engine import respond_to_alert
+                response = respond_to_alert(
+                    source_ip, result["score"], result["severity"],
+                    attack_classes=_attack_classes_for_ip(source_ip),
+                )
+                if response.get("matched_playbooks"):
+                    logger.warning("SOAR: %s", response["summary_tr"])
+            except Exception:
+                logger.exception("SOAR mudahalesi basarisiz")
     return result
 
 
-async def _handle_generic(service_name: str, dest_port: int, reader, writer, rotator=None):
+async def _handle_generic(service_name: str, dest_port: int, reader, writer,
+                          rotator=None, soar_enabled=False):
     source_ip, source_port = _peer_info(writer)
+
+    # Faz 7: engelli IP'ler icin baglanti aninda kapatilir. Bu, SOAR
+    # katmaninin GERCEK yaptirim noktasidir - bir raporlama detayi degil,
+    # gercekten uygulanan bir kisitlama.
+    if soar_enabled and _is_blocked(source_ip):
+        storage.log_event(source_ip, service_name, "blocked", source_port=source_port,
+                           dest_port=dest_port)
+        logger.info("ENGELLENDI: %s -> %s (SOAR kisitlamasi aktif)", source_ip, service_name)
+        await _close(writer)
+        return
+
     storage.log_event(source_ip, service_name, "connect", source_port=source_port,
                        dest_port=dest_port)
     logger.info("baglanti: %s -> %s (port %s)", source_ip, service_name, dest_port)
@@ -75,20 +127,30 @@ async def _handle_generic(service_name: str, dest_port: int, reader, writer, rot
                            dest_port=dest_port)
         await _close(writer)
 
-    _evaluate_and_log_alarm(source_ip)
+    _evaluate_and_log_alarm(source_ip, soar_enabled=soar_enabled)
 
 
-def _make_generic_handler(service_name: str, dest_port: int, rotator=None):
+def _make_generic_handler(service_name: str, dest_port: int, rotator=None,
+                          soar_enabled=False):
     async def handler(reader, writer):
-        await _handle_generic(service_name, dest_port, reader, writer, rotator=rotator)
+        await _handle_generic(service_name, dest_port, reader, writer,
+                              rotator=rotator, soar_enabled=soar_enabled)
     return handler
 
 
-async def _handle_http_admin(dest_port: int, reader, writer):
+async def _handle_http_admin(dest_port: int, reader, writer, soar_enabled=False):
     """Sahte bir 'yonetici paneli' HTTP servisi - istekleri loglar, sahte bir
     giris formu doner. Girilen kullanici adi/sifre gercek hicbir sisteme
     gonderilmez, sadece loglanir (tuzak/deception amacli)."""
     source_ip, source_port = _peer_info(writer)
+
+    if soar_enabled and _is_blocked(source_ip):
+        storage.log_event(source_ip, "http-admin", "blocked", source_port=source_port,
+                           dest_port=dest_port)
+        logger.info("ENGELLENDI: %s -> http-admin (SOAR kisitlamasi aktif)", source_ip)
+        await _close(writer)
+        return
+
     storage.log_event(source_ip, "http-admin", "connect", source_port=source_port,
                        dest_port=dest_port)
 
@@ -118,25 +180,31 @@ async def _handle_http_admin(dest_port: int, reader, writer):
                            dest_port=dest_port)
         await _close(writer)
 
-    _evaluate_and_log_alarm(source_ip)
+    _evaluate_and_log_alarm(source_ip, soar_enabled=soar_enabled)
 
 
-async def start_all_services(rotator=None):
+async def start_all_services(rotator=None, soar_enabled=False):
     """Config.FAKE_SERVICES icinde tanimli tum sahte servisleri baslatir ve
     sonsuza kadar (Ctrl+C ile durdurulana dek) calistirir.
 
     rotator verilirse (bkz. arachne/mtd/identity_rotator.py), servisler
     sabit banner yerine zaman icinde donen bir banner kullanir (Faz 4:
     Moving Target Defense) - varsayilan (rotator=None) davranis Faz 1-3
-    ile birebir aynidir."""
+    ile birebir aynidir.
+
+    soar_enabled=True verilirse (Faz 7), alarm uretildiginde otomatik
+    mudahale playbook'lari calisir ve engellenen IP'lerin baglantilari
+    gercekten reddedilir. Varsayilan KAPALIdir."""
     storage.init_db()
     servers = []
     for service_name, cfg in config.FAKE_SERVICES.items():
         port = cfg["port"]
         if service_name == "http-admin":
-            handler = lambda r, w, p=port: _handle_http_admin(p, r, w)
+            handler = lambda r, w, p=port: _handle_http_admin(p, r, w,
+                                                              soar_enabled=soar_enabled)
         else:
-            handler = _make_generic_handler(service_name, port, rotator=rotator)
+            handler = _make_generic_handler(service_name, port, rotator=rotator,
+                                            soar_enabled=soar_enabled)
         server = await asyncio.start_server(handler, "0.0.0.0", port)
         servers.append(server)
         logger.info("%s honeypot dinlemede: 0.0.0.0:%s", service_name, port)

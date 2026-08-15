@@ -408,6 +408,63 @@
     return esc(parts[1] || ts);
   }
 
+  function renderBlockList(blocks) {
+    const root = document.getElementById("block-list");
+    if (!root) return;
+    if (!blocks.length) {
+      root.innerHTML = '<p class="feed-empty">Aktif kısıtlama yok.</p>';
+      return;
+    }
+    root.innerHTML = blocks.map((b) => `
+      <div class="block-chip" title="${esc(b.reason || "")}">
+        ${esc(b.ip)}
+        <span class="bc-time">${b.remaining_seconds}sn kaldı</span>
+      </div>`).join("");
+  }
+
+  function renderSoarTable(actions) {
+    const tbody = document.getElementById("tbl-soar");
+    if (!tbody) return;
+    if (!actions.length) {
+      tbody.innerHTML = `<tr class="empty-row"><td colspan="6">Henüz otomatik müdahale yok
+        <span class="hint">python main.py soar-demo</span></td></tr>`;
+      return;
+    }
+    tbody.innerHTML = actions.map((a) => `
+      <tr>
+        <td class="mono muted">${esc(a.timestamp)}</td>
+        <td class="mono">${esc(a.action)}</td>
+        <td class="mono">${esc(a.target)}</td>
+        <td class="mono muted">${esc(a.playbook || "—")}</td>
+        <td><span class="badge badge-${a.outcome === "onay-bekliyor" ? "critical" : "passed"}">
+          ${esc(a.outcome)}</span></td>
+        <td class="reasons">${esc(a.reason || "")}</td>
+      </tr>`).join("");
+  }
+
+  function renderSensors(sensors) {
+    const root = document.getElementById("sensor-grid");
+    if (!root) return;
+    if (!sensors.length) {
+      root.innerHTML = `<p class="feed-empty">Henüz kayıtlı sensör yok &mdash;
+        <code>python main.py mesh-demo</code> ile dağıtık ağ simülasyonunu başlatın.</p>`;
+      return;
+    }
+    root.innerHTML = sensors.map((s) => `
+      <div class="sensor-card ${s.online ? "online" : ""}">
+        <div class="sc-head">
+          <span class="sc-dot"></span>
+          <span class="sc-id">${esc(s.sensor_id)}</span>
+          <span class="sc-loc">${esc(s.location || "—")}</span>
+        </div>
+        <div class="sc-stats">
+          ${s.total_events} olay raporladı<br>
+          Son görülme: ${esc(s.last_seen)}<br>
+          Sürüm: ${esc(s.version || "—")}
+        </div>
+      </div>`).join("");
+  }
+
   function renderTopIps(topIps) {
     const root = document.getElementById("top-ips-list");
     if (!root) return;
@@ -496,6 +553,16 @@
     // --- saldirgan istihbarati: zaman cizelgesi + top IP listesi ---
     Timeline.update(data.alerts_timeline);
     renderTopIps(data.honeypot_stats.top_ips || []);
+
+    // --- Faz 10: Celik Kubbe + dunya haritasi + katman sagligi ---
+    if (window.ArachneCommandCenter) {
+      window.ArachneCommandCenter.update(data);
+    }
+
+    // --- Faz 7: aktif kisitlamalar ---
+    renderBlockList(data.active_blocks || []);
+    renderSoarTable(data.soar_actions || []);
+    renderSensors(data.sensors || []);
 
     // --- yeni kayitlari tespit et + radar/feed/flash tetikle ---
     if (!state.firstLoad) {

@@ -37,13 +37,17 @@ def main():
     parser = argparse.ArgumentParser(description="Arachne Sentinel")
     parser.add_argument(
         "command",
-        choices=["run", "dashboard", "report", "waf-demo", "scan", "train-ml", "mtd-demo"],
+        choices=["run", "dashboard", "report", "waf-demo", "scan", "train-ml", "mtd-demo",
+                 "soar-demo", "mesh-demo", "analyze", "ai-report", "stix-export",
+                 "full-demo"],
     )
     parser.add_argument("--unprotected", action="store_true",
                          help="waf-demo icin: WAF'siz calistir (karsilastirma)")
     parser.add_argument("--host", default="127.0.0.1", help="scan icin: hedef host")
     parser.add_argument("--port", type=int, default=None,
-                         help="waf-demo icin: dinlenecek port (varsayilan 8090)")
+                         help="dinlenecek port. waf-demo icin varsayilan 8090, "
+                              "dashboard icin 5000. macOS'ta port 5000 AirPlay "
+                              "Receiver ile cakisirsa: --port 5001")
     parser.add_argument("--hop-interval", type=int, default=45,
                          help="mtd-demo icin: hayalet admin panelinin kac saniyede bir "
                               "port degistirecegi (varsayilan 45)")
@@ -53,6 +57,13 @@ def main():
     parser.add_argument("--dns-port", type=int, default=5300,
                          help="mtd-demo icin: hayalet DNS yanitlayicisinin dinleyecegi "
                               "yerel UDP portu (varsayilan 5300, GERCEK port 53 DEGIL)")
+    parser.add_argument("--payload", default=None,
+                         help="analyze icin: tersine muhendislik yapilacak saldiri yuku")
+    parser.add_argument("--collector", default="http://127.0.0.1:5000/mesh/ingest",
+                         help="mesh-demo icin: merkezi toplayici adresi")
+    parser.add_argument("--sensors", type=int, default=3,
+                         help="mesh-demo icin: simule edilecek sensor sayisi")
+    parser.add_argument("--output", default=None, help="cikti dosyasi yolu")
     args = parser.parse_args()
 
     storage.init_db()
@@ -64,7 +75,11 @@ def main():
             print("\nDurduruldu.")
 
     elif args.command == "dashboard":
-        run_dashboard()
+        # macOS NOTU: port 5000 varsayilan olarak AirPlay Receiver tarafindan
+        # kullanilir. Panel calismadiginda o servis isteklere 403 Forbidden
+        # doner - bu, "sunucu kapali" hatasi gibi gorunmedigi icin kafa
+        # karistiricidir. Cakisma yasarsaniz: --port 5001
+        run_dashboard(port=args.port or 5000)
 
     elif args.command == "report":
         path = generate_html_report()
@@ -119,6 +134,157 @@ def main():
 
         try:
             asyncio.run(_run_all())
+        except KeyboardInterrupt:
+            print("\nDurduruldu.")
+
+    elif args.command == "soar-demo":
+        # Faz 7: honeypot + otonom mudahale birlikte
+        from arachne.soar.playbooks import PLAYBOOKS
+
+        print(
+            "Faz 7 - SOAR otonom savunma demosu baslatiliyor:\n"
+            f"  - {len(PLAYBOOKS)} playbook yuklendi\n"
+            "  - alarm uretildiginde otomatik mudahale calisacak\n"
+            "  - engellenen IP'lerin baglantilari GERCEKTEN reddedilecek\n"
+            "  - geri alinamaz/yikici eylemler insan onayina yukseltilecek\n"
+            "\nKorunan adresler (engellenemez): loopback ve ozel ag araliklari.\n"
+            "Senaryo trafigi icin RFC 5737 adreslerini kullanin (203.0.113.x).\n"
+            "Canli panelde 'Faz 7 - SOAR' bolumunden takip edebilirsin.\n"
+        )
+        try:
+            asyncio.run(start_all_services(soar_enabled=True))
+        except KeyboardInterrupt:
+            print("\nDurduruldu.")
+
+    elif args.command == "mesh-demo":
+        from scripts.demo_mesh import run_mesh_demo
+        run_mesh_demo(collector_url=args.collector, sensor_count=args.sensors)
+
+    elif args.command == "analyze":
+        from arachne.ai.report_writer import analyze_attack
+
+        payload = args.payload
+        if not payload:
+            print("Kullanim: python main.py analyze --payload \"' OR '1'='1\"")
+            return
+
+        result = analyze_attack(payload)
+        tech = result["technical_analysis"]
+        opinion = result["analyst_opinion"]
+        deob = tech["deobfuscation"]
+
+        print("\n" + "=" * 68)
+        print("  ARACHNE SENTINEL - SALDIRI TERSINE MUHENDISLIK RAPORU")
+        print("=" * 68)
+        print(f"\nTehdit skoru : {tech['threat_score']}/100  ({tech['verdict'].upper()})")
+        print(f"Saldiri turu : {', '.join(tech['attack_classes']) or 'imza eslesmedi'}")
+        if tech["hidden_attack_classes"]:
+            print(f"  ! GIZLENMIS : {', '.join(tech['hidden_attack_classes'])}")
+        print(f"Kill chain   : {tech['kill_chain']['phase_tr']} "
+              f"({tech['kill_chain']['stage_index']}/{tech['kill_chain']['total_stages']}, "
+              f"%{tech['kill_chain']['progress_pct']})")
+
+        if deob["was_obfuscated"]:
+            print(f"\nKODLAMA COZUMU ({deob['layers']} katman): {deob['method_chain']}")
+            for i, step in enumerate(deob["steps"], 1):
+                print(f"  {i}. {step['method']:<16} -> {step['after'][:60]}")
+            print(f"  Cozulmus: {deob['decoded'][:120]}")
+
+        if tech["tools"]:
+            print("\nARAC PARMAK IZI:")
+            for tool in tech["tools"]:
+                print(f"  {tool['tool']:<14} guven %{tool['confidence']:<4} "
+                      f"({tool['category']})")
+                for evidence in tool["evidence"]:
+                    print(f"     - {evidence}")
+
+        if tech["attck_techniques"]:
+            print("\nMITRE ATT&CK ESLEMESI:")
+            for t in tech["attck_techniques"]:
+                print(f"  {t['id']:<12} {t['name']}  [{t['tactic']}]")
+
+        iocs = {k: v for k, v in tech["iocs"].items() if v}
+        if iocs:
+            print("\nCIKARILAN IOC'LER:")
+            for key, values in iocs.items():
+                print(f"  {key:<18} {', '.join(str(v)[:50] for v in values[:4])}")
+
+        if result["sanitization"]["injection_attempt"]:
+            print("\n  !! PROMPT ENJEKSIYONU DENEMESI TESPIT EDILDI !!")
+            print(f"  {result['sanitization']['injection_assessment_tr']}")
+            for ind in result["sanitization"]["injection_indicators"]:
+                print(f"     - {ind['description']}: {ind['matched_text']}")
+            print("  Datamarking savunmasi sayesinde talimat olarak DEGIL, kanit "
+                  "olarak islendi.")
+
+        print(f"\nANALIST YORUMU ({opinion['_source']}):")
+        print(f"  {opinion['summary']}")
+        print(f"\n  Saldirganin amaci: {opinion.get('attacker_intent', '-')}")
+        print(f"  Onerilen odak    : {opinion.get('recommended_focus', '-')}")
+        print("\n" + "=" * 68 + "\n")
+
+    elif args.command == "ai-report":
+        from arachne.ai.report_writer import generate_ai_report
+        path = generate_ai_report(output_path=args.output or "data/ai_report.md")
+        print(f"AI analist raporu olusturuldu: {path}")
+
+    elif args.command == "stix-export":
+        import json
+        from arachne.ai.report_writer import situation_report
+        from arachne.intel import stix_export
+
+        data = situation_report()
+        bundle = stix_export.build_stix_bundle(data["profiles"], data["campaigns"])
+        stats = stix_export.bundle_stats(bundle)
+        out_path = args.output or "data/stix_bundle.json"
+        with open(out_path, "w", encoding="utf-8") as f:
+            json.dump(bundle, f, indent=2, ensure_ascii=False)
+        print(f"STIX 2.1 bundle olusturuldu: {out_path}")
+        print(f"  {stats['total_objects']} nesne "
+              f"({stats['indicators']} indicator, {stats['groupings']} grouping)")
+        print("  Bu dosya MISP/OpenCTI gibi tehdit istihbarati platformlarina "
+              "dogrudan aktarilabilir.")
+
+    elif args.command == "full-demo":
+        # Tum katmanlari tek komutta ayaga kaldirir - juri sunumu icin
+        from arachne.mtd import dns_ghost
+        from arachne.mtd.identity_rotator import IdentityRotator
+        from arachne.mtd.port_hopper import PortHopper
+
+        rotator = IdentityRotator(rotate_interval_seconds=args.rotate_interval)
+        hopper = PortHopper(hop_interval_seconds=args.hop_interval)
+
+        print(
+            "\n" + "=" * 68 + "\n"
+            "  ARACHNE SENTINEL - TAM SISTEM DEMOSU (Faz 1-10)\n"
+            + "=" * 68 + "\n"
+            "  Faz 1  Honeypot         : ssh:2222 ftp:2121 mysql:3307 http:8081\n"
+            "  Faz 2  WAF/tarayici/ML  : ayri terminalde 'python main.py waf-demo'\n"
+            "  Faz 3  Native ARM64     : imza tarama cekirdegi otomatik yuklendi\n"
+            f"  Faz 4  MTD             : banner {args.rotate_interval}sn, "
+            f"port {args.hop_interval}sn, DNS udp:{args.dns_port}\n"
+            "  Faz 5  Tersine muh.     : her yuk otomatik analiz ediliyor\n"
+            "  Faz 6  Istihbarat       : profilleme + kampanya korelasyonu aktif\n"
+            "  Faz 7  SOAR             : otonom mudahale AKTIF (gercek engelleme)\n"
+            "  Faz 8  AI analist       : yerel analist calisiyor\n"
+            "  Faz 9  Sensor agi       : /mesh/ingest uc noktasi panelde acik\n"
+            "  Faz 10 Celik Kubbe      : panelde canli goruntuleme\n"
+            + "=" * 68 + "\n"
+            "  Panel: python main.py dashboard  ->  http://127.0.0.1:5000\n"
+            "  Saldiri: python scripts/demo_attack.py\n"
+            "  Kuresel senaryo: python scripts/demo_global_attack.py\n"
+            + "=" * 68 + "\n"
+        )
+
+        async def _run_full():
+            await asyncio.gather(
+                start_all_services(rotator=rotator, soar_enabled=True),
+                hopper.run_forever(),
+                dns_ghost.run_forever(port=args.dns_port),
+            )
+
+        try:
+            asyncio.run(_run_full())
         except KeyboardInterrupt:
             print("\nDurduruldu.")
 

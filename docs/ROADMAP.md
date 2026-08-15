@@ -117,6 +117,190 @@ karşı değil); ikinci bilgisayar edinildiğinde x86-64 assembly versiyonu
 (bkz. Faz 3 notu); uluslararası CTF'lere (Google CTF, DEF CON quals gibi)
 katılım.
 
+## Faz 5 — Saldırı Tersine Mühendisliği (tamamlandı)
+
+- [x] **Çok katmanlı kodlama çözücü** (`arachne/reverse/deobfuscator.py`):
+  URL, çift-URL, base64, hex, HTML entity ve unicode escape katmanlarını
+  sabit noktaya ulaşana kadar açar; geçilen her adımı kaydeder. Sonsuz
+  döngüye karşı iki koruma (derinlik sınırı + değişiklik kontrolü).
+- [x] **Gizlenmiş saldırı tespiti**: bir imza SADECE kodlama çözüldükten
+  sonra görülüyorsa ayrıca işaretlenir — klasik WAF atlatma tekniği.
+- [x] **IOC çıkarıcı** (`ioc_extractor.py`): IP, alan adı, URL, dosya yolu,
+  hash, kripto cüzdanı, kabuk komutu ve ters kabuk kalıpları.
+- [x] **Saldırı aracı parmak izi** (`tool_fingerprint.py`): sqlmap, nikto,
+  nmap, hydra, gobuster, dirb, ffuf, metasploit, wpscan tespiti — her
+  eşleşme GEREKÇESİYLE birlikte, güven skoruyla.
+- [x] **MITRE ATT&CK / CWE / CAPEC eşlemesi** ve Lockheed Martin Kill Chain
+  konumlandırması (`arachne/intel/attck.py`).
+- [x] **Saldırı zinciri yeniden kurulumu**: bir IP'nin tüm olaylarını
+  birleştirip "önce tarama, sonra brute-force, sonra SQLi" şeklinde
+  sıralı bir anlatı çıkarır.
+- [x] 32 birim testi.
+
+**Teknik doğruluk notları (bilinçli tercihler):**
+- ATT&CK v19 (Nisan 2026) ile TA0005 "Defense Evasion" → **"Stealth"**
+  olarak değişti; TA0112 "Defense Impairment" eklendi. Güncel isimleri
+  kullanıyoruz — internetteki çoğu öğretici hâlâ eski ismi kullanıyor.
+- Dizin brute-force'u **T1595.003 (Wordlist Scanning)** olarak eşliyoruz,
+  T1110 (Brute Force) olarak DEĞİL. MITRE'nin kendi tanımı: "amaç geçerli
+  kimlik bilgisi keşfi değil, içerik/altyapı keşfidir".
+- SQLi için ATT&CK'te ayrı teknik YOKTUR; doğru yaklaşım T1190'ı **CWE-89
+  ve CAPEC-66 ile birlikte** taşımaktır — biz de öyle yapıyoruz.
+- **CAPEC-213 kullanmıyoruz** — o ID kullanımdan kaldırıldı (deprecated).
+
+**Bu fazda bulunan ve düzeltilen gerçek açık:** İmza setinde yalnızca
+tırnaklı `' or '1'='1` varyantı vardı; en yaygın kalıplardan biri olan
+tırnaksız `' OR 1=1--` hiç yakalanmıyordu. İmza seti genişletildi ve
+yanlış pozitif üretmediğini doğrulayan testler eklendi.
+
+## Faz 6 — Tehdit İstihbaratı ve Saldırgan Profilleme (tamamlandı)
+
+- [x] **Davranışsal parmak izi** (`arachne/intel/profiler.py`): servis
+  tercihi, zamanlama ritmi, araç imzası ve yük karakterinden türetilen
+  bir imza. **IP adresi bilinçli olarak DIŞLANDI** — değişen şey tam da odur.
+- [x] **Makine/insan ayrımı**: istekler arası aralıkların standart sapması.
+  Otomatik araçlar makine hassasiyetinde düzenli, insanlar düzensizdir —
+  şaşırtıcı derecede güçlü ve ucuz bir ölçüt.
+- [x] **Kampanya korelasyonu**: aynı parmak izine sahip farklı IP'ler tek
+  bir kampanya altında birleştirilir. "3 ayrı alarm" yerine "tek saldırgan,
+  3 IP" diyebilmek.
+- [x] **STIX 2.1 dışa aktarım** (`stix_export.py`): spec'e uygun ID formatı,
+  RFC 3339 zaman damgaları, **çift kill-chain eşlemesi** (Lockheed Martin +
+  ATT&CK), gerçek OASIS TLP marking ID'leri, ATT&CK/CWE dış referansları.
+  MISP/OpenCTI/SIEM'ler bunu doğrudan okuyabilir.
+- [x] **Çevrimdışı IP kapsam sınıflandırması** (`geo.py`): loopback /
+  private / documentation / reserved / public ayrımı %100 kesin;
+  bölge tahmini açıkça "tahmin" olarak etiketlenir.
+- [x] 32 birim testi.
+
+**Dürüstlük notu:** Bu bir GeoIP veritabanı DEĞİLDİR. Şehir seviyesi
+doğruluk iddia edilmez. Lab trafiği (127.0.0.1) sahte bir ülkeye
+yerleştirilmez, açıkça "LAB" olarak gösterilir.
+
+## Faz 7 — SOAR: Otonom Savunma Orkestrasyonu (tamamlandı)
+
+- [x] **5 playbook** (`arachne/soar/playbooks.py`): keşif, brute-force,
+  web sömürü, gizlenmiş yük, hedefli saldırgan. Yapı ticari ürünlerin
+  ortak sözlüğünü takip eder: TETİKLEYİCİ → ZENGİNLEŞTİRME → KARAR →
+  EYLEM → KAPANIŞ.
+- [x] **Playbook'lar saf VERİdir**, çalıştırılabilir kod değil — test etmesi
+  önemsiz derecede kolay, ileride yapılandırma dosyasından okunabilir.
+- [x] **Gerçek yaptırım** (`blocklist.py`): TTL'li engelleme listesi;
+  honeypot her bağlantıda sorar ve engelli IP'yi gerçekten reddeder.
+- [x] **İnsan onay kapısı**: geri alınabilir eylemler otomatik, yıkıcı
+  eylemler analist onayına yükseltilir. Otomasyon olgunluğu "her şeyi
+  otomatikleştirmek" değil, insan kapısının nereye konulacağını bilmektir.
+- [x] **Lab güvenliği**: loopback ve özel ağ adresleri ASLA engellenemez —
+  aksi hâlde sistem ilk demo saldırısında kendi kendini kilitlerdi.
+- [x] **Katmanlar arası tetikleme**: SOAR, Faz 4'ün MTD rotasyonunu
+  tetikleyebilir — saldırgan haritalama yaparken tam o anda kimliği
+  değiştirmek, topladığı bilgiyi geçersiz kılar.
+- [x] Her otomatik karar gerekçesiyle denetim kaydına yazılır.
+- [x] 28 birim testi.
+
+**Bu fazda bulunan ve düzeltilen gerçek hata:** Engellemeler ilk tasarımda
+yalnızca bellekte tutuluyordu. Uçtan uca canlı testte, honeypot ve panelin
+AYRI SÜREÇLERDE çalıştığı ve bellekteki listenin diğer süreçten görünmediği
+ortaya çıktı — yaptırım sessizce işe yaramıyordu. Engellemeler SQLite'a
+taşındı; bellek yalnızca 1 saniyelik sıcak yol önbelleği olarak kaldı.
+
+## Faz 8 — Güvenli Yapay Zekâ Analist Katmanı (tamamlandı)
+
+- [x] **Yerel analist** (`arachne/ai/analyst.py`): ağ/API anahtarı
+  gerektirmeden, yapısal veriden doğal dilde önceliklendirilmiş durum
+  raporu (SITREP) üretir. **HER ZAMAN çalışır** — dil modeli olmasa da
+  sistem hiçbir şey kaybetmez.
+- [x] **Karantina LLM** (`llm_backend.py`): opsiyonel; API anahtarı
+  YALNIZCA ortam değişkeninden okunur, koda/dosyaya/veritabanına asla
+  yazılmaz. Yalnızca stdlib (urllib) kullanır — hangi verinin nereye
+  gittiği tek bakışta görülür.
+- [x] **Prompt enjeksiyonu savunması** (`sanitizer.py`): Microsoft Research
+  "Spotlighting" datamarking tekniği (arXiv 2403.14720). Ölçülmüş etkisi:
+  saldırı başarı oranı ~%50'den **%3'ün altına** düşer. Delimiting tek
+  başına yetersizdir (%30'da kalır) — bu yüzden datamarking seçtik.
+- [x] **Enjeksiyon denemesini TESPİTE çevirme**: AI'ı manipüle etmeye
+  çalışan saldırgan, bu davranışıyla yakalanır ve tehdit skoru yükselir.
+  Sistemin iç mimarisini tahmin edecek kadar bilgili bir saldırgan,
+  sıradan bir tarayıcıdan daha tehlikelidir.
+- [x] **Katı çıktı şeması** (`schema.py`): enum kısıtlamaları, uzunluk
+  sınırları, **HTML kaçışlama** (LLM çıktısı üzerinden XSS imkânsız),
+  whitelist yaklaşımı (model veri yapısını genişletemez).
+- [x] 36 birim testi.
+
+**Ele alınan OWASP LLM Top 10 riskleri:**
+
+| Risk | Azaltma |
+|---|---|
+| LLM01 Prompt Injection | datamarking + rol kısıtlama + enjeksiyon raporlama |
+| LLM05 Improper Output Handling | katı şema + enum + HTML kaçışlama |
+| LLM06 Excessive Agency | modelin araç/DB/ağ yetkisi YOK |
+| LLM07 System Prompt Leakage | sızdırma denemesi tespit edilip raporlanır |
+| LLM10 Unbounded Consumption | önbellek + saatlik kota + uzunluk sınırı |
+
+**Taşıyıcı ilke: yapay zekâ ZENGİNLEŞTİRİR, KARAR VERMEZ.** Engelleme
+kararları tamamen deterministik kural motorundadır. Başarılı bir prompt
+enjeksiyonunun en kötü sonucu, bir rapor alanındaki yanıltıcı bir
+cümledir — atlatılmış bir engelleme ya da yanlış banlanmış bir IP değil.
+
+**"Ölümcül üçlü" (lethal trifecta) karşısındaki konum:** Bir ajan (1) özel
+veriye erişim, (2) güvenilmeyen içeriğe maruz kalma ve (3) dışarıyla
+iletişim yeteneklerinin üçüne birden sahipse tehlikelidir. Bizim analist
+modelimizde (2) tanım gereği vardır; (1) ve (3) **bilinçli olarak
+reddedilmiştir**.
+
+## Faz 9 — Dağıtık Sensör Ağı (tamamlandı)
+
+- [x] **HMAC-SHA256 imzalı mesajlaşma** (`arachne/mesh/crypto.py`):
+  zaman damgası penceresi + nonce ile tekrar oynatma koruması.
+- [x] **Sabit sürede imza karşılaştırma** (`hmac.compare_digest`): düz `==`
+  ilk farklı byte'ta durur ve saldırganın imzayı byte byte tahmin
+  etmesine izin verir (timing attack) — kriptografide klasik bir tuzak.
+- [x] **Belirlenimci JSON serileştirme**: anahtar sırası farklı olduğunda
+  imza doğrulamasının rastgele başarısız olmasını engeller.
+- [x] **Sensör istemcisi** (`sensor.py`): kuyruk + toplu gönderim; ağ
+  hatasında olaylar geri kuyruğa konur (at-least-once teslimat).
+- [x] **Merkezi toplayıcı** (`collector.py`): doğrulama sırası ucuzdan
+  pahalıya; imza geçmeden HİÇBİR veri veritabanına yazılmaz.
+- [x] **Derinlemesine savunma**: sensör doğrulanmış olsa bile içeriği
+  ayrıca doğrulanır — bir sensör ele geçirilmiş olabilir.
+- [x] 30 birim testi.
+
+**Neden kimlik doğrulama zorunlu?** Doğrulanmamış sensör raporlarını kabul
+eden bir SOAR sistemi, **saldırganın elinde silaha dönüşür**: sahte
+raporlarla masum IP'leri engelletebilir. Demo scripti bunu kanıtlamak için
+kasıtlı olarak sahte bir sensör çalıştırır ve reddedildiğini gösterir.
+
+## Faz 10 — Çelik Kubbe Komuta Merkezi (tamamlandı)
+
+- [x] **Katmanlı savunma simülasyonu**: gelen her saldırı bir mermi, her
+  savunma katmanı bir halka. **Çarptığı halka, o kaydı GERÇEKTEN işleyen
+  katmandır** — animasyon süsü değil, veriden türetilir.
+- [x] **Küresel saldırı haritası**: saldırgan kaynakları, saldırı yayları,
+  şiddet renklendirmesi, engellenen IP işaretlemesi. Harici harita
+  kütüphanesi yok — kıta hatları doğrudan çizilir (çevrimdışı çalışır).
+- [x] **Canlı analiz laboratuvarı**: yükü yapıştır, tersine mühendislik
+  sonucunu anında gör (kodlama çözümü, IOC, araç, ATT&CK, enjeksiyon uyarısı).
+- [x] **Savunma katmanı sağlığı**: her katmanın canlı metrikleri.
+- [x] Canlı tehdit radarı, saldırı akışı terminali, alarm zaman çizelgesi,
+  kritik alarmda ses + toast bildirimi.
+- [x] Tüm görselleştirmeler **saf Canvas 2D** — harici JS kütüphanesi yok,
+  npm derleme adımı yok, `python main.py dashboard` ile çalışır.
+
+**Dürüstlük ilkesi:** Panelde görünen HER sayı gerçek bir veritabanı
+kaydından gelir. Senaryo demo scriptleri RFC 5737 dokümantasyon adres
+aralıklarını kullanır (bu adresler tanım gereği gerçek bir cihaza ait
+olamaz) ve panelde "Senaryo (RFC 5737)" olarak etiketlenir.
+
+## Sıradaki hedefler (stretch-goal, isteğe bağlı)
+
+- İkinci bilgisayar (Windows/x86-64) edinildiğinde Faz 3'ün assembly
+  çekirdeğinin x86-64 versiyonu — asıl kazanç, jürinin kendi makinesinde
+  de native hızı canlı gösterebilmek.
+- DDoS tespiti için trafik-anomali analizi (yine izole ortamda).
+- TAXII 2.1 sunucu uç noktaları (STIX üretimi hazır; kalan iş taşıma katmanı).
+- Uluslararası CTF'lere katılım (Google CTF, DEF CON quals).
+
+
 ## Sabit ilkeler (her fazda geçerli)
 
 1. **Önce çalışan, test edilmiş, dokümante edilmiş bir MVP** — sonra kapsam

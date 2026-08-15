@@ -21,11 +21,36 @@ from ..native import signature_engine
 
 # Bilinen saldiri imzalari: kategori -> aranacak alt string'ler (kucuk harfe
 # cevrilmis payload icinde aranir)
+#
+# GENISLETME NOTU (Faz 5 sirasinda bulundu): Ilk surumde SQL Injection icin
+# yalnizca "' or '1'='1" varyanti vardi. Canli test sirasinda, klasik ve en
+# yaygin kaliplardan biri olan TIRNAKSIZ `' OR 1=1--` yukunun hic
+# yakalanmadigi goruldu. Bu gercek bir tespit acigiydi ve asagida
+# genisletilerek kapatildi.
+#
+# Imza secim ilkesi: her imza, mesru trafikte pratikte GORULMEYECEK kadar
+# ayirt edici olmali. "or 1=1" bu testi gecer; ornegin tek basina "select"
+# gecmez (yanlis pozitif ureticek kadar yaygin) - o yuzden listede yok.
 ATTACK_SIGNATURES = {
-    "SQL Injection": ["' or '1'='1", "union select", "; drop table", "xp_cmdshell", "sleep("],
-    "XSS": ["<script>", "onerror=", "javascript:"],
-    "Command Injection": ["; cat /etc/passwd", "&& whoami", "| nc ", "$(", "`whoami`"],
-    "Path Traversal": ["../../../", "..\\..\\..\\", "/etc/passwd"],
+    "SQL Injection": [
+        "' or '1'='1", "or 1=1", "or 1 = 1", "' or 1", '" or 1',
+        "union select", "union all select", "; drop table", "xp_cmdshell",
+        "sleep(", "benchmark(", "waitfor delay", "pg_sleep(",
+        "information_schema", "admin'--", "' or true", "') or (",
+    ],
+    "XSS": [
+        "<script>", "onerror=", "javascript:", "<img src=", "onload=",
+        "onmouseover=", "<svg/", "<svg ", "document.cookie",
+    ],
+    "Command Injection": [
+        "; cat /etc/passwd", "&& whoami", "| nc ", "$(", "`whoami`",
+        "; ls -", "&& cat ", "| bash", "| sh ", "; wget ", "; curl ",
+        "/bin/sh", "/bin/bash", "; id;", "&& id",
+    ],
+    "Path Traversal": [
+        "../../../", "..\\..\\..\\", "/etc/passwd", "/etc/shadow",
+        "..%2f", "%2e%2e%2f", "....//", "/proc/self/environ",
+    ],
 }
 
 

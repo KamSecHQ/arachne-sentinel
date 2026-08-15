@@ -7,6 +7,7 @@ sunucu-taraf render (SSR), sonrasinda tarayici `/api/live` uzerinden
 birkac saniyede bir GERCEK verileri poll edip sayfayi (tam yenileme
 yapmadan) canli gunceller - tehdit radari ve canli akis paneli de ayni
 gercek verilerle tetiklenir, hicbir sahte/simule veri uretilmez."""
+import logging
 import random
 import re
 import string
@@ -18,9 +19,21 @@ from flask import Flask, jsonify, render_template
 
 from .. import storage
 from ..native import signature_engine
+from . import command_center
 from .report_generator import generate_html_report
 
+logger = logging.getLogger(__name__)
+
 app = Flask(__name__)
+
+# Faz 9: sensor agi toplayicisini panele bagla. Boylece tek bir surecte
+# hem komuta merkezi hem toplayici calisir (kucuk lab kurulumu); gercek
+# dagitik senaryoda ayri calistirilabilir - kod degismeden.
+try:
+    from ..mesh.collector import mesh_bp
+    app.register_blueprint(mesh_bp)
+except Exception:  # pragma: no cover
+    logging.getLogger(__name__).warning("Mesh toplayicisi yuklenemedi", exc_info=True)
 
 GITHUB_URL = "https://github.com/KamSecHQ/arachne-sentinel"
 
@@ -103,6 +116,20 @@ def _gather_dashboard_data():
 
     alerts_timeline = storage.alerts_timeline(buckets=12, bucket_minutes=5)
 
+    # --- Faz 7: SOAR ---
+    soar_actions = storage.get_soar_actions(limit=40)
+    soar_stats = storage.soar_summary_stats()
+    try:
+        from ..soar import blocklist
+        active_blocks = blocklist.active_blocks()
+    except Exception:
+        active_blocks = []
+    soar_stats["active_blocks"] = len(active_blocks)
+
+    # --- Faz 9: sensor agi ---
+    sensors = storage.get_sensors()
+    mesh_stats = storage.mesh_summary_stats()
+
     return {
         "alerts": alerts,
         "events": events,
@@ -115,7 +142,29 @@ def _gather_dashboard_data():
         "mtd_stats": mtd_stats,
         "ghost_admin_port": ghost_admin_port,
         "alerts_timeline": alerts_timeline,
+        "soar_actions": soar_actions,
+        "soar_stats": soar_stats,
+        "active_blocks": active_blocks,
+        "sensors": sensors,
+        "mesh_stats": mesh_stats,
     }
+
+
+def _gather_intel_data():
+    """Faz 5/6/8 verileri - hesaplama maliyeti daha yuksek oldugu icin
+    ayri bir uc noktada (/api/intel) sunulur; canli panel dongusunu
+    yavaslatmaz."""
+    from ..ai import report_writer
+
+    try:
+        data = report_writer.situation_report()
+    except Exception:
+        logger.exception("Durum raporu uretilemedi")
+        return {
+            "report": None, "profiles": [], "campaigns": [],
+            "llm_status": {"mode_tr": "hata"},
+        }
+    return data
 
 
 @app.route("/")
@@ -139,7 +188,55 @@ def api_live():
     verilerle dolu JSON uc noktasi - canli radar/akis/sayaclar burayi besler."""
     data = _gather_dashboard_data()
     data["bench_rows"] = _quick_benchmark()
+    data["dome"] = command_center.build_dome_state()
+    data["attack_map"] = command_center.build_attack_map()
+    data["layer_health"] = command_center.build_layer_health()
     return jsonify(data)
+
+
+@app.route("/api/intel")
+def api_intel():
+    """Faz 5/6/8: tersine muhendislik, profilleme, kampanya korelasyonu ve
+    AI durum raporu. Canli dongoden ayri, daha seyrek cagrilir."""
+    return jsonify(_gather_intel_data())
+
+
+@app.route("/api/analyze", methods=["POST"])
+def api_analyze():
+    """Tek bir yuku tersine muhendislik + AI analistine gonderir.
+
+    GUVENLIK: gelen yuk hicbir zaman calistirilmaz, bir kabuga ya da
+    sorguya gecirilmez - sadece metin olarak analiz edilir. AI katmanina
+    giderken datamarking uygulanir (bkz. arachne/ai/sanitizer.py)."""
+    from flask import request
+    from ..ai import report_writer
+
+    body = request.get_json(silent=True) or {}
+    payload = str(body.get("payload", ""))[:4000]
+    if not payload.strip():
+        return jsonify({"error": "Bos yuk"}), 400
+
+    try:
+        return jsonify(report_writer.analyze_attack(payload))
+    except Exception:
+        logger.exception("Yuk analizi basarisiz")
+        return jsonify({"error": "Analiz sirasinda hata olustu"}), 500
+
+
+@app.route("/api/stix")
+def api_stix():
+    """Bulgulari STIX 2.1 Bundle olarak disari aktarir.
+
+    Bu uc nokta, sistemin ciktisinin baska guvenlik platformlari
+    (MISP, OpenCTI, ticari SIEM'ler) tarafindan okunabilir oldugunu
+    kanitlar - birlikte calisabilirlik (interoperability) gostergesi."""
+    from ..intel import stix_export
+
+    data = _gather_intel_data()
+    bundle = stix_export.build_stix_bundle(data["profiles"], data["campaigns"])
+    response = jsonify(bundle)
+    response.headers["Content-Disposition"] = "attachment; filename=arachne-stix-bundle.json"
+    return response
 
 
 @app.route("/report")
@@ -147,6 +244,23 @@ def report():
     path = generate_html_report()
     with open(path, encoding="utf-8") as f:
         return f.read()
+
+
+@app.route("/ai-report")
+def ai_report():
+    """AI analist raporunu Markdown olarak dondurur (indirilebilir)."""
+    from flask import Response
+    from ..ai import report_writer
+
+    try:
+        path = report_writer.generate_ai_report()
+        with open(path, encoding="utf-8") as f:
+            content = f.read()
+    except Exception:
+        logger.exception("AI raporu uretilemedi")
+        content = "# Rapor uretilemedi\n\nAyrintilar icin sunucu kayitlarina bakin."
+
+    return Response(content, mimetype="text/markdown; charset=utf-8")
 
 
 def run_dashboard(host="127.0.0.1", port=5000):

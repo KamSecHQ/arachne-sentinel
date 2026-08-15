@@ -276,3 +276,269 @@ footer a{color:var(--accent-2);}
   .nav-links{display:none;}
   .radar-panel{height:320px;}
 }
+
+/* ============================================================
+   FAZ 10 — CELIK KUBBE KOMUTA MERKEZI
+   ============================================================ */
+
+.command-grid{display:grid; grid-template-columns:1.15fr 1fr; gap:1.1rem; margin-bottom:1.1rem;}
+@media (max-width:960px){ .command-grid{grid-template-columns:1fr;} }
+
+.dome-panel, .map-panel{
+  position:relative; background:radial-gradient(ellipse at bottom, #0b1a1a 0%, var(--panel) 70%);
+  border:1px solid var(--border); border-radius:16px; overflow:hidden; height:500px;
+}
+.map-panel{background:radial-gradient(ellipse at center, #0a1420 0%, var(--panel) 75%);}
+#dome-canvas, #map-canvas{width:100%; height:100%; display:block;}
+
+.panel-title{
+  position:absolute; top:.85rem; left:1rem; z-index:2;
+  font-family:var(--font-display); font-size:.78rem; letter-spacing:.06em;
+  color:var(--text); text-transform:uppercase; opacity:.9; pointer-events:none;
+}
+.panel-title small{
+  display:block; font-family:var(--font-body); font-size:.68rem;
+  letter-spacing:0; color:var(--muted); text-transform:none; margin-top:.2rem;
+  max-width:280px; line-height:1.5;
+}
+
+.dome-legend{
+  position:absolute; bottom:.7rem; left:.8rem; right:.8rem; z-index:2;
+  display:flex; flex-wrap:wrap; gap:.35rem; justify-content:center;
+}
+.dome-legend-item{
+  display:flex; align-items:center; gap:.4rem; font-family:var(--font-mono);
+  font-size:.65rem; padding:.25rem .5rem; border-radius:6px;
+  background:rgba(5,7,10,0.72); border:1px solid var(--border-soft); color:var(--muted);
+  backdrop-filter:blur(4px); cursor:help;
+}
+.dome-legend-item.active{color:var(--text); border-color:var(--border);}
+.dl-sw{width:7px;height:7px;border-radius:50%;}
+.dl-phase{opacity:.55;}
+.dl-count{font-weight:700; color:var(--accent-2);}
+
+.map-stats{
+  position:absolute; top:.85rem; right:1rem; z-index:2;
+  background:rgba(5,7,10,0.72); border:1px solid var(--border-soft); border-radius:10px;
+  padding:.6rem .75rem; font-family:var(--font-mono); font-size:.68rem;
+  backdrop-filter:blur(4px); min-width:150px;
+}
+.ms-row{display:flex; justify-content:space-between; gap:1rem; color:var(--muted); padding:.12rem 0;}
+.ms-row b{color:var(--text);}
+
+.honesty-note{
+  font-size:.72rem; color:var(--dim); font-style:italic; margin-top:.5rem;
+  padding-left:.6rem; border-left:2px solid var(--border);
+}
+
+/* --- Katman saglik kartlari --- */
+.layer-health{display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:.8rem;}
+.layer-card{
+  background:linear-gradient(160deg,var(--panel-2),var(--panel));
+  border:1px solid var(--border); border-radius:12px; padding:.85rem 1rem;
+  transition:border-color .2s ease;
+}
+.layer-card.ok{border-left:3px solid var(--ok);}
+.layer-card.idle{border-left:3px solid var(--dim); opacity:.72;}
+.lc-head{display:flex; align-items:center; gap:.4rem; margin-bottom:.5rem;}
+.lc-dot{width:6px;height:6px;border-radius:50%;background:var(--ok);flex-shrink:0;}
+.layer-card.idle .lc-dot{background:var(--dim);}
+.lc-name{font-size:.76rem; font-weight:700;}
+.lc-phase{margin-left:auto; font-family:var(--font-mono); font-size:.62rem; color:var(--dim);}
+.lc-metric{font-family:var(--font-display); font-size:1.4rem; font-weight:700; line-height:1;}
+.lc-metric span{font-family:var(--font-body); font-size:.66rem; font-weight:400; color:var(--muted); margin-left:.4rem;}
+.lc-detail{margin-top:.45rem; font-size:.68rem; color:var(--muted); line-height:1.45;}
+
+/* ============================================================
+   FAZ 8 — AI ANALIST (SITREP)
+   ============================================================ */
+
+.sitrep{background:var(--panel); border:1px solid var(--border); border-radius:14px; overflow:hidden;}
+.sitrep-head{display:flex; gap:1.2rem; padding:1.2rem 1.4rem; border-bottom:1px solid var(--border);}
+.posture{
+  flex-shrink:0; text-align:center; padding:.9rem 1.3rem; border-radius:12px;
+  border:1px solid var(--border); min-width:150px; align-self:flex-start;
+}
+.posture .p-label{font-family:var(--font-mono); font-size:.6rem; letter-spacing:.14em; color:var(--muted);}
+.posture .p-value{font-family:var(--font-display); font-size:1.5rem; font-weight:900; margin-top:.3rem;}
+.posture.p-critical{background:rgba(255,59,69,.1); border-color:rgba(255,59,69,.4);}
+.posture.p-critical .p-value{color:var(--accent);}
+.posture.p-high{background:rgba(255,122,69,.1); border-color:rgba(255,122,69,.4);}
+.posture.p-high .p-value{color:var(--high);}
+.posture.p-medium{background:rgba(245,166,35,.1); border-color:rgba(245,166,35,.4);}
+.posture.p-medium .p-value{color:var(--med);}
+.posture.p-calm{background:rgba(34,197,94,.09); border-color:rgba(34,197,94,.35);}
+.posture.p-calm .p-value{color:var(--ok);}
+
+.sitrep-summary{flex:1;}
+.s-reason{margin:0 0 .7rem; font-size:.86rem; line-height:1.6;}
+.s-engine{margin:.6rem 0 0; font-size:.72rem; color:var(--muted);}
+.chips{display:flex; flex-wrap:wrap; gap:.4rem;}
+.chip{
+  font-family:var(--font-mono); font-size:.68rem; padding:.22rem .55rem; border-radius:6px;
+  background:var(--panel-2); border:1px solid var(--border); color:var(--muted);
+}
+.chip b{color:var(--text);}
+
+.sitrep-body{display:grid; grid-template-columns:1.6fr 1fr; gap:1.4rem; padding:1.2rem 1.4rem;}
+@media (max-width:820px){ .sitrep-body{grid-template-columns:1fr;} }
+.finding{padding:.7rem .9rem; border-radius:9px; background:var(--panel-2); margin-bottom:.6rem;
+  border-left:3px solid var(--dim);}
+.finding.prio-1{border-left-color:var(--accent);}
+.finding.prio-2{border-left-color:var(--warn);}
+.finding.prio-3{border-left-color:var(--accent-2);}
+.f-title{display:flex; align-items:center; gap:.5rem; font-weight:700; font-size:.82rem; margin-bottom:.35rem;}
+.f-prio{font-family:var(--font-mono); font-size:.6rem; padding:.1rem .35rem; border-radius:4px;
+  background:rgba(255,255,255,.06); color:var(--muted);}
+.f-detail{font-size:.78rem; color:var(--muted); line-height:1.6;}
+.rec-list{margin:0; padding-left:1.1rem; font-size:.79rem; color:var(--muted); line-height:1.75;}
+
+/* ============================================================
+   FAZ 6 — PROFILLER VE KAMPANYALAR
+   ============================================================ */
+
+.kc-bar{height:5px; border-radius:3px; background:#1a2029; overflow:hidden; min-width:70px;}
+.kc-bar.big{height:8px; margin:.6rem 0 .3rem;}
+.kc-fill{height:100%; background:linear-gradient(90deg,var(--accent-2),var(--accent)); transition:width .5s ease;}
+.kc-label{font-size:.66rem; color:var(--muted); font-family:var(--font-mono);}
+
+.campaign{
+  background:var(--panel-2); border:1px solid var(--border); border-radius:12px;
+  padding:1rem 1.2rem; margin-bottom:.8rem; border-left:3px solid var(--accent);
+}
+.c-head{display:flex; align-items:center; gap:.7rem; flex-wrap:wrap; margin-bottom:.6rem;}
+.c-id{font-size:.72rem; color:var(--accent-2); font-weight:700;}
+.c-count{font-family:var(--font-mono); font-size:.68rem; padding:.15rem .5rem; border-radius:20px;
+  background:rgba(255,59,69,.14); color:var(--accent); border:1px solid rgba(255,59,69,.3);}
+.c-tools{font-size:.72rem; color:var(--muted);}
+.c-ips{display:flex; flex-wrap:wrap; gap:.35rem; margin-bottom:.6rem;}
+.c-ip{font-size:.72rem; padding:.16rem .45rem; border-radius:5px; background:var(--panel);
+  border:1px solid var(--border); color:var(--text);}
+.c-assess{font-size:.78rem; color:var(--muted); line-height:1.6; margin:0 0 .6rem;}
+.c-links{display:flex; flex-wrap:wrap; gap:.4rem;}
+.c-link{font-size:.66rem; color:var(--dim); padding:.12rem .4rem; border-radius:4px; background:var(--panel);}
+.c-link b{color:var(--accent-2);}
+
+/* ============================================================
+   FAZ 5 — YUK ANALIZ LABORATUVARI
+   ============================================================ */
+
+.analyzer{background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:1.2rem 1.4rem;}
+.analyzer-form{display:flex; gap:.6rem; margin-bottom:.8rem;}
+.analyzer-form input{
+  flex:1; padding:.65rem .85rem; border-radius:9px; background:#060809;
+  border:1px solid var(--border); color:var(--text); font-family:var(--font-mono); font-size:.8rem;
+}
+.analyzer-form input:focus{outline:none; border-color:var(--accent-2);}
+.analyzer-form button{
+  padding:.65rem 1.3rem; border-radius:9px; border:1px solid rgba(34,211,238,.4);
+  background:rgba(34,211,238,.12); color:var(--accent-2); font-weight:700; cursor:pointer;
+  font-size:.8rem; transition:all .15s ease;
+}
+.analyzer-form button:hover{background:rgba(34,211,238,.22);}
+.samples{display:flex; flex-wrap:wrap; gap:.4rem; margin-bottom:1rem;}
+.samples span{font-size:.7rem; color:var(--dim); align-self:center; margin-right:.2rem;}
+.sample-btn{
+  font-family:var(--font-mono); font-size:.66rem; padding:.28rem .6rem; border-radius:6px;
+  background:var(--panel-2); border:1px solid var(--border); color:var(--muted); cursor:pointer;
+  transition:all .15s ease;
+}
+.sample-btn:hover{border-color:var(--accent-2); color:var(--text);}
+
+.injection-alert{
+  background:rgba(255,59,69,.09); border:1px solid rgba(255,59,69,.35);
+  border-radius:10px; padding:.9rem 1.1rem; margin-bottom:1rem;
+}
+.injection-alert b{color:var(--accent); font-family:var(--font-mono); font-size:.78rem;}
+.injection-alert p{font-size:.78rem; color:var(--muted); margin:.45rem 0; line-height:1.6;}
+.injection-alert ul{margin:.4rem 0; padding-left:1.2rem; font-size:.74rem; color:var(--muted);}
+.injection-alert code{background:#060809; padding:.05rem .3rem; border-radius:3px; color:var(--warn);}
+.ia-note{border-top:1px solid rgba(255,59,69,.2); padding-top:.5rem; font-style:italic;}
+
+.analysis-grid{display:grid; grid-template-columns:1fr 1fr; gap:1rem;}
+@media (max-width:820px){ .analysis-grid{grid-template-columns:1fr;} }
+.an-block{background:var(--panel-2); border:1px solid var(--border); border-radius:10px; padding:.9rem 1.1rem;}
+.an-block.wide{grid-column:1 / -1;}
+.an-block h5{margin:0 0 .7rem; font-family:var(--font-mono); font-size:.7rem;
+  text-transform:uppercase; letter-spacing:.06em; color:var(--muted); font-weight:700;}
+
+.verdict{display:flex; align-items:baseline; gap:.6rem; margin-bottom:.7rem;}
+.v-score{font-family:var(--font-display); font-size:2rem; font-weight:900;}
+.v-label{font-family:var(--font-mono); font-size:.78rem; text-transform:uppercase; letter-spacing:.06em;}
+.verdict.v-kritik .v-score, .verdict.v-kritik .v-label{color:var(--accent);}
+.verdict.v-yuksek .v-score, .verdict.v-yuksek .v-label{color:var(--high);}
+.verdict.v-orta .v-score, .verdict.v-orta .v-label{color:var(--med);}
+.verdict.v-dusuk .v-score, .verdict.v-dusuk .v-label{color:var(--low);}
+.verdict.v-temiz .v-score, .verdict.v-temiz .v-label{color:var(--ok);}
+.an-classes{display:flex; flex-wrap:wrap; gap:.35rem; margin-bottom:.5rem;}
+
+.deob-chain{font-size:.74rem; color:var(--accent-2); margin-bottom:.6rem;
+  padding:.35rem .6rem; background:#060809; border-radius:6px;}
+.deob-step{display:flex; align-items:center; gap:.5rem; padding:.3rem 0; font-size:.72rem;}
+.ds-n{width:16px;height:16px;border-radius:50%;background:var(--panel);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;font-size:.6rem;color:var(--muted);flex-shrink:0;}
+.ds-method{color:var(--warn); min-width:74px;}
+.ds-arrow{color:var(--dim);}
+.ds-after{background:#060809; padding:.12rem .4rem; border-radius:4px; color:var(--text);
+  font-size:.68rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:220px;}
+.deob-final{margin-top:.6rem; padding-top:.6rem; border-top:1px solid var(--border); font-size:.72rem;}
+.deob-final span{color:var(--muted); margin-right:.4rem;}
+.deob-final code{background:#060809; padding:.2rem .45rem; border-radius:4px; color:var(--ok);
+  display:inline-block; max-width:100%; overflow-wrap:anywhere;}
+
+.an-summary{font-size:.8rem; line-height:1.65; margin:0 0 .7rem;}
+.an-meta{display:flex; flex-direction:column; gap:.3rem; font-size:.72rem; color:var(--muted);}
+.an-meta b{color:var(--text);}
+
+.attck-chips{display:flex; flex-wrap:wrap; gap:.4rem;}
+.attck-chip{
+  display:inline-flex; align-items:center; gap:.35rem; font-family:var(--font-mono);
+  font-size:.68rem; padding:.25rem .55rem; border-radius:6px; text-decoration:none;
+  background:rgba(167,139,250,.1); border:1px solid rgba(167,139,250,.3); color:var(--purple);
+  transition:all .15s ease;
+}
+.attck-chip:hover{background:rgba(167,139,250,.2);}
+.attck-chip span{color:var(--muted); font-size:.64rem;}
+
+.tool-row{padding:.5rem 0; border-bottom:1px solid var(--border-soft); font-size:.76rem;}
+.tool-row:last-child{border-bottom:none;}
+.tool-row .conf{float:right; font-family:var(--font-mono); color:var(--accent-2); font-weight:700;}
+.tool-ev{font-size:.68rem; color:var(--dim); margin-top:.25rem;}
+
+.ioc-group{display:flex; flex-wrap:wrap; align-items:center; gap:.35rem; padding:.35rem 0;
+  border-bottom:1px solid var(--border-soft);}
+.ioc-group:last-child{border-bottom:none;}
+.ig-key{font-size:.68rem; color:var(--muted); min-width:110px;}
+.ioc-group code{background:#060809; padding:.14rem .4rem; border-radius:4px;
+  font-size:.68rem; color:var(--warn); overflow-wrap:anywhere;}
+
+/* ============================================================
+   FAZ 7/9 — SOAR VE SENSOR AGI
+   ============================================================ */
+
+.block-list{display:flex; flex-wrap:wrap; gap:.5rem;}
+.block-chip{
+  display:flex; align-items:center; gap:.5rem; font-family:var(--font-mono); font-size:.7rem;
+  padding:.35rem .7rem; border-radius:8px; background:rgba(255,59,69,.1);
+  border:1px solid rgba(255,59,69,.32); color:var(--accent);
+}
+.block-chip .bc-time{color:var(--muted); font-size:.65rem;}
+
+.sensor-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:.8rem;}
+.sensor-card{
+  background:var(--panel-2); border:1px solid var(--border); border-radius:10px; padding:.8rem 1rem;
+  border-left:3px solid var(--dim);
+}
+.sensor-card.online{border-left-color:var(--ok);}
+.sc-head{display:flex; align-items:center; gap:.45rem; margin-bottom:.4rem;}
+.sc-dot{width:6px;height:6px;border-radius:50%;background:var(--dim);}
+.sensor-card.online .sc-dot{background:var(--ok); animation:pulse 1.8s infinite;}
+.sc-id{font-family:var(--font-mono); font-size:.76rem; font-weight:700;}
+.sc-loc{margin-left:auto; font-size:.66rem; color:var(--muted);}
+.sc-stats{font-size:.7rem; color:var(--muted); line-height:1.6;}
+
+.warn-banner{
+  background:rgba(245,166,35,.09); border:1px solid rgba(245,166,35,.32);
+  border-radius:9px; padding:.65rem .9rem; font-size:.76rem; color:var(--warn);
+  margin-bottom:.9rem;
+}

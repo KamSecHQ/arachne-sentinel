@@ -30,6 +30,7 @@
     const projectiles = [];   // ucusta olan mermiler
     const bursts = [];        // patlama efektleri
     const ripples = [];       // katman halkasi dalgalanmasi
+    const callouts = [];      // "hangi katman durdurdu" ucucu etiketleri
     let seenIds = new Set();
     let firstLoad = true;
     let stats = { total: 0, reachedCore: 0 };
@@ -43,9 +44,9 @@
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       cx = w / 2;
       // Cekirdek alt-ortada: gelen saldirilar yukaridan gelir, kubbe onlari
-      // karsilar. 0.80 secildi ki alttaki katman gostergesi cekirdegi ortmesin.
-      cy = h * 0.80;
-      maxR = Math.min(w * 0.44, h * 0.70);
+      // karsilar. Buyuk, ferah kubbe - etiketler kosegen boyunca yayilir.
+      cy = h * 0.86;
+      maxR = Math.min(w * 0.40, h * 0.82);
     }
     window.addEventListener("resize", layout);
 
@@ -62,15 +63,15 @@
       const spread = Math.PI * 0.86;
       const angle = -Math.PI / 2 - spread / 2 + (Math.abs(hash) % 1000) / 1000 * spread;
 
-      const startR = maxR * 1.45;
+      const startR = maxR * 1.5;
       projectiles.push({
         angle,
         r: startR,
         targetR,
-        speed: startR * 0.011,
+        speed: startR * 0.010,
         layerId: projectile.intercepted_by,
         color: (layer && layer.color) || "255,255,255",
-        label: projectile.label || "",
+        label: (layer && layer.name) || projectile.label || "",
         trail: [],
       });
     }
@@ -103,34 +104,96 @@
     }
 
     function drawDome() {
-      // Katman halkalari (yarim kubbe)
+      // Zemin: hafif tarama izgarasi (radar hissi)
+      ctx.save();
+      ctx.strokeStyle = "rgba(45,212,191,0.05)";
+      ctx.lineWidth = 1;
+      for (let a = 0; a <= 6; a++) {
+        const ang = Math.PI + (a / 6) * Math.PI;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(cx + Math.cos(ang) * maxR * 1.02, cy + Math.sin(ang) * maxR * 1.02);
+        ctx.stroke();
+      }
+      ctx.restore();
+
+      // Etiket acilari: isim ust-solda, sayi ust-sagda - her ikisi de kosegen
+      // boyunca yayilir, boylece 14 halka etiketi HIC sikismaz.
+      const NAME_ANG = Math.PI * 1.15;   // ~207° (ust-sol)
+      const CNT_ANG = Math.PI * 1.85;    // ~333° (ust-sag)
+
+      // Katman halkalari (yarim kubbe) - disaridan iceriye
       layers.forEach((layer) => {
         const r = layer.radius * maxR;
-        const alpha = layer.active ? 0.42 : 0.16;
+        const on = layer.active;
+        const alpha = on ? 0.5 : 0.14;
 
-        ctx.beginPath();
-        ctx.arc(cx, cy, r, Math.PI, TAU);
-        ctx.strokeStyle = `rgba(${layer.color},${alpha})`;
-        ctx.lineWidth = layer.active ? 1.8 : 1;
-        ctx.setLineDash(layer.active ? [] : [4, 6]);
-        ctx.stroke();
-        ctx.setLineDash([]);
-
-        // Ic dolgu (cok soluk)
+        // Ic dolgu (cok soluk) - once ki cizgiler ustte kalsin
         ctx.beginPath();
         ctx.arc(cx, cy, r, Math.PI, TAU);
         ctx.closePath();
-        ctx.fillStyle = `rgba(${layer.color},0.022)`;
+        ctx.fillStyle = `rgba(${layer.color},${on ? 0.03 : 0.012})`;
         ctx.fill();
 
-        // Katman etiketi
-        ctx.font = "600 9px 'JetBrains Mono', monospace";
-        ctx.fillStyle = `rgba(${layer.color},${layer.active ? 0.95 : 0.45})`;
-        ctx.textAlign = "left";
-        ctx.fillText(
-          `${layer.name}  ·  ${layer.interceptions}`,
-          cx + 8, cy - r + 13
-        );
+        // Halka cizgisi
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, Math.PI, TAU);
+        ctx.strokeStyle = `rgba(${layer.color},${alpha})`;
+        ctx.lineWidth = on ? 2 : 1;
+        ctx.setLineDash(on ? [] : [3, 7]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // --- Isim etiketi (ust-sol kosegen), lider cizgisiyle ---
+        const nx = cx + Math.cos(NAME_ANG) * r;
+        const ny = cy + Math.sin(NAME_ANG) * r;
+        ctx.beginPath();
+        ctx.arc(nx, ny, on ? 2.6 : 1.8, 0, TAU);
+        ctx.fillStyle = `rgba(${layer.color},${on ? 1 : 0.5})`;
+        ctx.fill();
+        // lider cizgi
+        ctx.beginPath();
+        ctx.moveTo(nx, ny);
+        ctx.lineTo(nx - 10, ny);
+        ctx.strokeStyle = `rgba(${layer.color},${on ? 0.5 : 0.2})`;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        ctx.font = on ? "600 12px 'JetBrains Mono', monospace"
+                      : "500 11px 'JetBrains Mono', monospace";
+        ctx.textAlign = "right";
+        ctx.textBaseline = "middle";
+        // koyu hale: etiket halkalarin uzerinde net okunsun
+        ctx.shadowColor = "rgba(3,5,8,0.95)";
+        ctx.shadowBlur = 6;
+        ctx.fillStyle = `rgba(${layer.color},${on ? 0.98 : 0.42})`;
+        ctx.fillText(layer.name, nx - 14, ny);
+        ctx.shadowBlur = 0;
+
+        // --- Sayi rozeti (ust-sag kosegen) ---
+        const qx = cx + Math.cos(CNT_ANG) * r;
+        const qy = cy + Math.sin(CNT_ANG) * r;
+        const label = String(layer.interceptions);
+        ctx.font = "700 12px 'JetBrains Mono', monospace";
+        const pw = ctx.measureText(label).width + 14;
+        ctx.beginPath();
+        if (ctx.roundRect) ctx.roundRect(qx + 8, qy - 9, pw, 18, 9);
+        else ctx.rect(qx + 8, qy - 9, pw, 18);
+        ctx.fillStyle = on ? `rgba(${layer.color},0.16)` : "rgba(255,255,255,0.02)";
+        ctx.fill();
+        ctx.strokeStyle = `rgba(${layer.color},${on ? 0.55 : 0.18})`;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        ctx.textAlign = "center";
+        ctx.fillStyle = `rgba(${layer.color},${on ? 1 : 0.45})`;
+        ctx.fillText(label, qx + 8 + pw / 2, qy + 1);
+        // lider cizgi rozetten halkaya
+        ctx.beginPath();
+        ctx.moveTo(qx, qy);
+        ctx.lineTo(qx + 7, qy);
+        ctx.strokeStyle = `rgba(${layer.color},${on ? 0.5 : 0.2})`;
+        ctx.stroke();
+
+        ctx.textBaseline = "alphabetic";
       });
 
       // Katman dalgalanmalari (bir mudahale oldugunda)
@@ -144,6 +207,35 @@
         ctx.lineWidth = 2.5 * (1 - rp.t);
         ctx.stroke();
       }
+    }
+
+    function drawCallouts() {
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      for (let i = callouts.length - 1; i >= 0; i--) {
+        const c = callouts[i];
+        c.t += 0.014;
+        if (c.t >= 1) { callouts.splice(i, 1); continue; }
+        const a = c.t < 0.15 ? c.t / 0.15 : (1 - (c.t - 0.15) / 0.85);
+        const yy = c.y - c.t * 26;
+        ctx.font = "700 11px 'JetBrains Mono', monospace";
+        const tw = ctx.measureText(c.name).width;
+        // arka plan
+        ctx.fillStyle = `rgba(8,11,17,${a * 0.85})`;
+        const bx = c.x + 8, bw = tw + 20;
+        if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(bx, yy - 9, bw, 18, 5); ctx.fill(); }
+        else ctx.fillRect(bx, yy - 9, bw, 18);
+        ctx.strokeStyle = `rgba(${c.color},${a * 0.7})`;
+        ctx.lineWidth = 1; ctx.stroke();
+        // nokta + metin
+        ctx.beginPath();
+        ctx.arc(bx + 9, yy, 2.5, 0, TAU);
+        ctx.fillStyle = `rgba(${c.color},${a})`;
+        ctx.fill();
+        ctx.fillStyle = `rgba(233,237,245,${a})`;
+        ctx.fillText(c.name, bx + 16, yy + 0.5);
+      }
+      ctx.textBaseline = "alphabetic";
     }
 
     function drawCore() {
@@ -203,10 +295,12 @@
         ctx.fill();
         ctx.shadowBlur = 0;
 
-        // Katmana ulasti mi? -> mudahale
+        // Katmana ulasti mi? -> mudahale (hangi katmanin durdurdugunu goster)
         if (p.r <= p.targetR) {
           bursts.push({ x, y, t: 0, color: p.color });
           ripples.push({ r: p.targetR, t: 0, color: p.color });
+          if (p.label) callouts.push({ x, y, name: p.label, color: p.color, t: 0 });
+          if (callouts.length > 10) callouts.shift();
           projectiles.splice(i, 1);
         } else if (p.r <= 0) {
           projectiles.splice(i, 1);
@@ -264,6 +358,7 @@
       drawCore();
       drawProjectiles();
       drawBursts();
+      drawCallouts();
       drawHud();
       requestAnimationFrame(frame);
     }

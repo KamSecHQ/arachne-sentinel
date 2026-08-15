@@ -444,3 +444,90 @@ Görselleştirmenin dürüstlüğü, projenin geri kalanıyla aynı ilkeye tabid
 | `GET /ai-report` | AI analist raporu (Markdown) |
 | `POST /mesh/ingest` | Sensör raporu alma (HMAC doğrulamalı) |
 | `GET /mesh/status` | Sensör ağı durumu |
+
+---
+
+# Faz 11-20: Aktif Savunma, İleri Analiz ve Yeniden Tasarım
+
+## Faz 11-12 — Aktif Savunma & Honeytoken: hukuki çerçeve
+
+Bu iki faz "misilleme" gibi görünebilir ama **başka bir sisteme saldırmaz**.
+Karşı-saldırı (hack-back) Türkiye dahil birçok ülkede suçtur ve projenin
+ilkesine aykırıdır. Burada kurulan şey, **aktif savunmanın** hukuka uygun
+türüdür (MITRE Engage / active-defense literatürü):
+
+- **Tarpit**: saldırganı kendi honeypot'umuzda oyalar, yavaşlatır. Dışarıya
+  tek bir saldırı paketi gitmez.
+- **Aldatma**: saldırgana sahte veri döner (sahte /etc/passwd vb.) — gerçek
+  hiçbir bilgi içermez, gerçek hiçbir sisteme yaramaz.
+- **Honeytoken**: hiçbir meşru amacı olmayan tuzak değerler; kullanıldığı an
+  neredeyse kesin bir ihlal kanıtı (yanlış pozitif ~sıfır).
+
+Uyarlanabilir tarpit gecikmesi (düşük tehdit → hiç bekletme, yüksek tehdit →
+maksimuma yakın) ve sınırlı maksimum gecikme (kendi kaynağımızı koruma) tasarım
+gereğidir — her savunma önlemi kendi maliyetini gözetir.
+
+## Faz 14 — Kural motoru: neden "derle"?
+
+Kurallar bir kez derlenir (regex'ler önceden compile edilir, koşullar
+doğrulanır) ve çok kez çalıştırılır — gerçek motorların (YARA, Suricata)
+yaptığı gibi. Derleme aşaması bozuk kuralları **çalıştırılmadan önce** yakalar.
+Kurallar saf **veri**dir (Python sözlüğü), çalıştırılabilir kod değil: test
+etmesi önemsiz, ileride bir yapılandırma dosyasından okunabilir.
+
+## Faz 16 — Otomatik imza üretimi: bilgi getirisi
+
+İyi bir imza, kötü yüklerde **sık** ama meşru yüklerde **nadir** görünmelidir.
+"select" alt-dizisi tüm SQLi'lerde var ama "select box" gibi meşru metinlerde
+de var — bu yüzden yanlış pozitif kontrolü kritiktir. Bu, klasik bir
+information-gain problemidir. Üretilen imzalar **asla** otomatik aktif edilmez;
+kötü bir otomatik imza meşru trafiği engelleyip kendi kendine DoS yaratabilir.
+
+## Faz 17 — Kurcalama-kanıtı: hash zinciri neden yeterli?
+
+Gerçek dağıtık blockchain (proof-of-work, consensus, dağıtık defter) bize
+gereksiz ağırlıktır. Bize gereken tek şey **kurcalama tespiti**; onun için
+hash zinciri (her kayıt öncekinin hash'ini içerir) kriptografik olarak
+yeterlidir. Bunu böyle açıkça söylemek — "blockchain" pazarlaması yapmamak —
+projenin dürüstlük ilkesine uygundur.
+
+## Faz 20 — Yeniden tasarım: neden iki poll döngüsü?
+
+Eski panel tek bir dev kaydırmalı bloktu. Yeni tasarım 8 temiz görünüme
+bölünmüş bir SPA:
+
+```
+  /api/state  (4sn)  →  overview, dome, harita, katman sağlığı, SOAR,
+                        aktif savunma, sensörler  [HIZLI — canlı sayaçlar]
+  /api/deep  (20sn)  →  profilleme, risk, saldırı grafiği, kural motoru,
+                        bütünlük zinciri, imza üretimi  [YAVAŞ — pahalı hesap]
+```
+
+Ağır hesaplama (her saldırgan için saldırı grafiği + risk) hızlı canlı
+döngüyü yavaşlatmasın diye ayrıldı. `aggregator.py` 20 fazın verisini tek,
+düzenli bir sözleşmede toplar — frontend basit kalır.
+
+## Genişletilmiş modül haritası (Faz 11-20)
+
+| Modül | Faz | Sorumluluk |
+|---|---|---|
+| `active_defense/tarpit.py` | 11 | Uyarlanabilir yavaşlatma |
+| `active_defense/deception.py` | 11 | Sahte veri besleme, aldatma kararı |
+| `active_defense/honeytokens.py` | 12 | İzlenebilir tuzak kimlikleri |
+| `reverse/advanced_decoder.py` | 13 | ROT13/CHAR/gzip + entropi + polyglot |
+| `detection/rule_engine.py` | 14 | Derlenen YARA-benzeri kural motoru |
+| `detection/anomaly.py` | 15 | Flood + dağılım anomalisi |
+| `intel/signature_synth.py` | 16 | Otomatik imza üretimi |
+| `integrity/audit_chain.py` | 17 | Hash zinciri + Merkle kökü |
+| `intel/risk_engine.py` | 18 | Çok faktörlü risk skorlama |
+| `intel/attack_graph.py` | 19 | Saldırı grafiği + kill chain modelleme |
+| `reporting/aggregator.py` | 20 | Birleşik durum toplayıcısı |
+| `reporting/static/js/app.js` | 20 | SPA denetleyici + tüm görünüm render |
+
+## Yeni CLI komutları / HTTP uç noktaları (Faz 11-20)
+
+| Uç nokta | Ne döner |
+|---|---|
+| `GET /api/state` | Hızlı canlı durum (overview, dome, harita, SOAR, aktif savunma) |
+| `GET /api/deep` | Pahalı analiz (profiller, risk, grafik, kurallar, bütünlük) |
+| `GET /api/analyze` (POST) | Tek yük analizi (Faz 5+13 tüm alanlarıyla) |

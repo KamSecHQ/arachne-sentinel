@@ -98,6 +98,26 @@ CREATE TABLE IF NOT EXISTS mesh_log (
     remote_addr TEXT
 );
 
+CREATE TABLE IF NOT EXISTS active_defense (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    timestamp TEXT NOT NULL,
+    source_ip TEXT NOT NULL,
+    technique TEXT NOT NULL,
+    detail TEXT
+);
+
+CREATE TABLE IF NOT EXISTS honeytokens (
+    token_id TEXT PRIMARY KEY,
+    token_type TEXT NOT NULL,
+    value TEXT NOT NULL,
+    context TEXT,
+    created_at TEXT NOT NULL,
+    triggered INTEGER NOT NULL DEFAULT 0,
+    triggered_at TEXT,
+    triggered_by TEXT,
+    trigger_context TEXT
+);
+
 CREATE INDEX IF NOT EXISTS idx_events_ip_time ON events(source_ip, timestamp);
 CREATE INDEX IF NOT EXISTS idx_alerts_ip_time ON alerts(source_ip, timestamp);
 CREATE INDEX IF NOT EXISTS idx_waf_ip_time ON waf_events(source_ip, timestamp);
@@ -105,6 +125,7 @@ CREATE INDEX IF NOT EXISTS idx_scan_target_time ON scan_findings(target, timesta
 CREATE INDEX IF NOT EXISTS idx_mtd_component_time ON mtd_rotations(component, timestamp);
 CREATE INDEX IF NOT EXISTS idx_soar_target_time ON soar_actions(target, timestamp);
 CREATE INDEX IF NOT EXISTS idx_mesh_sensor_time ON mesh_log(sensor_id, timestamp);
+CREATE INDEX IF NOT EXISTS idx_ad_ip_time ON active_defense(source_ip, timestamp);
 """
 
 # Sonradan eklenen sutunlar: mevcut veritabanlarini bozmadan yukseltmek icin.
@@ -484,6 +505,77 @@ def mesh_summary_stats(db_path=None):
         "total_reports_rejected": rejected,
         "total_mesh_events": sum(s.get("total_events", 0) for s in sensors),
     }
+
+
+# --- Faz 11: Aktif savunma kaydi --------------------------------------------
+
+def log_active_defense(source_ip, technique, detail=None, db_path=None):
+    """Bir aktif savunma eylemini (tarpit, aldatma) kaydeder."""
+    with get_conn(db_path) as conn:
+        conn.execute(
+            "INSERT INTO active_defense (timestamp, source_ip, technique, detail) "
+            "VALUES (?, ?, ?, ?)",
+            (_now(), source_ip, technique, detail),
+        )
+
+
+def get_active_defense(limit=100, db_path=None):
+    with get_conn(db_path) as conn:
+        rows = conn.execute(
+            "SELECT * FROM active_defense ORDER BY id DESC LIMIT ?", (limit,)
+        ).fetchall()
+        return [dict(row) for row in rows]
+
+
+def active_defense_stats(db_path=None):
+    with get_conn(db_path) as conn:
+        total = conn.execute("SELECT COUNT(*) c FROM active_defense").fetchone()["c"]
+        by_technique = conn.execute(
+            "SELECT technique, COUNT(*) c FROM active_defense GROUP BY technique"
+        ).fetchall()
+        return {
+            "total_actions": total,
+            "by_technique": {r["technique"]: r["c"] for r in by_technique},
+        }
+
+
+# --- Faz 12: Honeytoken kasasi ----------------------------------------------
+
+def register_honeytoken(token_id, token_type, value, context=None, db_path=None):
+    with get_conn(db_path) as conn:
+        conn.execute(
+            "INSERT OR IGNORE INTO honeytokens (token_id, token_type, value, "
+            "context, created_at) VALUES (?, ?, ?, ?, ?)",
+            (token_id, token_type, value, context, _now()),
+        )
+
+
+def get_honeytokens(triggered_only=False, db_path=None):
+    query = "SELECT * FROM honeytokens"
+    if triggered_only:
+        query += " WHERE triggered = 1"
+    query += " ORDER BY created_at DESC"
+    with get_conn(db_path) as conn:
+        return [dict(row) for row in conn.execute(query).fetchall()]
+
+
+def trigger_honeytoken(token_id, source_ip, context=None, db_path=None):
+    """Bir honeytoken tetiklendiginde kaydeder (yuksek guvenli ihlal sinyali)."""
+    with get_conn(db_path) as conn:
+        conn.execute(
+            "UPDATE honeytokens SET triggered = 1, triggered_at = ?, "
+            "triggered_by = ?, trigger_context = ? WHERE token_id = ?",
+            (_now(), source_ip, context, token_id),
+        )
+
+
+def honeytoken_stats(db_path=None):
+    with get_conn(db_path) as conn:
+        total = conn.execute("SELECT COUNT(*) c FROM honeytokens").fetchone()["c"]
+        triggered = conn.execute(
+            "SELECT COUNT(*) c FROM honeytokens WHERE triggered = 1"
+        ).fetchone()["c"]
+        return {"total_tokens": total, "triggered_tokens": triggered}
 
 
 def alerts_timeline(buckets=12, bucket_minutes=5, db_path=None):

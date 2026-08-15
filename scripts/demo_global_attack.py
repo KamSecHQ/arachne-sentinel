@@ -124,9 +124,16 @@ def run_global_demo(soar_enabled=True, speed=1.0):
     storage.init_db()
     rng = random.Random(1337)
 
+    # Faz 12: honeytoken tuzaklari yerlestir. Senaryonun sonunda bir saldirgan
+    # bunlardan birini "calip" kullanmaya calisacak - tetiklenmeyi gosterecegiz.
+    from arachne.active_defense.honeytokens import HoneytokenVault
+    vault = HoneytokenVault()
+    planted = vault.mint_set(context="kuresel-senaryo-aldatma")
+
     print("\n" + "=" * 70)
-    print("  FAZ 10 - KURESEL SALDIRI SENARYOSU")
+    print("  FAZ 10-20 - KURESEL SALDIRI SENARYOSU")
     print("=" * 70)
+    print(f"  {len(planted)} honeytoken tuzagi yerlestirildi (Faz 12)")
     print("  Bu bir SENARYO verisidir; kaynak adresler RFC 5737 dokumantasyon")
     print("  araliklarindandir (gercek bir cihaza ait olamazlar).")
     print("  Uretilen olaylar GERCEKTEN veritabanina yazilir, GERCEKTEN skorlanir")
@@ -171,10 +178,29 @@ def run_global_demo(soar_enabled=True, speed=1.0):
                         )
                         if response["matched_playbooks"]:
                             status += f"\n            SOAR: {response['summary_tr']}"
+
+                        # Faz 11: aktif savunma (tarpit/aldatma karari)
+                        from arachne.active_defense.deception import DeceptionEngine
+                        DeceptionEngine().apply(ip, result["score"], classes)
                     except Exception as exc:
                         status += f"\n            SOAR hatasi: {exc}"
 
             print(f"   {ip:<16} {scenario['events']} olay{status}")
+
+    # --- Faz 12 gosterimi: bir saldirgan "caldigi" honeytoken'i kullaniyor ---
+    print("\n[honeytoken] Bir saldirgan, aldatma yaniti sirasinda 'caldigi' bir")
+    print("            honeytoken'i http-admin'e geri gonderiyor...")
+    stolen = planted[0].value
+    thief_ip = "203.0.113.66"   # hedefli saldirgan
+    storage.log_event(thief_ip, "http-admin", "data", dest_port=8081,
+                      payload=f"GET /api?key={stolen} HTTP/1.1")
+    from arachne.active_defense.honeytokens import check_payload_for_tokens
+    ht_result = check_payload_for_tokens(
+        f"GET /api?key={stolen} HTTP/1.1", source_ip=thief_ip)
+    if ht_result["high_confidence_breach"]:
+        print(f"   [!!!] HONEYTOKEN TETIKLENDI ({thief_ip}) - {ht_result['count']} tuzak.")
+        print("   Bu neredeyse kesin bir ihlal kanitidir: mesru kullanicilar bu")
+        print("   tuzak degerlerin varligini bilmez (yanlis pozitif ~sifir).")
 
     print("\n" + "=" * 70)
     print(f"  Toplam {total_events} olay uretildi, {len(triggered)} alarm tetiklendi.")

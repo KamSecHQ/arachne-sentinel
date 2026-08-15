@@ -291,6 +291,257 @@ kaydından gelir. Senaryo demo scriptleri RFC 5737 dokümantasyon adres
 aralıklarını kullanır (bu adresler tanım gereği gerçek bir cihaza ait
 olamaz) ve panelde "Senaryo (RFC 5737)" olarak etiketlenir.
 
+## Faz 11 — Aktif Savunma & Aldatma (tamamlandı)
+
+> **Etik/hukuki çerçeve:** "Misilleme" değil, **aktif savunma**. Başka bir
+> sisteme saldırmaz (hack-back yoktur — bu birçok ülkede suçtur). Tüm eylemler
+> kendi honeypot yüzeyimizde kalır; dışarıya saldırı amaçlı tek paket gitmez.
+> Bu, MITRE Engage / active-defense literatürünün savunulabilir uygulamasıdır.
+
+- [x] **Tarpit** (`arachne/active_defense/tarpit.py`): saldırganı kasıtlı
+  yavaşlatarak zamanını harcar (endlessh/LaBrea mantığı). Gecikme
+  uyarlanabilir — düşük tehditli bağlantı neredeyse hiç bekletilmez (meşru
+  kullanıcıyı cezalandırmamak için), yüksek tehditli/tekrarlayan saldırgan
+  maksimuma yaklaşır. Maksimum gecikme sınırlı (kendi kaynağımızı koruruz).
+- [x] **Aldatma motoru** (`deception.py`): yüksek tehditli saldırgana gerçek
+  hata yerine inandırıcı ama **sahte** veri döner — sahte /etc/passwd, sahte
+  dizin listesi, sahte "giriş başarılı". Amaç iki yönlü: saldırganı meşgul
+  etmek ve niyetini gözlemlemek. Sahte veri gerçek hiçbir bilgi içermez.
+- [x] 15 birim testi. Testler, aktif savunmanın başka sisteme dokunmadığını
+  ve tüm eylemlerin kendi yüzeyimizde kaldığını da doğrular.
+
+## Faz 12 — Honeytoken & Canary Sistemi (tamamlandı)
+
+- [x] **Honeytoken kasası** (`arachne/active_defense/honeytokens.py`): hiçbir
+  meşru amacı olmayan, yalnızca tuzak için var olan izlenebilir değerler
+  (sahte AWS anahtarı, API key, DB bağlantısı, JWT, canary URL, SSH anahtarı).
+  Gerçek servislerin format desenlerini taklit eder (AKIA…, sk_live_…) ki
+  saldırgan gerçek sanıp kullansın.
+- [x] **Tetikleme tespiti**: bir honeytoken kullanıldığı an, bu neredeyse
+  kesin bir ihlal kanıtıdır — meşru kullanıcılar bu değerlerin varlığından
+  habersizdir, dolayısıyla **yanlış pozitif oranı ~sıfırdır**. Bu, güvenlik
+  izlemesinin en düşük-gürültülü sinyallerinden biridir (ticari karşılığı:
+  Thinkst Canary).
+- [x] Aldatma yanıtlarına gömülü honeytokenlar: saldırgan "çaldığı" tokeni
+  başka yerde denerse yakalanır. Süreçler/sensörler arası (DB üzerinden) çalışır.
+- [x] Honeypot yolu her yükü honeytoken'lara karşı kontrol eder.
+
+## Faz 13 — Gelişmiş Kodlama Çözücü & Entropi (tamamlandı)
+
+- [x] **İleri kodlama katmanları** (`arachne/reverse/advanced_decoder.py`):
+  ROT13/Caesar, ondalık/hex karakter kodları (JS `String.fromCharCode`,
+  HTML `&#NN;`), SQL `CHAR()`/`CHR()` zincirleri, PHP `chr()` birleştirmeleri,
+  **gzip/zlib + base64** (sıkıştırılmış yük), ters çevrilmiş diziler, SQL
+  yorum enjeksiyonu (`/**/`) temizliği.
+- [x] **Shannon entropi analizi**: yüksek entropi (~6.5+ bit/karakter)
+  sıkıştırılmış/şifrelenmiş — yani kasıtlı gizlenmiş — yüke işaret eder;
+  meşru HTTP trafiği bu kadar rastgele değildir.
+- [x] **Polyglot tespiti**: bir yük birden fazla bağlamda (hem SQL hem XSS
+  hem Shell) geçerli saldırı içeriyorsa — birden fazla ayrıştırıcıyı atlatma
+  girişimi — işaretlenir ve tehdit skoru yükseltilir.
+- [x] Faz 5 analiz hattına entegre; 14 birim testi.
+
+## Faz 14 — İmza Kural Motoru (YARA-benzeri) (tamamlandı)
+
+- [x] **Bildirimsel kural dili** (`arachne/detection/rule_engine.py`):
+  kurallar **veri** olarak tanımlanır, **derlenir** (regex önceden compile,
+  bozuk kural çalıştırılmadan yakalanır) ve bir yüke karşı çalıştırılır.
+- [x] Koşul türleri: `contains`, `icontains`, `regex`, `length_above`,
+  `entropy_above`, `count_above`. Kural koşulu: `all` / `any` / `N of`.
+- [x] **Açıklanabilirlik**: bir kural tetiklendiğinde HANGİ string'lerin
+  eşleştiği de dönülür — "kural X tetiklendi çünkü s1, s3 eşleşti".
+- [x] 7 yerleşik kural (SQLi UNION/blind, RCE zinciri, XSS, path traversal,
+  yüksek entropi, web shell). 18 birim testi (yanlış pozitif kontrolü dahil).
+
+## Faz 15 — İstatistiksel Anomali & Flood Tespiti (tamamlandı)
+
+- [x] **Flood/DDoS tespiti** (`arachne/detection/anomaly.py`): kayan pencere
+  hız ölçümü + öğrenilen taban çizgisi (baseline) üzerine **z-score** ile
+  ani artış tespiti. Baseline'ın çok üstündeki hacim flood alarmı verir.
+- [x] **Dağılım anomalisi**: bir kaynağın davranış dağılımı (servis/port)
+  popülasyondan sapıyorsa (herkes web'e giderken bu IP sadece MySQL'i döverken)
+  işaretlenir.
+- [x] 7 birim testi.
+
+> **Dürüstlük notu:** Bu bir DDoS *tespit* göstergesidir, gerçek internet
+> ölçekli bir DDoS *azaltma* sistemi değildir (o, ISS/anycast seviyesinde
+> ayrı bir mühendislik alanıdır). "Anormal hacmi tespit et ve işaretle"
+> yeteneğini kuruyoruz; durdurmayı SOAR katmanı yapar.
+
+## Faz 16 — Otomatik İmza Üretimi (feedback loop) (tamamlandı)
+
+- [x] **İmza sentezi** (`arachne/intel/signature_synth.py`): yakalanan kötü
+  niyetli yüklerden ortak n-gram'ları çıkarır, her aday için **yanlış pozitif
+  kontrolü** yapar (bu dizi meşru trafikte de görünüyor mu?) ve ayırt edici
+  olanları aday imza olarak önerir. Klasik bilgi-getirisi (information gain)
+  problemi.
+- [x] **İnsan onayı**: üretilen imzalar OTOMATİK aktif edilmez — "aday" olarak
+  işaretlenir. Kötü bir otomatik imza meşru trafiği engelleyip kendi kendine
+  DoS yaratabilir. Otomasyon öneri getirir, kararı insan verir.
+- [x] Aday imzalar Faz 14 kural formatına çevrilebilir. 5 birim testi.
+
+## Faz 17 — Kurcalama-Kanıtı Denetim Zinciri (tamamlandı)
+
+- [x] **Hash zinciri** (`arachne/integrity/audit_chain.py`): her kayıt
+  öncekinin hash'ini içerir — H(n)=SHA256(veri(n)+H(n-1)). Ortadaki tek bir
+  kaydı değiştirmek sonraki tüm hash'leri bozar; kurcalama kanıtlanabilir olur.
+- [x] **Merkle kökü**: tüm kayıt kümesini tek bir 32-byte parmak iziyle
+  özetler; ayrı güvenli bir yere yazılıp periyodik doğrulanabilir.
+- [x] Panel, SOAR denetim kayıtlarından bir zincir kurup "kayıtlarımız
+  kurcalanmış mı?" sorusunu canlı yanıtlar. 12 birim testi.
+
+> **Dürüstlük:** Buna "hafif blockchain" diyoruz ama gerçek dağıtık
+> blockchain (proof-of-work, consensus) değildir — bize gereken tek şey
+> kurcalama tespiti; onun için hash zinciri kriptografik olarak yeterlidir.
+
+## Faz 18 — Çok Faktörlü Risk Skorlama (tamamlandı)
+
+- [x] **Risk motoru** (`arachne/intel/risk_engine.py`): Risk = Olasılık ×
+  Etki. Olasılık (otomatik/hedefli, kill chain ilerlemesi, tekrarlayan,
+  kampanya üyeliği) ve Etki (saldırı sınıfı, ters kabuk/web shell) ayrı
+  eksenlerde hesaplanır.
+- [x] **Açıklanabilir vektör**: "Risk 82 çünkü hedefli saldırgan (+25), RCE
+  denemesi (+30), kill chain %57 (+15)…" — ham bir sayıdan çok daha anlamlı.
+- [x] CVSS'in temel vektör mantığını küçük ölçekte taklit eder (ama CVSS
+  değildir — CVSS zafiyet puanlar, biz saldırgan davranışı puanlıyoruz).
+- [x] Panelde risk-sıralı saldırgan tablosu. Risk hesabı test dosyasında
+  doğrulanır (Faz 16/18/19 ortak: 18 birim testi).
+
+## Faz 19 — Saldırı Grafiği & Kill Chain Modelleme (tamamlandı)
+
+- [x] **Saldırı grafiği** (`arachne/intel/attack_graph.py`): bir saldırganın
+  olaylarından yönlü graf kurar — düğümler kill chain aşamaları, kenarlar
+  zaman içindeki geçişler. Saldırganın izlediği YOLU görselleştirir.
+- [x] **Bir sonraki adım tahmini**: bu aşamadan sonra tipik olarak ne gelir?
+- [x] **Yatay hareket (lateral movement)** modellemesi: saldırgan servisler
+  arasında gezinirken.
+- [x] **Doğal dilde anlatı (storyline)**: "Saldırgan keşif ile başladı →
+  sömürü → kurulum'a ilerledi. 3 farklı servis arasında gezindi…" Kurumsal
+  EDR/XDR ürünlerinin "attack storyline" özelliğinin küçük karşılığı.
+
+## Faz 20 — Yeniden Tasarlanan Komuta Merkezi (tamamlandı)
+
+- [x] **Tek-sayfa uygulama (SPA)**: eski dev-kaydırmalı panel, sol menüden
+  geçilen **8 temiz görünüme** bölündü — Genel Bakış, Çelik Kubbe, Canlı Akış,
+  Tehdit İstihbaratı, Tersine Mühendislik, Kurallar & Bütünlük, SOAR & Aktif
+  Savunma, Sensör Ağı. Her görünüm tek bir işe odaklanır.
+- [x] **İki hızlı poll döngüsü**: `/api/state` (4sn, canlı sayaçlar/görseller)
+  ve `/api/deep` (20sn, pahalı analiz — profilleme, risk, saldırı grafiği,
+  kural motoru, bütünlük). Ağır hesap hızlı döngüyü yavaşlatmaz.
+- [x] **Birleşik toplayıcı** (`arachne/reporting/aggregator.py`): 20 fazın
+  verisi tek yerde, düzenli bir sözleşmede toplanır.
+- [x] Tüm görselleştirmeler saf Canvas 2D (dome, harita, radar, zaman
+  çizelgesi, entropi çubuğu) — harici JS kütüphanesi/npm yok.
+- [x] macOS AirPlay (port 5000) çakışması için `--port` seçeneği ve panelde
+  net yönlendirme.
+
+**Bu fazda düzeltilen gerçek entegrasyon hatası:** `check_payload_for_tokens`
+kolaylık fonksiyonu honeytoken tetiklemesini tespit ediyor ama kalıcı
+kaydetmiyordu (sadece `HoneytokenVault.check()` kaydediyordu). Uçtan uca
+testte fark edildi ve düzeltildi.
+
+
+# ADAPTİF SAVUNMA — Faz 21-30 (tamamlandı)
+
+> **Tez: KO-EVRİM.** Faz 1-20 "saldırıyı gör, skorla, durdur, kaydet" hattıydı.
+> Faz 21-30 bir adım öteye geçer: saldırgan savunmamızı **gözleyip taktik
+> değiştirirse**, savunma da ona göre **adapte olur**. Statik duvar değil,
+> saldırganla birlikte evrilen savunma. Her modül gerçek, adıyla anılan bir
+> çerçeveye dayanır. **Etik değişmez:** tamamen savunma; hiçbir modül başka
+> sisteme dokunmaz (hack-back yok). "Adaptif" olmak = kendi savunma
+> yapılandırmamızı saldırganın davranışına göre yeniden düzenlemek.
+
+## Faz 21 — Düşük-ve-Yavaş Tespiti (CUSUM/EWMA) (tamamlandı)
+
+- [x] `arachne/adaptive/slow_detector.py`: flood eşiğinin **altında** kalarak
+  kaçmaya çalışan sabırlı saldırganı yakalar. CUSUM kontrol kartı (birikimli
+  sapma), EWMA kayma ve **inter-arrival ritim düzenliliği** (makine ritmi
+  insan ritminden daha düzenlidir). Grounds: Darktrace "low and slow",
+  D3FEND User Behavior Analysis. 12 test.
+
+## Faz 22 — Parmak İzi & Kimlik Rotasyonu (JA3/JA4) (tamamlandı)
+
+- [x] `arachne/adaptive/fingerprint.py`: tek bir aktörün user-agent/IP
+  döndürerek **çok kimlik** gibi görünmesini (Sybil), değişebilir katmanın
+  altındaki parmak izinden yakalar. JA3/JA4 mantığı (sıralı TLS/başlık
+  öznitelikleri hash'i), imkânsız kombinasyon tespiti (Chrome UA + python
+  TLS). Grounds: JA3/JA4, Cloudflare/Suricata/Zeek, D3FEND Identifier
+  Analysis. 12 test.
+
+## Faz 23 — Aldatma Ağı & Kırıntı Yolu (tamamlandı)
+
+- [x] `arachne/adaptive/deception_grid.py`: katmanlı aldatma. Gerçek çapalara
+  **kırıntı** (sahte kimlik/oturum) serpilir; bunlar kademeli sahte düğümlere
+  işaret eder. Belirgin tuzaklardan kaçan gelişmiş saldırgan bile kırıntı
+  yolunu izleyip 2-3. katman sahte düğüme düşer. Bir sahte düğüme dokunmak
+  **yanlış-pozitif ~sıfır** ihlal kanıtıdır. Grounds: MITRE Engage, kurumsal
+  deception (Acalvio/Zscaler/Fidelis), Thinkst Canary. 11 test.
+
+## Faz 24 — Topluluk Tespit Motoru (Ensemble) (tamamlandı)
+
+- [x] `arachne/adaptive/ensemble.py`: birden çok bağımsız dedektörü **ağırlıklı
+  skor + k-of-N oylama** ile birleştirir. Tek bir kuralı tersine mühendislikle
+  atlatmak sistemi atlatmaya yetmez. Aldatma-teması dedektörü diğerlerinden
+  bağımsız ve yanlış-pozitifi ~sıfır olduğu için tek başına bile yeter.
+  Grounds: savunma-derinliği, IDS ensemble literatürü. Test: test_adaptive_core.
+
+## Faz 25 — Sıfır Güven Politika Motoru (NIST 800-207) (tamamlandı)
+
+- [x] `arachne/adaptive/zero_trust.py`: "asla güvenme, hep doğrula". Her istek
+  oturum bazında güven skoruyla değerlendirilir (PDP/PEP modeli); düşük güven
+  reddedilir/challenge edilir/sahte ortama yönlendirilir. Mikrosegmentasyon
+  grafı yatay hareketi engeller. Grounds: NIST SP 800-207 (7 ilke, PE/PA/PEP).
+  12 test.
+
+## Faz 26 — Adaptif Savunma Duruşu (tamamlandı)
+
+- [x] `arachne/adaptive/posture.py`: **ko-evrimin merkez düğmesi.** Tehdit
+  seviyesine göre yükselen/düşen durum makinesi: NORMAL → ELEVATED → HIGH →
+  CRITICAL. Tırmandıkça daha güçlü ama maliyetli savunmalar açılır (MTD
+  rotasyonu, sıfır-güven bütçe kısıtı, izolasyon). **Histerezis** ile tek bir
+  gürültü tepesi sistemi savurmaz. Grounds: CISA "Shields Up", MITRE Center
+  for Threat-Informed Defense. Test: test_adaptive_core.
+
+## Faz 27 — Oyun-Teorik Savunma (Stackelberg) (tamamlandı)
+
+- [x] `arachne/adaptive/game_theory.py`: savunan vs. adapte olan saldırgan bir
+  **Stackelberg (lider-takipçi) oyunu** olarak modellenir. Savunan önce
+  karışık (rastgele) stratejiye bağlanır; saldırgan bunu gözleyip en iyi
+  yanıtı verir. Ko-evrim turlarında **re-randomize eden savunma** faydayı
+  korurken statik savunma toprak kaybeder — MTD'nin biçimsel gerekçesi.
+  Grounds: Stackelberg güvenlik oyunları (Tambe/USC — ARMOR/PROTECT). 11 test.
+
+## Faz 28 — D3FEND & NIST CSF 2.0 Kapsam Haritası (tamamlandı)
+
+- [x] `arachne/adaptive/coverage.py`: her fazı gerçek çerçeve tekniklerine
+  eşler ve **kapsam karnesi** çıkarır. MITRE D3FEND'in 7 üst taktiği (Model,
+  Harden, Detect, Isolate, Deceive, Evict, Restore) + NIST CSF 2.0'ın 6
+  fonksiyonu (Govern, Identify, Protect, Detect, Respond, Recover). Jüriye
+  gösterilecek **dört sütunlu eşleme** (Faz → D3FEND → CSF → karşıladığı
+  ATT&CK). Projeyi "ad-hoc script" olmaktan çıkarıp threat-informed defense
+  seviyesine taşır. Test: test_adaptive_core.
+
+## Faz 29 — Kolektif Savunma & Gösterge Paylaşımı (STIX) (tamamlandı)
+
+- [x] `arachne/adaptive/collective.py`: **sürü bağışıklığı.** Bir sensör bir
+  saldırganı (parmak izi/IOC) yakalayınca yapılandırılmış göstergeyi paylaşır;
+  saldırgan diğer sensörlere ulaşmadan hepsi bağışıklanır. Ulusal-CERT tarzı
+  koordineli savunma ve STIX 2.1/TAXII bilgi paylaşımını modeller.
+  "Paylaşım olmasaydı her sensör ayrı ayrı keşfetmeliydi" tasarrufunu
+  ölçer. Grounds: ulusal CERT, STIX/TAXII, MITRE Engage. 10 test.
+
+## Faz 30 — Genişletilmiş Komuta Merkezi & Çok-Katmanlı Kubbe (tamamlandı)
+
+- [x] **Gök kubbe 5 → 14 halkaya (~2.8x)** genişletildi. Yeni halkalar Faz
+  21-30 adaptif katmanlarını temsil eder; her halkanın "interceptions" değeri
+  gerçek veriden türetilir (uydurulmaz; veri yoksa halka boş kalır — dürüstlük).
+- [x] Panele **"Adaptif Savunma" görünümü** eklendi: duruş merdiveni, D3FEND/CSF
+  kapsam karnesi, oyun-teorik ko-evrim tablosu, aldatma-ağı topolojisi,
+  kolektif bağışıklık, dört-sütunlu eşleme tablosu.
+- [x] `aggregator.adaptive_view()` + `/api/deep` içinde `adaptive` yükü.
+  Toplam **387 test** yeşil.
+
+
 ## Sıradaki hedefler (stretch-goal, isteğe bağlı)
 
 - İkinci bilgisayar (Windows/x86-64) edinildiğinde Faz 3'ün assembly

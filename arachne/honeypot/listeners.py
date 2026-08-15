@@ -33,6 +33,21 @@ def _is_blocked(source_ip):
         return False
 
 
+def _check_honeytokens(source_ip, payload):
+    """Faz 12: gelen yukte tetiklenmis bir honeytoken var mi?
+
+    Bir honeytoken tetiklenmesi neredeyse kesin bir ihlal kanitidir -
+    mesru kullanicilar bu tuzak degerlerin varligini bilmez."""
+    try:
+        from ..active_defense.honeytokens import check_payload_for_tokens
+        result = check_payload_for_tokens(payload)
+        if result["high_confidence_breach"]:
+            logger.warning("HONEYTOKEN TETIKLENDI! kaynak=%s (%d token)",
+                           source_ip, result["count"])
+    except Exception:
+        logger.debug("Honeytoken kontrolu basarisiz", exc_info=True)
+
+
 async def _read_payload(reader):
     try:
         data = await asyncio.wait_for(
@@ -77,16 +92,25 @@ def _evaluate_and_log_alarm(source_ip, soar_enabled=False):
         # davranisi hicbir sekilde degismesin diye. `soar-demo` komutu ile
         # acikca etkinlestirilir.
         if soar_enabled:
+            attack_classes = _attack_classes_for_ip(source_ip)
             try:
                 from ..soar.engine import respond_to_alert
                 response = respond_to_alert(
                     source_ip, result["score"], result["severity"],
-                    attack_classes=_attack_classes_for_ip(source_ip),
+                    attack_classes=attack_classes,
                 )
                 if response.get("matched_playbooks"):
                     logger.warning("SOAR: %s", response["summary_tr"])
             except Exception:
                 logger.exception("SOAR mudahalesi basarisiz")
+
+            # Faz 11: aktif savunma (tarpit/aldatma karari) - saldirgani
+            # kendi honeypot'umuzda oyalar. BASKA SISTEME DOKUNMAZ.
+            try:
+                from ..active_defense.deception import DeceptionEngine
+                DeceptionEngine().apply(source_ip, result["score"], attack_classes)
+            except Exception:
+                logger.debug("Aktif savunma uygulanamadi", exc_info=True)
     return result
 
 
@@ -122,6 +146,7 @@ async def _handle_generic(service_name: str, dest_port: int, reader, writer,
         if payload:
             storage.log_event(source_ip, service_name, "data", source_port=source_port,
                                dest_port=dest_port, payload=payload)
+            _check_honeytokens(source_ip, payload)
     finally:
         storage.log_event(source_ip, service_name, "disconnect", source_port=source_port,
                            dest_port=dest_port)

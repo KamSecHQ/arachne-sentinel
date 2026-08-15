@@ -129,3 +129,44 @@ Bir jüri/değerlendirme sunumunda bu ayrımı **açıkça belirtin**. Senaryo
 verisiyle üretilmiş bir görüntüyü gerçek saldırı trafiği gibi sunmak,
 projenin en temel ilkesiyle (ölçülebilir ve savunulabilir iddialar)
 çelişir.
+
+## Faz 11-20 için ek notlar
+
+### Faz 11-12 — "Misilleme" değil, aktif savunma (KRİTİK)
+
+Bu fazların adı "misilleme" çağrıştırabilir. **Bu proje başka bir sisteme
+saldırmaz (hack-back yapmaz).** Karşı-saldırı — başkasının sistemine izinsiz
+erişim/zarar — Türkiye'de Türk Ceza Kanunu'nun bilişim suçlarına ilişkin
+hükümleri dahil birçok ülkede suçtur.
+
+Burada kurulan şey **aktif savunmadır** ve tamamen kendi kontrolümüzdeki
+yüzeyde gerçekleşir:
+
+- **Tarpit** saldırganı *bizim* honeypot'umuzda oyalar; dışarıya saldırı
+  amaçlı tek bir paket göndermez.
+- **Aldatma** saldırgana sahte veri döndürür; bu veri gerçek hiçbir bilgi
+  içermez ve gerçek hiçbir sisteme yaramaz.
+- **Honeytoken** tuzakları pasiftir; yalnızca saldırgan onları kullandığında
+  bir sinyal üretir.
+
+Bir jüri/değerlendirme sunumunda bu ayrımı **açıkça belirtin**: "aktif
+savunma yapıyoruz, karşı-saldırı değil". Bu, projenin en güçlü etik
+duruşlarından biridir.
+
+### Faz 15 — Anomali/flood tespiti, azaltma değil
+
+Faz 15 anormal trafik hacmini *tespit eder ve işaretler*; gerçek internet
+ölçekli bir DDoS *azaltma* sistemi değildir (o, ISS/anycast seviyesinde ayrı
+bir altyapı gerektirir). Bu ayrımı sunumda net tutun.
+
+### Faz 16 — Otomatik imzalar insan onayı olmadan aktif edilmez
+
+Üretilen aday imzalar otomatik olarak canlı tespit hattına alınmaz. Kötü bir
+otomatik imza meşru trafiği engelleyerek kendi kendine bir DoS yaratabilir.
+Bu, bilinçli bir güvenlik kararıdır.
+
+### Faz 17 — "Blockchain" değil, hash zinciri
+
+Denetim zincirimize "hafif blockchain" benzetmesi yapılabilir ama bu gerçek
+bir dağıtık blockchain değildir. Sunumda "kurcalama-kanıtı hash zinciri"
+demek, "blockchain" demekten hem daha doğru hem daha dürüsttür.

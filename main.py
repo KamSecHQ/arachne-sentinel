@@ -254,25 +254,37 @@ def main():
         rotator = IdentityRotator(rotate_interval_seconds=args.rotate_interval)
         hopper = PortHopper(hop_interval_seconds=args.hop_interval)
 
+        # Faz 12: honeytoken tuzaklari yerlestir (honeypot yollarinda izlenir)
+        from arachne.active_defense.honeytokens import HoneytokenVault
+        planted = HoneytokenVault().mint_set(context="full-demo")
+
         print(
             "\n" + "=" * 68 + "\n"
-            "  ARACHNE SENTINEL - TAM SISTEM DEMOSU (Faz 1-10)\n"
+            "  ARACHNE SENTINEL - TAM SISTEM DEMOSU (Faz 1-20)\n"
             + "=" * 68 + "\n"
-            "  Faz 1  Honeypot         : ssh:2222 ftp:2121 mysql:3307 http:8081\n"
-            "  Faz 2  WAF/tarayici/ML  : ayri terminalde 'python main.py waf-demo'\n"
-            "  Faz 3  Native ARM64     : imza tarama cekirdegi otomatik yuklendi\n"
-            f"  Faz 4  MTD             : banner {args.rotate_interval}sn, "
-            f"port {args.hop_interval}sn, DNS udp:{args.dns_port}\n"
-            "  Faz 5  Tersine muh.     : her yuk otomatik analiz ediliyor\n"
-            "  Faz 6  Istihbarat       : profilleme + kampanya korelasyonu aktif\n"
-            "  Faz 7  SOAR             : otonom mudahale AKTIF (gercek engelleme)\n"
-            "  Faz 8  AI analist       : yerel analist calisiyor\n"
-            "  Faz 9  Sensor agi       : /mesh/ingest uc noktasi panelde acik\n"
-            "  Faz 10 Celik Kubbe      : panelde canli goruntuleme\n"
+            "  Faz 1-3  Honeypot + WAF + ML + Native ARM64 imza cekirdegi\n"
+            f"  Faz 4    MTD: banner {args.rotate_interval}sn, port {args.hop_interval}sn, DNS udp:{args.dns_port}\n"
+            "  Faz 5    Tersine muhendislik: kodlama cozumu + entropi + polyglot\n"
+            "  Faz 6    Istihbarat: profilleme + kampanya + STIX 2.1\n"
+            "  Faz 7    SOAR: otonom mudahale AKTIF (gercek engelleme)\n"
+            "  Faz 8    AI analist: yerel analist + prompt enjeksiyonu savunmasi\n"
+            "  Faz 9    Sensor agi: /mesh/ingest uc noktasi panelde acik\n"
+            "  Faz 10   Celik Kubbe komuta merkezi\n"
+            "  Faz 11   Aktif savunma: tarpit + aldatma (kendi yuzeyimizde)\n"
+            f"  Faz 12   Honeytoken: {len(planted)} tuzak yerlestirildi\n"
+            "  Faz 13   Gelismis kodlama cozucu (ROT13/CHAR/gzip/entropi)\n"
+            "  Faz 14   Imza kural motoru (YARA-benzeri)\n"
+            "  Faz 15   Istatistiksel anomali/flood tespiti\n"
+            "  Faz 16   Otomatik imza uretimi\n"
+            "  Faz 17   Kurcalama-kaniti denetim zinciri\n"
+            "  Faz 18   Cok faktorlu risk skorlama\n"
+            "  Faz 19   Saldiri grafigi + kill chain modelleme\n"
+            "  Faz 20   Yeniden tasarlanan komuta merkezi (SPA)\n"
             + "=" * 68 + "\n"
-            "  Panel: python main.py dashboard  ->  http://127.0.0.1:5000\n"
-            "  Saldiri: python scripts/demo_attack.py\n"
-            "  Kuresel senaryo: python scripts/demo_global_attack.py\n"
+            "  Panel  : python main.py dashboard --port 5001\n"
+            "           -> http://127.0.0.1:5001  (macOS'ta 5000 AirPlay ile cakisir)\n"
+            "  Senaryo: python scripts/demo_global_attack.py\n"
+            "  Sensor : python scripts/demo_mesh.py --collector http://127.0.0.1:5001/mesh/ingest\n"
             + "=" * 68 + "\n"
         )
 

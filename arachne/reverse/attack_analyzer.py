@@ -19,6 +19,7 @@ icin de gecerlidir (bkz. docs/ARCHITECTURE.md "Zenginlestirme vs Karar").
 """
 from ..detection.rules import ATTACK_SIGNATURES
 from ..intel import attck
+from .advanced_decoder import advanced_decode, is_polyglot
 from .deobfuscator import deobfuscate, obfuscation_score
 from .ioc_extractor import extract_iocs, ioc_count, summarize_iocs
 from .tool_fingerprint import fingerprint_tool
@@ -58,10 +59,19 @@ def analyze_payload(payload: str) -> dict:
     """
     payload = payload or ""
 
-    # 1) Kodlama katmanlarini ac
+    # 1) Kodlama katmanlarini ac (Faz 5 temel cozucu)
     deob = deobfuscate(payload)
     decoded = deob.decoded
     obf_score = obfuscation_score(deob)
+
+    # 1b) Faz 13: ileri kodlama cozumu (ROT13, SQL CHAR, gzip+base64...) +
+    #     entropi analizi. Temel cozucunun ustune, cozulmus metin uzerinde
+    #     bir tur daha calisir - boylece "base64 -> CHAR() -> SQLi" gibi
+    #     zincirler de acilir.
+    advanced = advanced_decode(decoded)
+    if advanced.was_transformed:
+        decoded = advanced.decoded
+    polyglot = is_polyglot(payload)
 
     # 2) Saldiri siniflari - hem ham hem cozulmus metinde ara.
     #    Ham metinde bulunmayip cozulmus metinde bulunan bir sinif, "gizlenmis
@@ -96,10 +106,19 @@ def analyze_payload(payload: str) -> dict:
 
     # 6) Birlesik tehdit degerlendirmesi (0-100)
     threat = _score(all_classes, obf_score, tools, iocs)
+    # Polyglot ve yuksek entropi tehdidi yukseltir
+    if polyglot["is_polyglot"]:
+        threat = min(100, threat + 15)
+    if advanced.entropy >= 6.5:
+        threat = min(100, threat + 10)
 
     return {
         "payload_preview": payload[:300],
         "deobfuscation": deob.to_dict(),
+        "advanced_decoding": advanced.to_dict(),
+        "entropy": round(advanced.entropy, 3),
+        "entropy_verdict": advanced.entropy_verdict,
+        "polyglot": polyglot,
         "obfuscation_score": obf_score,
         "attack_classes": all_classes,
         "hidden_attack_classes": hidden_classes,

@@ -26,6 +26,24 @@ logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
+# --- Onbellek kontrolu -------------------------------------------------------
+# Sorun: tarayici eski CSS/JS'i onbellekten servis edip (HTTP 304) yeni
+# tasarimi hic gormeyebiliyor - siyah ekrana yol aciyordu. Lab paneli oldugu
+# icin statik dosyalari HIC onbelleklemiyoruz; her yenileme taze dosya ceker.
+app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
+
+
+@app.after_request
+def _no_cache_static(response):
+    """Statik varliklar (CSS/JS) icin onbellegi tamamen kapat."""
+    from flask import request
+    if request.path.startswith("/static/"):
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+    return response
+
+
 # Faz 9: sensor agi toplayicisini panele bagla. Boylece tek bir surecte
 # hem komuta merkezi hem toplayici calisir (kucuk lab kurulumu); gercek
 # dagitik senaryoda ayri calistirilabilir - kod degismeden.
@@ -169,16 +187,17 @@ def _gather_intel_data():
 
 @app.route("/")
 def index():
-    data = _gather_dashboard_data()
+    """Faz 20: yeniden tasarlanan tek-sayfa komuta merkezi (SPA).
+
+    Sayfa artik tek bir dev kaydirmali blok degil; sol menuden gecis yapilan
+    temiz gorunumlerden olusur. Icerik `/api/*` uc noktalarindan canli gelir."""
     return render_template(
-        "dashboard.html",
-        **data,
+        "app.html",
         now=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC"),
         test_count=_count_tests(),
         native_active=signature_engine.NATIVE_ENGINE_ACTIVE,
         native_status=signature_engine.engine_status(),
         github_url=GITHUB_URL,
-        bench_rows=_quick_benchmark(),
     )
 
 
@@ -192,6 +211,50 @@ def api_live():
     data["attack_map"] = command_center.build_attack_map()
     data["layer_health"] = command_center.build_layer_health()
     return jsonify(data)
+
+
+@app.route("/api/state")
+def api_state():
+    """Faz 20: SPA'nin hizli poll dongusu (4sn). Tum canli/sayac verisi -
+    overview, kubbe, harita, katman sagligi, SOAR/aktif savunma/sensor."""
+    from . import aggregator
+
+    live = _gather_dashboard_data()
+    live["bench_rows"] = _quick_benchmark()
+    return jsonify({
+        "overview": aggregator.overview(),
+        "dome": command_center.build_dome_state(),
+        "attack_map": command_center.build_attack_map(),
+        "defense_layers": aggregator.defense_layers(),
+        "active_defense": aggregator.active_defense_view(),
+        "live": live,
+        "now": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC"),
+    })
+
+
+@app.route("/api/deep")
+def api_deep():
+    """Faz 20: SPA'nin yavas poll dongusu (20sn). Pahali hesaplamalar -
+    tehdit istihbarati, risk, saldiri grafikleri, kural motoru, butunluk."""
+    from . import aggregator
+
+    try:
+        threats = aggregator.threat_intel_view()
+    except Exception:
+        logger.exception("Tehdit istihbarati uretilemedi")
+        threats = {"report": None, "profiles": [], "campaigns": []}
+    try:
+        rules = aggregator.rules_and_integrity()
+    except Exception:
+        logger.exception("Kural/butunluk verisi uretilemedi")
+        rules = {"rules": [], "integrity": {}, "synthesized_signatures": {}}
+    try:
+        adaptive = aggregator.adaptive_view()
+    except Exception:
+        logger.exception("Adaptif savunma verisi uretilemedi")
+        adaptive = {}
+
+    return jsonify({"threats": threats, "rules_integrity": rules, "adaptive": adaptive})
 
 
 @app.route("/api/intel")

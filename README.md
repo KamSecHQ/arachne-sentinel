@@ -1,7 +1,7 @@
 # 🕸 Arachne Sentinel
 
-Honeypot tabanlı, kural motoruyla çalışan bir **erken uyarı, saldırı tespit ve
-otonom müdahale sistemi**. Sahte servisler açar, gelen her etkileşimi kaydeder,
+Honeypot tabanlı, **30 fazlı** bir **erken uyarı, saldırı tespit, otonom müdahale,
+aktif savunma ve adaptif (ko-evrim) savunma platformu**. Sahte servisler açar, gelen her etkileşimi kaydeder,
 saldırgan davranışını **açıklanabilir** şekilde puanlar, saldırıyı tersine
 mühendislikle çözer, saldırgan profili çıkarır, otomatik müdahale eder ve
 tüm bunları canlı bir komuta merkezinde gösterir.
@@ -111,10 +111,72 @@ yoktur — panelde gördüğünüz her sayı gerçek bir veritabanı kaydından 
 - Canlı tehdit radarı, saldırı akışı terminali, alarm zaman çizelgesi,
   kritik alarmda ses + toast bildirimi
 
+**Faz 11 — Aktif savunma & aldatma** (`arachne/active_defense/`):
+- **Tarpit**: saldırganı kasıtlı yavaşlatarak zamanını harcar (uyarlanabilir)
+- **Aldatma**: yüksek tehditli saldırgana sahte /etc/passwd, sahte kimlik,
+  sahte "giriş başarılı" döner — gerçek hiçbir bilgi içermez
+- ⚠️ "Misilleme" değil aktif savunma: başka sisteme saldırmaz, tüm eylemler
+  kendi honeypot yüzeyimizde kalır (hack-back yoktur)
+
+**Faz 12 — Honeytoken & canary tuzakları**:
+- İzlenebilir sahte kimlikler (AWS/API/JWT/DB/canary URL); kullanıldığı an
+  neredeyse kesin bir ihlal kanıtı (yanlış pozitif ~sıfır)
+
+**Faz 13 — Gelişmiş kodlama çözücü**: ROT13, SQL CHAR(), JS fromCharCode,
+gzip+base64, entropi analizi, polyglot tespiti
+
+**Faz 14 — İmza kural motoru (YARA-benzeri)**: derlenen, açıklanabilir,
+kendi kural dilimiz (`arachne/detection/rule_engine.py`)
+
+**Faz 15 — İstatistiksel anomali & flood tespiti**: z-score tabanlı hacim
+anomalisi + dağılım anomalisi (`arachne/detection/anomaly.py`)
+
+**Faz 16 — Otomatik imza üretimi**: yakalanan saldırılardan yanlış-pozitif
+kontrollü aday imzalar (`arachne/intel/signature_synth.py`)
+
+**Faz 17 — Kurcalama-kanıtı denetim zinciri**: hash zinciri + Merkle kökü
+(`arachne/integrity/`)
+
+**Faz 18 — Çok faktörlü risk skorlama**: Risk = Olasılık × Etki, açıklanabilir
+vektörle (`arachne/intel/risk_engine.py`)
+
+**Faz 19 — Saldırı grafiği & kill chain modelleme**: yönlü graf, sonraki adım
+tahmini, yatay hareket, doğal dilde anlatı (`arachne/intel/attack_graph.py`)
+
+**Faz 20 — Yeniden tasarlanan komuta merkezi**: 8 temiz görünümlü tek-sayfa
+uygulama (SPA), iki hızlı poll döngüsü, birleşik toplayıcı
+
+### Faz 21-30 — Adaptif (ko-evrim) savunma (`arachne/adaptive/`)
+
+> Saldırgan savunmayı gözleyip taktik değiştirirse, savunma da ona göre
+> yeniden yapılanır. Statik duvar değil, saldırganla birlikte evrilen savunma.
+> Tamamen savunma; hiçbir modül başka sisteme dokunmaz (hack-back yok).
+
+- **Faz 21 — Düşük-ve-Yavaş tespiti** (`slow_detector.py`): CUSUM/EWMA + ritim
+  düzenliliği; flood eşiğinin altında kalan sabırlı saldırganı yakalar
+- **Faz 22 — Parmak izi & Sybil** (`fingerprint.py`): JA3/JA4 mantığı; tek
+  aktörün çok kimlik gibi görünmesini altındaki parmak izinden yakalar
+- **Faz 23 — Aldatma ağı & kırıntı yolu** (`deception_grid.py`): kademeli sahte
+  düğümler; belirgin tuzaklardan kaçanı kırıntı yoluyla derine çeker
+- **Faz 24 — Topluluk motoru** (`ensemble.py`): çok dedektör + k-of-N oylama;
+  tek kuralı atlatmak sistemi atlatmaz
+- **Faz 25 — Sıfır Güven politika motoru** (`zero_trust.py`): NIST SP 800-207
+  PDP/PEP + mikrosegmentasyon
+- **Faz 26 — Adaptif savunma duruşu** (`posture.py`): NORMAL→KRİTİK histerezisli
+  durum makinesi; tehdide göre savunmaları açar/kapar
+- **Faz 27 — Oyun-teorik savunma** (`game_theory.py`): Stackelberg oyunu +
+  ko-evrim; MTD'nin biçimsel gerekçesi
+- **Faz 28 — D3FEND & NIST CSF 2.0 kapsam haritası** (`coverage.py`): dört
+  sütunlu eşleme (Faz → D3FEND → CSF → ATT&CK)
+- **Faz 29 — Kolektif savunma** (`collective.py`): STIX/TAXII gösterge paylaşımı;
+  bir sensör yakalar, tüm ağ bağışıklanır
+- **Faz 30 — Genişletilmiş kubbe**: gök kubbe 5→14 halka (~2.8x) + "Adaptif
+  Savunma" paneli
+
 **Ortak:**
 - **Otomatik HTML raporu**, **AI Markdown raporu**, **STIX 2.1 bundle** ve
-  **canlı komuta merkezi**
-- **209 birim testi** (`tests/`) ve kendi kendini test eden demo saldırı scriptleri
+  **yeniden tasarlanan canlı komuta merkezi**
+- **387 birim testi** (`tests/`) ve kendi kendini test eden demo saldırı scriptleri
 
 ## Kurulum
 
@@ -126,18 +188,19 @@ pip install -r requirements.txt
 
 ## Hızlı başlangıç (jüri/demo için önerilen)
 
-Üç terminal açın:
+Üç terminal açın (her terminalde önce `source .venv/bin/activate`):
 
 ```bash
-# Terminal 1 — tüm katmanları başlat (Faz 1-10)
+# Terminal 1 — tüm katmanları başlat (Faz 1-20)
 python main.py full-demo
 
 # Terminal 2 — komuta merkezi
-python main.py dashboard          # -> http://127.0.0.1:5000
+python main.py dashboard --port 5001    # -> http://127.0.0.1:5001
+# (macOS'ta port 5000 AirPlay Receiver ile çakışır — bu yüzden 5001)
 
 # Terminal 3 — küresel saldırı senaryosunu çalıştır
 python scripts/demo_global_attack.py
-python scripts/demo_mesh.py       # dağıtık sensör ağı simülasyonu
+python scripts/demo_mesh.py --collector http://127.0.0.1:5001/mesh/ingest
 ```
 
 Sonra tarayıcıda paneli açın ve Çelik Kubbe'de mermilerin katmanlarda
@@ -210,7 +273,7 @@ export ARACHNE_MESH_SECRET="uzun-rastgele-bir-sir"
 
 ```bash
 pip install pytest
-pytest tests/ -v      # 209 test
+pytest tests/ -v      # 387 test
 ```
 
 ## Mimari ve yol haritası

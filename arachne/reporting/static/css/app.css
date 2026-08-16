@@ -552,3 +552,18 @@ tbody tr:hover{background:rgba(255,255,255,.02);}
   background:var(--panel-2);margin-bottom:2px;word-break:break-all;transition:all .15s;}
 .cd-item:hover{background:var(--panel-3);color:var(--text);}
 @media(max-width:900px){.corr-wrap{grid-template-columns:1fr;}.corr-side{max-height:none;}}
+
+/* Canlı Varlık İlişki Grafiği (Canlı Akış) */
+.lg-viz{background:radial-gradient(ellipse at 50% 56%,#0a1519,var(--panel));}
+.lg-viz canvas{width:100%;height:100%;display:block;}
+.lg-legend{position:absolute;bottom:.6rem;left:.8rem;display:flex;gap:.8rem;flex-wrap:wrap;font-size:.62rem;color:var(--muted);z-index:2;}
+.lg-legend i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:.3rem;vertical-align:middle;}
+.lg-detail{position:absolute;top:2.8rem;right:.8rem;width:230px;background:rgba(8,11,17,.96);border:1px solid var(--border);
+  border-radius:10px;padding:.8rem;z-index:3;display:none;box-shadow:0 8px 30px rgba(0,0,0,.5);}
+.lg-close{position:absolute;top:.4rem;right:.5rem;background:none;border:none;color:var(--muted);font-size:1.1rem;cursor:pointer;line-height:1;}
+.lg-close:hover{color:var(--text);}
+.lg-d-type{font-family:var(--font-mono);font-size:.6rem;text-transform:uppercase;letter-spacing:.08em;}
+.lg-d-id{font-family:var(--font-mono);font-size:.86rem;font-weight:700;color:var(--text);word-break:break-all;margin-bottom:.5rem;}
+.lg-d-meta{font-size:.68rem;color:var(--text);line-height:1.8;margin-bottom:.5rem;}
+.lg-d-meta span{color:var(--dim);text-transform:uppercase;font-size:.58rem;letter-spacing:.04em;display:inline-block;min-width:96px;}
+.lg-d-neigh{font-size:.64rem;color:var(--muted);border-top:1px solid var(--border-soft);padding-top:.4rem;line-height:1.5;}

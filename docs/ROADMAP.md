@@ -542,18 +542,18 @@ testte fark edildi ve düzeltildi.
   Toplam **387 test** yeşil.
 
 
-# YARIŞMA SERTLEŞTİRMESİ — Faz 31-40 (motorlar tamamlandı · bazı panel görselleştirmeleri DEVAM EDİYOR)
+# YARIŞMA SERTLEŞTİRMESİ — Faz 31-40 (TAMAMLANDI — motor + panel)
 
 > **Amaç:** Sistemi katmanlı bir SOC hattına dönüştürmek (Sensör → Veri Toplama →
 > SIEM → Tehdit İstihbaratı → Signature/Behavior → AI Correlation → Risk → SOAR →
 > Olay Sonrası) ve başarıyı **gerçek benchmark verisiyle kanıtlamak**. Etik
 > değişmez: tamamen savunma, hiçbir eylem başka sisteme dokunmaz.
 >
-> **DÜRÜSTLÜK — güncel durum:** Backend motorları/API'leri/testleri tamamlandı
-> (481 test yeşil). Panel görünümleri de büyük ölçüde bağlandı: metrikler (39),
-> SOAR (37), **IOC korelasyon grafiği (33)**, **Attack Replay oynatıcı (35/40)**
-> ve **açıklanabilir Reverse paneli (36)** artık CANLI. **Kalan tek görsel
-> parça: Canlı Akış radarında gerçek node ilişkileri** (motor + veri hazır).
+> **DURUM:** Backend motorları/API'leri/testleri (481 test yeşil) VE tüm panel
+> görünümleri tamamlandı: metrikler (39), SOAR (37), IOC korelasyon grafiği (33),
+> Attack Replay oynatıcı (35/40), açıklanabilir Reverse (36) ve **Canlı Akış'ta
+> gerçek varlık ilişki grafiği** (her düğüm gerçek IP/servis/sensör, tıklanabilir).
+> Faz 1-40 tam.
 
 ## Faz 31 — Sensör Sağlığı & Telemetri (tamamlandı)
 - [x] `arachne/mesh/health.py`: heartbeat, packet-loss (dizi boşluklarından),
@@ -605,11 +605,12 @@ testte fark edildi ve düzeltildi.
   kümesinde ölçülür; mutlak gerçek-dünya garantisi verilmez.
 - [x] **Panel:** Attack Replay oynatıcısı CANLI.
 
-## Sıradaki artış — bekleyen PANEL görselleştirmesi (motor + veri hazır)
-- [x] Attack Replay oynatıcı (Faz 35/40) — CANLI
-- [x] IOC korelasyon grafiği (Faz 33) — CANLI
-- [x] Açıklanabilir Reverse paneli (Faz 36) — CANLI
-- [ ] Canlı-radar gerçek node ilişkileri (Canlı Akış zenginleştirme) — bekliyor
+## Panel görselleştirmeleri — HEPSİ CANLI
+- [x] Attack Replay oynatıcı (Faz 35/40)
+- [x] IOC korelasyon grafiği (Faz 33)
+- [x] Açıklanabilir Reverse paneli (Faz 36)
+- [x] Canlı Akış'ta gerçek varlık ilişki grafiği (her düğüm gerçek IP/servis/
+  sensör; tıkla → ilişkiler + detay açılır)
 
 
 ## Sıradaki hedefler (stretch-goal, isteğe bağlı)

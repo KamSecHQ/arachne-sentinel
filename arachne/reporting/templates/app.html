@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Arachne Sentinel — Komuta Merkezi</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%95%B8%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}?v=35">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}?v=36">
 </head>
 <body>
 <div class="app">
@@ -16,7 +16,7 @@
       <svg class="logo" viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="1.5">
         <circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4M5 5l3 3M16 16l3 3M19 5l-3 3M8 16l-3 3"/>
       </svg>
-      <div>ARACHNE<br><small>SENTINEL · 30 FAZ</small></div>
+      <div>ARACHNE<br><small>SENTINEL · 40 FAZ</small></div>
     </div>
 
     <nav class="nav" id="nav">
@@ -125,16 +125,28 @@
 
       <!-- ===== CANLI AKIŞ ===== -->
       <section class="view" id="view-feed">
-        <div class="section-head"><h2>📡 Canlı Tehdit Radarı & Olay Akışı</h2></div>
-        <p class="section-desc">Her yeni olay/alarm/WAF/MTD/aktif-savunma/honeytoken kaydı anında burada belirir. Radar düğümleri gerçek olaylarla titreşir.</p>
+        <div class="section-head"><h2>📡 Canlı Varlık Grafiği & Olay Akışı</h2></div>
+        <p class="section-desc">Süsleme değil: her düğüm <b>gerçek bir varlık</b> — saldırgan IP, hedef servis ya da sensör. Bir düğüme <b>tıkla</b>, ilişkileri ve detayları açılsın. Kenarlar gerçek olaylardan türer (kim, neye, kaç kez).</p>
         <div class="rule-line"></div>
         <div class="grid g2">
-          <div class="viz" style="height:380px;"><canvas id="radar-canvas"></canvas></div>
+          <div class="viz lg-viz" style="height:470px;position:relative;">
+            <div class="viz-title">Canlı Varlık İlişki Grafiği<small>saldırgan → hedef servis · sensör · korunan çekirdek</small></div>
+            <canvas id="live-graph-canvas"></canvas>
+            <div class="lg-detail" id="lg-detail"></div>
+            <div class="lg-legend">
+              <span><i style="background:#ff3b45"></i>saldırgan</span>
+              <span><i style="background:#4ade80"></i>hedef servis</span>
+              <span><i style="background:#4da3ff"></i>sensör</span>
+              <span><i style="background:#f5a623"></i>engelli</span>
+            </div>
+          </div>
           <div class="terminal">
             <div class="terminal-head"><span class="dots"><span></span><span></span><span></span></span> live-feed.log</div>
-            <div class="terminal-body" id="feed-body"><div class="feed-empty">Olay bekleniyor — <code>python scripts/demo_global_attack.py</code></div></div>
+            <div class="terminal-body" id="feed-body"><div class="feed-empty">Olay bekleniyor — <code>python scripts/demo_apt.py</code></div></div>
           </div>
         </div>
+        <div class="mini-h">Tehdit Radarı <span class="muted" style="text-transform:none;font-weight:400;">(canlı nabız — yeni olayda ilgili eksen titreşir)</span></div>
+        <div class="viz" style="height:300px;"><canvas id="radar-canvas"></canvas></div>
       </section>
 
       <!-- ===== TEHDİT İSTİHBARATI ===== -->
@@ -347,7 +359,7 @@
 
 <div id="toast-root" style="position:fixed;top:4rem;right:1.2rem;z-index:100;display:flex;flex-direction:column;gap:.5rem;"></div>
 
-<script src="{{ url_for('static', filename='js/command_center.js') }}?v=35"></script>
-<script src="{{ url_for('static', filename='js/app.js') }}?v=35"></script>
+<script src="{{ url_for('static', filename='js/command_center.js') }}?v=36"></script>
+<script src="{{ url_for('static', filename='js/app.js') }}?v=36"></script>
 </body>
 </html>

@@ -147,6 +147,213 @@
   })();
 
   /* ============================================================
+     Faz: CANLI VARLIK İLİŞKİ GRAFİĞİ (gerçek node'lar, tıklanabilir)
+     Her düğüm gerçek bir IP / servis / sensör. Kenarlar gerçek olaylardan.
+     ============================================================ */
+  const LiveGraph = (function () {
+    let canvas, ctx, w = 0, h = 0, dpr = 1, bound = false;
+    let nodes = [], edges = [], selected = null, hover = null, t0 = 0;
+
+    function build(live) {
+      const events = live.events || [], alerts = live.alerts || [],
+        sensors = live.sensors || [], blocks = live.active_blocks || [];
+      const blocked = new Set(blocks.map((b) => b.ip));
+      const alertByIp = {}; alerts.forEach((a) => { if (a.source_ip) alertByIp[a.source_ip] = a; });
+
+      // servis düğümleri (hedefler) — sabit honeypot yüzeyi + görülenler
+      const svcSet = new Set(["ssh", "ftp", "mysql", "http-admin"]);
+      events.forEach((e) => { if (e.service) svcSet.add(e.service); });
+
+      // saldırgan -> servis kenarları + sayaç
+      const ipSvc = {};
+      events.forEach((e) => {
+        if (!e.source_ip) return;
+        (ipSvc[e.source_ip] = ipSvc[e.source_ip] || {});
+        const s = e.service || "?";
+        ipSvc[e.source_ip][s] = (ipSvc[e.source_ip][s] || 0) + 1;
+      });
+      const attackers = [...new Set([...alerts.map((a) => a.source_ip), ...Object.keys(ipSvc)].filter(Boolean))];
+
+      // konum: çekirdek merkezde; servisler iç halka; saldırganlar dış; sensörler üst
+      const svcList = [...svcSet];
+      const newNodes = [];
+      const posById = {};
+      const core = { id: "core", type: "core", label: "KORUNAN VARLIK", x: 0.5, y: 0.56, meta: {} };
+      newNodes.push(core); posById["core"] = core;
+
+      svcList.forEach((s, i) => {
+        const a = (i / svcList.length) * Math.PI * 2 - Math.PI / 2;
+        const n = { id: "svc:" + s, type: "service", label: s, x: 0.5 + Math.cos(a) * 0.16, y: 0.56 + Math.sin(a) * 0.20,
+          meta: {} };
+        newNodes.push(n); posById[n.id] = n;
+      });
+
+      attackers.forEach((ip, i) => {
+        const a = (i / Math.max(1, attackers.length)) * Math.PI * 2 - Math.PI / 2 + 0.3;
+        const al = alertByIp[ip];
+        const evCount = Object.values(ipSvc[ip] || {}).reduce((s, x) => s + x, 0);
+        const n = { id: "ip:" + ip, type: "attacker", label: ip,
+          x: 0.5 + Math.cos(a) * 0.40, y: 0.56 + Math.sin(a) * 0.40,
+          blocked: blocked.has(ip),
+          meta: { severity: al ? al.severity : "-", score: al ? al.score : null,
+            olay: evCount, servisler: Object.keys(ipSvc[ip] || {}) } };
+        newNodes.push(n); posById[n.id] = n;
+      });
+
+      sensors.forEach((s, i) => {
+        const sid = s.sensor_id || ("sensor-" + i);
+        const n = { id: "sensor:" + sid, type: "sensor", label: sid,
+          x: 0.12 + (i * 0.14), y: 0.12,
+          meta: { durum: s.status || "-", olay: s.event_count || 0 } };
+        newNodes.push(n); posById[n.id] = n;
+      });
+
+      // kenarlar
+      const newEdges = [];
+      Object.keys(ipSvc).forEach((ip) => {
+        Object.keys(ipSvc[ip]).forEach((s) => {
+          const A = posById["ip:" + ip], B = posById["svc:" + s] || posById["core"];
+          if (A && B) newEdges.push({ a: A, b: B, w: ipSvc[ip][s] });
+        });
+      });
+      // alarmlı ama olaysız saldırganları çekirdeğe zayıf bağla
+      attackers.forEach((ip) => {
+        if (!ipSvc[ip]) { const A = posById["ip:" + ip]; if (A) newEdges.push({ a: A, b: core, w: 1, faint: true }); }
+      });
+      // sensörleri çekirdeğe
+      sensors.forEach((s, i) => { const A = posById["sensor:" + (s.sensor_id || "sensor-" + i)]; if (A) newEdges.push({ a: A, b: core, w: 1, sensor: true }); });
+
+      nodes = newNodes; edges = newEdges;
+      if (selected && !nodes.find((n) => n.id === selected.id)) { selected = null; showDetail(null); }
+    }
+
+    function resize() {
+      if (!canvas) return;
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      w = canvas.clientWidth; h = canvas.clientHeight;
+      canvas.width = w * dpr; canvas.height = h * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    const COL = { attacker: "255,59,69", service: "74,222,128", sensor: "77,163,255", core: "34,197,94" };
+    function nx(n) { return n.x * w; }
+    function ny(n) { return 34 + n.y * (h - 44); }
+    function radius(n) { return n.type === "core" ? 13 : n.type === "attacker" ? (5 + Math.min(6, (n.meta.olay || 1))) : n.type === "sensor" ? 6 : 8; }
+    function color(n) { return n.blocked ? "245,166,35" : COL[n.type] || "150,150,150"; }
+
+    function neighborsOf(n) {
+      return edges.filter((e) => e.a.id === n.id || e.b.id === n.id)
+        .map((e) => e.a.id === n.id ? e.b : e.a);
+    }
+    function isNeighbor(n, sel) { return edges.some((e) => (e.a.id === sel.id && e.b.id === n.id) || (e.b.id === sel.id && e.a.id === n.id)); }
+
+    function draw() {
+      if (!ctx || !w) return;
+      ctx.clearRect(0, 0, w, h);
+      const pulse = 0.5 + 0.5 * Math.sin((Date.now() - t0) / 700);
+      // kenarlar
+      edges.forEach((e) => {
+        const hot = selected && (e.a.id === selected.id || e.b.id === selected.id);
+        const dim = selected && !hot;
+        ctx.beginPath(); ctx.moveTo(nx(e.a), ny(e.a));
+        const mx = (nx(e.a) + nx(e.b)) / 2, my = (ny(e.a) + ny(e.b)) / 2 - 18;
+        ctx.quadraticCurveTo(mx, my, nx(e.b), ny(e.b));
+        ctx.strokeStyle = hot ? "rgba(255,120,110,0.65)" : dim ? "rgba(120,130,150,0.05)"
+          : e.sensor ? "rgba(77,163,255,0.18)" : e.faint ? "rgba(120,130,150,0.1)" : "rgba(120,150,180,0.16)";
+        ctx.lineWidth = hot ? 1.6 : Math.min(2.5, 0.6 + (e.w || 1) * 0.25);
+        ctx.stroke();
+      });
+      // düğümler
+      nodes.forEach((n) => {
+        const x = nx(n), y = ny(n), r = radius(n);
+        const isSel = selected && n.id === selected.id;
+        const nb = selected && isNeighbor(n, selected);
+        const dim = selected && !isSel && !nb;
+        const c = color(n);
+        if (n.type === "core") {
+          const g = ctx.createRadialGradient(x, y, 0, x, y, r * 2.4);
+          g.addColorStop(0, `rgba(${c},0.4)`); g.addColorStop(1, `rgba(${c},0)`);
+          ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r * 2.4, 0, TAU); ctx.fill();
+        }
+        ctx.beginPath(); ctx.arc(x, y, r + (isSel ? 2 * pulse : 0), 0, TAU);
+        ctx.fillStyle = `rgba(${c},${dim ? 0.22 : 0.95})`;
+        ctx.shadowColor = isSel || (hover && hover.id === n.id) ? `rgba(${c},0.9)` : "transparent";
+        ctx.shadowBlur = isSel ? 14 : 0; ctx.fill(); ctx.shadowBlur = 0;
+        if (n.blocked) { ctx.strokeStyle = "rgba(245,166,35,0.9)"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, y, r + 3, 0, TAU); ctx.stroke(); }
+        if (isSel) { ctx.strokeStyle = "#fff"; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(x, y, r + 4, 0, TAU); ctx.stroke(); }
+        // etiket
+        if (n.type !== "attacker" || isSel || nb || (hover && hover.id === n.id) || nodes.filter((m) => m.type === "attacker").length <= 10) {
+          ctx.font = n.type === "core" ? "700 9px 'JetBrains Mono',monospace" : "600 9.5px 'JetBrains Mono',monospace";
+          ctx.textAlign = "center"; ctx.fillStyle = `rgba(233,237,245,${dim ? 0.25 : 0.82})`;
+          const lbl = n.type === "core" ? "ÇEKİRDEK" : n.label;
+          ctx.fillText(lbl, x, y + r + 12);
+        }
+      });
+    }
+
+    function nodeAt(mx, my) {
+      let best = null, bd = 18;
+      nodes.forEach((n) => { const d = Math.hypot(nx(n) - mx, ny(n) - my); if (d < bd) { bd = d; best = n; } });
+      return best;
+    }
+    function showDetail(n) {
+      const root = $("#lg-detail"); if (!root) return;
+      if (!n) { root.style.display = "none"; return; }
+      root.style.display = "block";
+      const c = color(n);
+      const typeLbl = { attacker: "Saldırgan IP", service: "Hedef Servis", sensor: "Sensör", core: "Korunan Çekirdek" };
+      const neigh = neighborsOf(n);
+      let metaRows = "";
+      if (n.type === "attacker") {
+        metaRows = `<div><span>Önem</span> ${sevBadge(n.meta.severity)}</div>
+          ${n.meta.score != null ? `<div><span>Skor</span> ${n.meta.score}</div>` : ""}
+          <div><span>Olay</span> ${n.meta.olay}</div>
+          <div><span>Durum</span> ${n.blocked ? '<b style="color:var(--warn)">ENGELLİ</b>' : "izleniyor"}</div>
+          <div><span>Vurduğu servisler</span> ${(n.meta.servisler || []).join(", ") || "—"}</div>`;
+      } else if (n.type === "sensor") {
+        metaRows = `<div><span>Durum</span> ${esc(n.meta.durum)}</div><div><span>Olay</span> ${n.meta.olay}</div>`;
+      } else if (n.type === "service") {
+        const hitters = neigh.filter((m) => m.type === "attacker");
+        metaRows = `<div><span>Saldıran</span> ${hitters.length} IP</div>`;
+      } else {
+        metaRows = `<div style="color:var(--muted)">Honeypot mimarisinde saldırgan buraya asla ulaşamaz — çekirdek gerçek sistemden ayrıdır.</div>`;
+      }
+      root.innerHTML = `
+        <button class="lg-close" id="lg-close">×</button>
+        <div class="lg-d-type" style="color:rgb(${c})">${typeLbl[n.type] || n.type}</div>
+        <div class="lg-d-id">${esc(n.label)}</div>
+        <div class="lg-d-meta">${metaRows}</div>
+        <div class="lg-d-neigh">${neigh.length} bağlantı${neigh.length ? ": " + neigh.slice(0, 6).map((m) => esc(m.label)).join(", ") : ""}</div>`;
+      const cl = document.getElementById("lg-close");
+      if (cl) cl.addEventListener("click", () => { selected = null; showDetail(null); });
+    }
+
+    function bindOnce() {
+      if (bound || !canvas) return; bound = true;
+      canvas.addEventListener("click", (ev) => {
+        const r = canvas.getBoundingClientRect();
+        selected = nodeAt(ev.clientX - r.left, ev.clientY - r.top);
+        showDetail(selected);
+      });
+      canvas.addEventListener("mousemove", (ev) => {
+        const r = canvas.getBoundingClientRect();
+        const n = nodeAt(ev.clientX - r.left, ev.clientY - r.top);
+        canvas.style.cursor = n ? "pointer" : "default"; hover = n;
+      });
+      window.addEventListener("resize", resize);
+      t0 = Date.now();
+      (function loop() { draw(); requestAnimationFrame(loop); })();
+    }
+
+    function update(live) {
+      canvas = document.getElementById("live-graph-canvas");
+      if (!canvas) return;
+      ctx = canvas.getContext("2d");
+      bindOnce(); resize(); build(live);
+    }
+    return { update };
+  })();
+
+  /* ============================================================
      CANLI AKIS + kritik alarm ses/toast
      ============================================================ */
   const seen = { alerts: new Set(), events: new Set(), waf: new Set(), mtd: new Set(), def: new Set() };
@@ -1031,6 +1238,7 @@
     renderMesh(d.live || {});
     // Feed + radar
     ingestLive(d.live || {});
+    LiveGraph.update(d.live || {});
     ingestDefense(d.active_defense || {});
     firstFeedDef = false;
   }

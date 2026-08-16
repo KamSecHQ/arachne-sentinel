@@ -1,9 +1,8 @@
 # 🕸 Arachne Sentinel
 
-Honeypot tabanlı bir **erken uyarı, saldırı tespit, otonom müdahale, aktif
-savunma, adaptif (ko-evrim) savunma ve ölçülebilir SOC platformu**. Faz 1-30
-tam (motor + panel); **Faz 31-40'ın motorları/testleri tamamlandı, bazı panel
-görselleştirmeleri devam ediyor** (aşağıda işaretli). Sahte servisler açar, gelen her etkileşimi kaydeder,
+Honeypot tabanlı, **40 fazlı** bir **erken uyarı, saldırı tespit, otonom
+müdahale, aktif savunma, adaptif (ko-evrim) savunma ve ölçülebilir SOC
+platformu**. Faz 1-40 tam — motor + test + panel görünümleri. Sahte servisler açar, gelen her etkileşimi kaydeder,
 saldırgan davranışını **açıklanabilir** şekilde puanlar, saldırıyı tersine
 mühendislikle çözer, saldırgan profili çıkarır, otomatik müdahale eder ve
 tüm bunları canlı bir komuta merkezinde gösterir.
@@ -181,18 +180,18 @@ uygulama (SPA), iki hızlı poll döngüsü, birleşik toplayıcı
 > AI Correlation → Risk → SOAR → Olay Sonrası. Başarı **gerçek benchmark
 > verisiyle** kanıtlanır. Tamamen savunma.
 >
-> **Durum:** ✅ = motor+test+panel canlı · 🔧 = motor+test+API hazır, panel
-> görselleştirmesi **devam ediyor**.
+> Tümü CANLI: motor + test + panel görünümü.
 
-- ✅ **Faz 31 — Sensör sağlığı** (`mesh/health.py`): heartbeat, packet-loss, bütünlük
-- 🔧 **Faz 32-33 — SIEM + IOC grafiği** (`siem/normalizer.py`, `intel/correlation_graph.py`):
-  varlık çıkarımı (ECS) + IOC→olay→saldırgan→ATT&CK→kampanya→hedef *(grafik görseli bekliyor)*
-- 🔧 **Faz 34-35 — AI korelasyon + 9-aşama** (`intel/correlator.py`, `attack_stages.py`) *(Attack Replay görseli bekliyor)*
-- 🔧 **Faz 36 — Açıklanabilir tersine mühendislik** (`reverse/explainer.py`): neden+pattern+confidence+MITRE *(Reverse paneli bekliyor)*
-- ✅ **Faz 37 — SOAR genişletme**: 9 playbook, 12 eylem (oturum sonlandırma, izolasyon, bildirim)
-- ✅ **Faz 39 — Metrik motoru** (`metrics/evaluation.py`): Precision/Recall/F1/FPR/MTTD/MTTR/P95/events-sec *(Genel Bakış'ta canlı)*
-- 🔧 **Faz 40 — Benchmark + uçtan-uca** (`benchmark/harness.py`, `scripts/demo_benchmark.py`, `demo_e2e.py`):
-  ölçülen **F1 0.834 (sadece imza) → 0.976 (tam sistem), yanlış pozitif %0** *(Attack Replay görseli bekliyor)*
+- **Faz 31 — Sensör sağlığı** (`mesh/health.py`): heartbeat, packet-loss, bütünlük
+- **Faz 32-33 — SIEM + IOC grafiği** (`siem/normalizer.py`, `intel/correlation_graph.py`):
+  varlık çıkarımı (ECS) + IOC→saldırgan→ATT&CK→kampanya→hedef, tıklanabilir grafik
+- **Faz 34-35 — AI korelasyon + 9-aşama** (`intel/correlator.py`, `attack_stages.py`) + **Attack Replay oynatıcı**
+- **Faz 36 — Açıklanabilir tersine mühendislik** (`reverse/explainer.py`): panelde neden+pattern+confidence+MITRE
+- **Faz 37 — SOAR genişletme**: 9 playbook, 12 eylem (oturum sonlandırma, izolasyon, bildirim)
+- **Faz 39 — Metrik motoru** (`metrics/evaluation.py`): Genel Bakış'ta Precision/Recall/F1/FPR/MTTD/MTTR/P95/events-sec
+- **Faz 40 — Benchmark + uçtan-uca** (`benchmark/harness.py`, `demo_benchmark.py`, `demo_e2e.py`):
+  ölçülen **F1 0.834 (sadece imza) → 0.976 (tam sistem), yanlış pozitif %0**
+- **Canlı Akış**: gerçek varlık ilişki grafiği (her düğüm gerçek IP/servis/sensör, tıkla→ilişkiler)
 
 **Ortak:**
 - **Otomatik HTML raporu**, **AI Markdown raporu**, **STIX 2.1 bundle** ve

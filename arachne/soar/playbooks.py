@@ -200,6 +200,105 @@ PLAYBOOKS = [
             },
         ],
     },
+    {
+        "name": "pb-credential-access",
+        "title_tr": "Kimlik Bilgisi Erisimi Mudahalesi",
+        "description_tr": (
+            "Saldirgan kimlik bilgisi (parola, /etc/shadow, token, SSH anahtari) "
+            "pesinde. Kill chain'de KRITIK bir esik - bir sonraki adim yatay "
+            "harekettir. Oturumu sonlandirip izole et, analisti aninda bilgilendir."
+        ),
+        "trigger": {"min_score": 60, "severities": ["high", "critical"],
+                    "requires_any": ["Credential Access", "Command Injection"]},
+        "enrichment": ["enrich_ip_scope", "enrich_history", "enrich_reverse_engineering"],
+        "attck": ["T1552", "T1003", "T1110"],
+        "decision": [
+            {
+                "if": {},
+                "then": [("terminate_session", {}),
+                         ("isolate_surface", {}),
+                         ("notify_analyst", {"reason": "Kimlik bilgisi erisim denemesi"}),
+                         ("create_incident", {}),
+                         ("tag_and_log", {"tags": ["kimlik-erisimi", "kill-chain-kritik"]})],
+                "because": "Kimlik bilgisi pesindeki saldirgan yatay harekete cok yakin - "
+                           "oturumu kes, izole et, analisti aninda uyar",
+            },
+        ],
+    },
+    {
+        "name": "pb-lateral-movement",
+        "title_tr": "Yatay Hareket Mudahalesi",
+        "description_tr": (
+            "Saldirgan ic aglara/servislere pivot etmeye calisiyor (SMB, SSH, "
+            "ic IP'ler). Bir uctan digerine yayilmadan izolasyon sarttir."
+        ),
+        "trigger": {"min_score": 70, "severities": ["high", "critical"],
+                    "requires_any": ["Lateral Movement", "Command Injection", "Reverse Shell"]},
+        "enrichment": ["enrich_ip_scope", "enrich_history", "enrich_reverse_engineering"],
+        "attck": ["T1021", "T1210", "T1570"],
+        "decision": [
+            {
+                "if": {},
+                "then": [("isolate_surface", {}),
+                         ("block_ip", {"seconds": 3600}),
+                         ("notify_analyst", {"reason": "Yatay hareket denemesi"}),
+                         ("create_incident", {}),
+                         ("tag_and_log", {"tags": ["yatay-hareket"]})],
+                "because": "Yayilmayi durdurmak icin izolasyon + engelleme; "
+                           "yatay hareket bir ihlalin genislemesidir",
+            },
+        ],
+    },
+    {
+        "name": "pb-exfiltration",
+        "title_tr": "Veri Sizintisi Mudahalesi",
+        "description_tr": (
+            "Saldirgan veri disari sizdirmaya calisiyor (buyuk indirmeler, dis "
+            "adrese curl, base64 dokumler). Kill chain'in son ve en yikici asamasi."
+        ),
+        "trigger": {"min_score": 75, "severities": ["high", "critical"],
+                    "requires_any": ["Exfiltration", "Data Theft"]},
+        "enrichment": ["enrich_ip_scope", "enrich_history", "enrich_reverse_engineering"],
+        "attck": ["T1041", "T1048", "T1567"],
+        "decision": [
+            {
+                "if": {},
+                "then": [("terminate_session", {}),
+                         ("block_ip", {"seconds": 7200}),
+                         ("isolate_surface", {}),
+                         ("notify_analyst", {"reason": "Veri sizintisi denemesi"}),
+                         ("create_incident", {}),
+                         ("escalate_to_human", {}),
+                         ("tag_and_log", {"tags": ["sizinti", "en-yuksek-oncelik"]})],
+                "because": "Sizinti en yikici asamadir: oturumu kes, uzun engelle, "
+                           "izole et, analisti hem otomatik hem onay kapisiyla devreye al",
+            },
+        ],
+    },
+    {
+        "name": "pb-honeytoken-breach",
+        "title_tr": "Honeytoken Ihlali Mudahalesi",
+        "description_tr": (
+            "Bir honeytoken kullanildi - yanlis-pozitif ~sifir, neredeyse kesin "
+            "ihlal kaniti. En yuksek guvenilirlikli sinyal; tereddutsuz sert tepki."
+        ),
+        "trigger": {"min_score": 50, "severities": ["medium", "high", "critical"],
+                    "requires_any": ["Honeytoken", "Honeytoken Breach"]},
+        "enrichment": ["enrich_ip_scope", "enrich_history"],
+        "attck": ["T1552.001"],
+        "decision": [
+            {
+                "if": {},
+                "then": [("block_ip", {"seconds": 7200}),
+                         ("isolate_surface", {}),
+                         ("notify_analyst", {"reason": "Honeytoken ihlali - kesin kanit"}),
+                         ("create_incident", {}),
+                         ("tag_and_log", {"tags": ["honeytoken-ihlali", "yuksek-guven"]})],
+                "because": "Honeytoken kullanimi neredeyse kesin ihlaldir (yanlis-pozitif "
+                           "~sifir) - en guvenilir sinyal, tereddutsuz kapsamli mudahale",
+            },
+        ],
+    },
 ]
 
 PLAYBOOKS_BY_NAME = {pb["name"]: pb for pb in PLAYBOOKS}

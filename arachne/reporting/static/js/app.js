@@ -498,6 +498,64 @@
     }
   }
 
+  /* ---------- Faz 39-40: Gerçek performans metrikleri ---------- */
+  function metricTile(label, value, sub, tone) {
+    return `<div class="metric-tile ${tone || ""}">
+      <div class="mt-val">${value}</div>
+      <div class="mt-label">${esc(label)}</div>
+      ${sub ? `<div class="mt-sub">${esc(sub)}</div>` : ""}</div>`;
+  }
+  function pct(x) { return (x == null ? "—" : (x * 100).toFixed(1) + "%"); }
+
+  function renderMetrics(m) {
+    const root = $("#ov-metrics");
+    if (!root) return;
+    if (!m || !m.has_benchmark || !m.benchmark) {
+      root.innerHTML = `<div class="metric-empty">
+        <b>Henüz benchmark çalıştırılmadı.</b>
+        <p>Gerçek Precision/Recall/F1/MTTD ölçümleri için binlerce etiketli senaryo çalıştır:</p>
+        <code>python scripts/demo_benchmark.py</code>
+        ${m && m.sensor_health ? `<p class="muted" style="margin-top:.6rem;">Filo sağlığı: %${m.sensor_health.fleet_health_pct} · canlı ${m.live_events_per_sec ?? 0} olay/sn</p>` : ""}
+      </div>`;
+      return;
+    }
+    const b = m.benchmark, full = b.full_system, sig = b.signature_only;
+    const c = full.classification, t = full.timing, tp = full.throughput;
+    const gradeTone = c.f1 >= 0.9 ? "ok" : c.f1 >= 0.75 ? "warn" : "bad";
+
+    const tiles = [
+      metricTile("Precision", pct(c.precision), `TP ${c.tp} / FP ${c.fp}`, "ok"),
+      metricTile("Recall", pct(c.recall), `yakalanan / toplam kötü`, c.recall >= 0.9 ? "ok" : "warn"),
+      metricTile("F1 Skoru", c.f1.toFixed(3), full.grade, gradeTone),
+      metricTile("Yanlış Pozitif (FPR)", pct(c.false_positive_rate), `FP ${c.fp} / temiz ${c.fp + c.tn}`, c.false_positive_rate <= 0.02 ? "ok" : "warn"),
+      metricTile("Yanlış Negatif (FNR)", pct(c.false_negative_rate), `kaçan ${c.fn}`, c.false_negative_rate <= 0.1 ? "ok" : "warn"),
+      metricTile("Tespit Oranı", pct(c.detection_rate), `${c.tp}/${c.tp + c.fn}`, "ok"),
+      metricTile("MTTD", t.mttd_ms.toFixed(2) + " ms", "ort. tespit süresi", "ok"),
+      metricTile("P95 Gecikme", t.p95_detection_latency_ms.toFixed(2) + " ms", "95. yüzdelik", "ok"),
+      metricTile("Throughput", Math.round(tp.events_per_sec).toLocaleString() + "/sn", "olay işleme hızı", "ok"),
+    ].join("");
+
+    // Katmanlı savunmanın getirisi: imza-only vs tam sistem F1
+    const sf = sig.classification.f1, ff = full.classification.f1;
+    const gain = (b.f1_gain != null ? b.f1_gain : (ff - sf));
+
+    root.innerHTML = `
+      <div class="metric-grid">${tiles}</div>
+      <div class="metric-compare">
+        <div class="mc-title">Katmanlı Savunmanın Ölçülmüş Getirisi <span class="muted">(${b.n_total.toLocaleString()} etiketli senaryo)</span></div>
+        <div class="mc-bars">
+          <div class="mc-row"><span class="mc-lbl">Sadece imza (WAF)</span>
+            <div class="mc-track"><div class="mc-fill sig" style="width:${(sf * 100).toFixed(0)}%"></div></div>
+            <span class="mc-num">F1 ${sf.toFixed(3)}</span></div>
+          <div class="mc-row"><span class="mc-lbl">Tam katmanlı sistem</span>
+            <div class="mc-track"><div class="mc-fill full" style="width:${(ff * 100).toFixed(0)}%"></div></div>
+            <span class="mc-num">F1 ${ff.toFixed(3)}</span></div>
+        </div>
+        <div class="mc-gain">İmza-ötesi katmanların katkısı: <b>+${gain.toFixed(3)} F1</b> · yakalanamayan saldırı %${(sig.classification.false_negative_rate * 100).toFixed(1)} → %${(c.false_negative_rate * 100).toFixed(1)}</div>
+      </div>
+      <p class="note">${esc(full.summary_tr || "")}</p>`;
+  }
+
   /* ============================================================
      POLL DONGULERI
      ============================================================ */
@@ -554,6 +612,7 @@
   async function fetchDeep() {
     let d; try { d = await (await fetch("/api/deep", { cache: "no-store" })).json(); } catch (e) { return; }
     deepData = d;
+    renderMetrics(d.metrics);   // Genel Bakış her zaman görünür - metrikleri hep güncelle
     if (currentView === "threats") renderThreats(d.threats);
     if (currentView === "rules") renderRules(d.rules_integrity);
     if (currentView === "adaptive") renderAdaptive(d.adaptive);

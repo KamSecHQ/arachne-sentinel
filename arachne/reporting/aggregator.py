@@ -292,3 +292,98 @@ def adaptive_view(db_path=None) -> dict:
             "propagation": cd.propagation_savings(),
         },
     }
+
+
+def metrics_view(db_path=None) -> dict:
+    """Faz 39-40: gercek olcumler. Kaydedilmis benchmark raporunu (varsa)
+    okur; ayrica canli sensor sagligi + canli throughput tahmini ekler.
+    Benchmark yoksa kullaniciyi demo_benchmark.py'ye yonlendirir."""
+    import json
+    from .. import config
+    from ..mesh import health as mesh_health
+
+    report_path = config.DATA_DIR / "benchmark_report.json"
+    benchmark = None
+    if report_path.exists():
+        try:
+            benchmark = json.loads(report_path.read_text(encoding="utf-8"))
+        except (ValueError, OSError):
+            benchmark = None
+
+    # Canli sensor sagligi: kayitli sensorlerden bir filo raporu uret
+    sensors = storage.get_sensors(db_path=db_path)
+    sh = mesh_health.SensorHealth()
+    for s in sensors:
+        sid = s.get("sensor_id", "sensor")
+        # kayitli event_count'u kaba bir heartbeat/paket olarak modelle
+        sh.record_heartbeat(sid, seq=1)
+        for i in range(2, min(int(s.get("event_count", 0)) + 2, 40)):
+            sh.record_event(sid, seq=i)
+    fleet = sh.fleet_report() if sensors else {
+        "sensors": [], "online": 0, "degraded": 0, "offline": 0,
+        "fleet_health_pct": 100.0, "summary_tr": "Kayitli sensor yok (tek-dugum lab)."}
+
+    # Canli throughput: son penceredeki olay yogunlugu
+    recent = storage.get_recent_events(since_seconds=60, db_path=db_path)
+    live_eps = round(len(recent) / 60.0, 2)
+
+    return {
+        "has_benchmark": benchmark is not None,
+        "benchmark": benchmark,
+        "sensor_health": fleet,
+        "live_events_per_sec": live_eps,
+        "hint_tr": None if benchmark else
+        "Gercek metrikler icin: python scripts/demo_benchmark.py (binlerce etiketli senaryo).",
+    }
+
+
+def correlation_view(db_path=None, limit=400) -> dict:
+    """Faz 33-34: IOC korelasyon grafigi + AI korelasyon (kampanya/zincir)."""
+    from ..intel import correlation_graph, correlator
+
+    events = storage.get_recent_events(since_seconds=7200, db_path=db_path)[:limit]
+    alerts = storage.get_all_alerts(limit=200, db_path=db_path)
+    graph = correlation_graph.build_correlation_graph(events, alerts=alerts)
+    gsummary = correlation_graph.graph_summary(graph)
+    corr = correlator.correlate_events(events)
+    return {
+        "graph": graph,
+        "graph_summary": gsummary,
+        "correlation": corr,
+    }
+
+
+def replay_view(db_path=None, top_n=6) -> dict:
+    """Faz 35: en aktif saldirganlar icin 9-asamali saldiri zinciri + Attack
+    Replay zaman cizelgesi (hangi asamada hangi savunma katmani devreye girdi)."""
+    from ..intel import attack_stages
+
+    alerts = storage.get_all_alerts(limit=100, db_path=db_path)
+    # en cok olay ureten alarmli IP'ler
+    from collections import Counter
+    ip_counts = Counter(a.get("source_ip") for a in alerts if a.get("source_ip"))
+    replays = []
+    for ip, _ in ip_counts.most_common(top_n):
+        events = storage.get_recent_events(source_ip=ip, db_path=db_path)
+        if not events:
+            continue
+        prog = attack_stages.stage_progression(events)
+        timeline = attack_stages.replay_timeline(events)
+        replays.append({
+            "source_ip": ip,
+            "progression": prog,
+            "timeline": timeline,
+            "event_count": len(events),
+        })
+    return {
+        "stages": attack_stages.STAGES,
+        "stage_defense_layer": attack_stages.STAGE_DEFENSE_LAYER,
+        "replays": replays,
+    }
+
+
+def explain_payload(payload: str) -> dict:
+    """Faz 36: tek bir yuk icin aciklanabilir tespit (neden + pattern +
+    confidence + MITRE)."""
+    from ..reverse import explainer
+    return explainer.explain_detection(payload or "")

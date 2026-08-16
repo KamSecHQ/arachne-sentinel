@@ -418,3 +418,29 @@ tbody tr:hover{background:rgba(255,255,255,.02);}
 .viz-legend.wide .dl-phase{opacity:.5;font-size:.6rem;}
 .viz-legend.wide .dl-count{min-width:1.6rem;text-align:right;font-size:.74rem;}
 .viz-legend.wide .dl-sw{width:9px;height:9px;box-shadow:0 0 6px currentColor;}
+
+/* Faz 39-40 — Gerçek performans metrikleri (Genel Bakış) */
+.metric-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:.6rem;margin-bottom:1rem;}
+.metric-tile{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:.85rem 1rem;position:relative;overflow:hidden;}
+.metric-tile::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--muted);}
+.metric-tile.ok::before{background:var(--ok);}
+.metric-tile.warn::before{background:var(--warn);}
+.metric-tile.bad::before{background:var(--accent);}
+.mt-val{font-family:var(--font-display);font-weight:700;font-size:1.5rem;color:var(--text);letter-spacing:.01em;}
+.mt-label{font-size:.7rem;color:var(--muted);margin-top:2px;font-weight:600;}
+.mt-sub{font-size:.62rem;color:var(--dim);margin-top:3px;font-family:var(--font-mono);}
+.metric-compare{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:1rem 1.1rem;margin-bottom:.8rem;}
+.mc-title{font-family:var(--font-display);font-weight:600;font-size:.82rem;margin-bottom:.8rem;}
+.mc-bars{display:flex;flex-direction:column;gap:.6rem;}
+.mc-row{display:grid;grid-template-columns:160px 1fr 84px;align-items:center;gap:.7rem;}
+.mc-lbl{font-size:.72rem;color:var(--muted);}
+.mc-track{height:12px;background:var(--panel-3);border-radius:7px;overflow:hidden;}
+.mc-fill{height:100%;border-radius:7px;transition:width .8s cubic-bezier(.4,0,.2,1);}
+.mc-fill.sig{background:linear-gradient(90deg,#5c667a,#8b95a8);}
+.mc-fill.full{background:linear-gradient(90deg,var(--teal),var(--ok));}
+.mc-num{font-family:var(--font-mono);font-size:.72rem;color:var(--text);text-align:right;font-weight:700;}
+.mc-gain{margin-top:.8rem;padding-top:.7rem;border-top:1px solid var(--border-soft);font-size:.74rem;color:var(--muted);}
+.mc-gain b{color:var(--ok);font-family:var(--font-mono);}
+.metric-empty{background:var(--panel);border:1px dashed var(--border);border-radius:12px;padding:1.2rem;font-size:.8rem;color:var(--muted);}
+.metric-empty b{color:var(--text);}
+.metric-empty code{display:inline-block;margin-top:.4rem;background:#060809;padding:.35rem .6rem;border-radius:6px;color:var(--accent-2);font-family:var(--font-mono);font-size:.74rem;}

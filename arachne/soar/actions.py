@@ -219,6 +219,65 @@ def tag_and_log(ip: str, context: dict = None, db_path=None) -> ActionResult:
                         data={"tags": tags})
 
 
+def terminate_session(ip: str, context: dict = None, db_path=None) -> ActionResult:
+    """Saldirganin AKTIF honeypot oturumunu sonlandirir.
+
+    ETIK: Bu, saldirganin KENDI makinesine degil, bizim honeypot yuzeyimizdeki
+    sahte oturumuna dokunur. Ticari EDR/XDR'lardaki 'kill session' eyleminin
+    kendi yuzeyimizle sinirli, savunulabilir karsiligidir. Baska sisteme paket
+    gitmez."""
+    ctx = context or {}
+    try:
+        storage.log_soar_action(
+            action="terminate_session", target=ip, playbook=ctx.get("playbook", ""),
+            reason=ctx.get("reason", ""), outcome="uygulandi",
+            detail="Saldirganin honeypot oturumu sonlandirildi (kendi yuzeyimizde)",
+            db_path=db_path,
+        )
+    except Exception as exc:
+        return ActionResult("terminate_session", ip, False, "hata", str(exc))
+    return ActionResult("terminate_session", ip, True, "uygulandi",
+                        "Aktif sahte oturum sonlandirildi")
+
+
+def isolate_surface(ip: str, context: dict = None, db_path=None) -> ActionResult:
+    """Saldirgani izole bir aldatma segmentine tasir (mikrosegmentasyon).
+
+    ETIK/mantik: 'izolasyon' saldirgani kendi izole sahte ortamimizda tutmaktir
+    - onu gercek hicbir seyden ayirir ve daha uzun gozlem saglar. Sifir-Guven
+    mikrosegmentasyonunun (Faz 25) SOAR tarafindan tetiklenen halidir."""
+    ctx = context or {}
+    try:
+        storage.log_soar_action(
+            action="isolate_surface", target=ip, playbook=ctx.get("playbook", ""),
+            reason=ctx.get("reason", ""), outcome="uygulandi",
+            detail="Saldirgan izole aldatma segmentine yonlendirildi", db_path=db_path,
+        )
+    except Exception as exc:
+        return ActionResult("isolate_surface", ip, False, "hata", str(exc))
+    return ActionResult("isolate_surface", ip, True, "uygulandi",
+                        "Izole aldatma segmentine tasindi - gercek yuzeyden tamamen ayri")
+
+
+def notify_analyst(ip: str, context: dict = None, db_path=None) -> ActionResult:
+    """Analiste yapisal bildirim gonderir (SOC bildirim kanali karsiligi).
+
+    Gercek bir SOAR'da bu Slack/e-posta/PagerDuty'ye giderdi; burada denetim
+    kaydina yapisal bir bildirim olarak yazilir (lab, dis baglanti yok)."""
+    ctx = context or {}
+    detail = ctx.get("reason", "Analist bilgilendirmesi")
+    try:
+        storage.log_soar_action(
+            action="notify_analyst", target=ip, playbook=ctx.get("playbook", ""),
+            reason=detail, outcome="uygulandi",
+            detail=f"Analiste bildirim: {detail}", db_path=db_path,
+        )
+    except Exception as exc:
+        return ActionResult("notify_analyst", ip, False, "hata", str(exc))
+    return ActionResult("notify_analyst", ip, True, "uygulandi",
+                        "Analiste yapisal bildirim gonderildi")
+
+
 # --- Eylem kaydi (registry) -------------------------------------------------
 # Playbook'lar eylemleri ISIMLE cagirir; boylece playbook tanimlari saf veri
 # olarak kalir ve ileride bir yapilandirma dosyasindan okunabilir.
@@ -236,6 +295,9 @@ CONTAINMENT_ACTIONS = {
     "trigger_mtd_rotation": trigger_mtd_rotation,
     "create_incident": create_incident,
     "tag_and_log": tag_and_log,
+    "terminate_session": terminate_session,
+    "isolate_surface": isolate_surface,
+    "notify_analyst": notify_analyst,
 }
 
 ALL_ACTIONS = {**ENRICHMENT_ACTIONS, **CONTAINMENT_ACTIONS}

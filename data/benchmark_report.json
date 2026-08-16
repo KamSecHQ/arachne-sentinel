@@ -1,0 +1,73 @@
+{
+  "n_total": 2000,
+  "n_malicious": 1000,
+  "n_benign": 1000,
+  "generated_epoch": 1786834791,
+  "signature_only": {
+    "classification": {
+      "precision": 1.0,
+      "recall": 0.715,
+      "f1": 0.8338,
+      "accuracy": 0.8575,
+      "detection_rate": 0.715,
+      "false_positive_rate": 0.0,
+      "false_negative_rate": 0.285,
+      "tp": 715,
+      "fp": 0,
+      "fn": 285,
+      "tn": 1000
+    },
+    "timing": {
+      "mttd_ms": 0.01,
+      "mttr_ms": 3.0,
+      "p95_detection_latency_ms": 0.01,
+      "median_detection_latency_ms": 0.01,
+      "max_detection_latency_ms": 0.01
+    },
+    "throughput": {
+      "events_per_sec": 108118.73
+    },
+    "response": {
+      "rate": 1.0,
+      "applied": 715,
+      "total": 715
+    },
+    "sensor_health": {},
+    "grade": "B - Iyi",
+    "summary_tr": "Etiketli benchmark: 2000 senaryo, F1=0.8338 (not: B - Iyi), tespit orani=0.715, yanlis pozitif orani=0.0, MTTD=0.01ms, MTTR=3.0ms, P95 tespit=0.01ms, throughput=108118.73 olay/sn. DURUSTLUK: bu sayilar yalnizca bu etiketli benchmark kumesinde olculmustur; gercek dunya performansini GARANTI ETMEZ."
+  },
+  "full_system": {
+    "classification": {
+      "precision": 1.0,
+      "recall": 0.953,
+      "f1": 0.9759,
+      "accuracy": 0.9765,
+      "detection_rate": 0.953,
+      "false_positive_rate": 0.0,
+      "false_negative_rate": 0.047,
+      "tp": 953,
+      "fp": 0,
+      "fn": 47,
+      "tn": 1000
+    },
+    "timing": {
+      "mttd_ms": 0.02,
+      "mttr_ms": 3.01,
+      "p95_detection_latency_ms": 0.03,
+      "median_detection_latency_ms": 0.02,
+      "max_detection_latency_ms": 0.33
+    },
+    "throughput": {
+      "events_per_sec": 43191.93
+    },
+    "response": {
+      "rate": 1.0,
+      "applied": 953,
+      "total": 953
+    },
+    "sensor_health": {},
+    "grade": "A - Mukemmel",
+    "summary_tr": "Etiketli benchmark: 2000 senaryo, F1=0.9759 (not: A - Mukemmel), tespit orani=0.953, yanlis pozitif orani=0.0, MTTD=0.02ms, MTTR=3.01ms, P95 tespit=0.03ms, throughput=43191.93 olay/sn. DURUSTLUK: bu sayilar yalnizca bu etiketli benchmark kumesinde olculmustur; gercek dunya performansini GARANTI ETMEZ."
+  },
+  "f1_gain": 0.1421
+}

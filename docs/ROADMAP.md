@@ -542,6 +542,76 @@ testte fark edildi ve düzeltildi.
   Toplam **387 test** yeşil.
 
 
+# YARIŞMA SERTLEŞTİRMESİ — Faz 31-40 (motorlar tamamlandı · bazı panel görselleştirmeleri DEVAM EDİYOR)
+
+> **Amaç:** Sistemi katmanlı bir SOC hattına dönüştürmek (Sensör → Veri Toplama →
+> SIEM → Tehdit İstihbaratı → Signature/Behavior → AI Correlation → Risk → SOAR →
+> Olay Sonrası) ve başarıyı **gerçek benchmark verisiyle kanıtlamak**. Etik
+> değişmez: tamamen savunma, hiçbir eylem başka sisteme dokunmaz.
+>
+> **DÜRÜSTLÜK — güncel durum:** Bu fazların **backend motorları, API'leri ve
+> testleri tamamlandı** (481 test yeşil). Ayrıca metrik görünümü (Faz 39) ve
+> SOAR (Faz 37) panelde CANLI. Ancak şu GÖRSEL panel görünümleri **henüz
+> yapılmadı, bir sonraki artışta bağlanacak**: IOC korelasyon grafiği (Faz 33),
+> Attack Replay zaman çizelgesi (Faz 35/40), açıklanabilir Reverse paneli
+> (Faz 36), canlı-radar node ilişkileri. Yani motor hazır, ekran bekliyor.
+
+## Faz 31 — Sensör Sağlığı & Telemetri (tamamlandı)
+- [x] `arachne/mesh/health.py`: heartbeat, packet-loss (dizi boşluklarından),
+  veri bütünlüğü, uptime; filo sağlık raporu. HMAC-SHA256/nonce/timestamp/replay
+  korunur (Faz 9). Grounds: SNMP/health-check, SIEM sensor monitoring.
+
+## Faz 32-33 — SIEM Normalizasyon + IOC Korelasyon Grafiği (motor tamamlandı · grafik görseli bekliyor)
+- [x] `arachne/siem/normalizer.py`: olayları IP/domain/hash/kullanıcı/cihaz/
+  process/zaman varlıklarına ayırır; ECS (Elastic Common Schema) uyumlu.
+- [x] `arachne/intel/correlation_graph.py`: IOC→olay→saldırgan→ATT&CK→kampanya→
+  hedef tipli grafiği; açılabilir node ilişkileri. Grounds: STIX 2.1, ATT&CK.
+- [x] `aggregator.correlation_view` + `/api/deep` bağlı.
+- [ ] **Panel:** tıklanabilir/açılabilir IOC grafiği görseli (bekliyor).
+
+## Faz 34-35 — AI Korelasyon + 9-Aşamalı Kill Chain (motor tamamlandı · Attack Replay görseli bekliyor)
+- [x] `arachne/intel/correlator.py`: düşük seviyeli olayları kampanya/saldırı
+  zincirine birleştirir (deterministik korelasyon, LLM değil).
+- [x] `arachne/intel/attack_stages.py`: Recon→Scanning→Initial Access→Execution→
+  Persistence→Priv Esc→Credential Access→Lateral→Exfiltration; her aşamaya
+  devreye giren savunma katmanı + Attack Replay zaman çizelgesi verisi.
+- [x] `aggregator.replay_view` + `/api/deep` bağlı.
+- [ ] **Panel:** Attack Replay zaman çizelgesi görünümü + kubbe üzerinde
+  aşama-katman görselleştirmesi (bekliyor).
+
+## Faz 36-37 — Açıklanabilir Tersine Mühendislik + SOAR Genişletme (SOAR tamamlandı · Reverse paneli bekliyor)
+- [x] `arachne/reverse/explainer.py`: SQLi/Command Injection/XSS/encoding/polyglot/
+  prompt-injection için NEDEN tespit edildi + eşleşen pattern'ler + confidence +
+  MITRE tekniği. `aggregator.explain_payload` bağlı.
+- [x] SOAR (tamamlandı, panelde canlı): 5→9 playbook, 9→12 eylem (oturum
+  sonlandırma, izolasyon, analist bildirimi + credential-access/lateral-movement/
+  exfiltration/honeytoken-breach).
+- [ ] **Panel:** açıklanabilir tespit gösterimi Tersine Mühendislik görünümüne
+  bağlanacak (bekliyor).
+
+## Faz 39 — Metrik & Değerlendirme Motoru (tamamlandı)
+- [x] `arachne/metrics/evaluation.py`: Precision, Recall, F1, Detection Rate,
+  FPR, FNR, MTTD, MTTR, P95 tespit gecikmesi, events/sec, müdahale başarı oranı,
+  sensör sağlığı. Panelde "Genel Bakış" gerçek metrikleri gösterir.
+
+## Faz 40 — Benchmark Harness + Uçtan-Uca Demo (benchmark + e2e tamamlandı · Attack Replay görseli bekliyor)
+- [x] `arachne/benchmark/harness.py` + `scripts/demo_benchmark.py`: binlerce
+  ETİKETLİ senaryoyu gerçek tespit hattından geçirir; her biri için Attack→
+  Detection→Correlation→Response→Result zinciri. **Ölçülen sonuç: sadece-imza
+  F1=0.834 → tam katmanlı sistem F1=0.976 (+0.142), yanlış pozitif %0.**
+- [x] `scripts/demo_e2e.py`: tek saldırı, 9 adım uçtan uca (sensör→SIEM→
+  istihbarat→tespit→aşama→korelasyon→risk→SOAR→kapanış).
+- [x] Toplam **481 test** (+94). DURUSTLUK: metrikler yalnızca etiketli benchmark
+  kümesinde ölçülür; mutlak gerçek-dünya garantisi verilmez.
+- [ ] **Panel:** Attack Replay zaman çizelgesi görünümü (bekliyor).
+
+## Sıradaki artış — bekleyen PANEL görselleştirmeleri (motorlar + API hazır)
+- [ ] Attack Replay zaman çizelgesi (Faz 35/40)
+- [ ] IOC korelasyon grafiği görseli (Faz 33)
+- [ ] Açıklanabilir Reverse paneli (Faz 36)
+- [ ] Canlı-radar gerçek node ilişkileri (Faz: Canlı Akış zenginleştirme)
+
+
 ## Sıradaki hedefler (stretch-goal, isteğe bağlı)
 
 - İkinci bilgisayar (Windows/x86-64) edinildiğinde Faz 3'ün assembly

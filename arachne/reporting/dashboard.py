@@ -253,8 +253,24 @@ def api_deep():
     except Exception:
         logger.exception("Adaptif savunma verisi uretilemedi")
         adaptive = {}
+    try:
+        metrics = aggregator.metrics_view()
+    except Exception:
+        logger.exception("Metrik verisi uretilemedi")
+        metrics = {}
+    try:
+        correlation = aggregator.correlation_view()
+    except Exception:
+        logger.exception("Korelasyon verisi uretilemedi")
+        correlation = {}
+    try:
+        replay = aggregator.replay_view()
+    except Exception:
+        logger.exception("Replay verisi uretilemedi")
+        replay = {}
 
-    return jsonify({"threats": threats, "rules_integrity": rules, "adaptive": adaptive})
+    return jsonify({"threats": threats, "rules_integrity": rules, "adaptive": adaptive,
+                    "metrics": metrics, "correlation": correlation, "replay": replay})
 
 
 @app.route("/api/intel")

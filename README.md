@@ -1,7 +1,9 @@
 # 🕸 Arachne Sentinel
 
-Honeypot tabanlı, **30 fazlı** bir **erken uyarı, saldırı tespit, otonom müdahale,
-aktif savunma ve adaptif (ko-evrim) savunma platformu**. Sahte servisler açar, gelen her etkileşimi kaydeder,
+Honeypot tabanlı bir **erken uyarı, saldırı tespit, otonom müdahale, aktif
+savunma, adaptif (ko-evrim) savunma ve ölçülebilir SOC platformu**. Faz 1-30
+tam (motor + panel); **Faz 31-40'ın motorları/testleri tamamlandı, bazı panel
+görselleştirmeleri devam ediyor** (aşağıda işaretli). Sahte servisler açar, gelen her etkileşimi kaydeder,
 saldırgan davranışını **açıklanabilir** şekilde puanlar, saldırıyı tersine
 mühendislikle çözer, saldırgan profili çıkarır, otomatik müdahale eder ve
 tüm bunları canlı bir komuta merkezinde gösterir.
@@ -173,10 +175,29 @@ uygulama (SPA), iki hızlı poll döngüsü, birleşik toplayıcı
 - **Faz 30 — Genişletilmiş kubbe**: gök kubbe 5→14 halka (~2.8x) + "Adaptif
   Savunma" paneli
 
+### Faz 31-40 — Yarışma sertleştirmesi (ölçülebilir SOC hattı)
+
+> Katmanlı hat: Sensör → SIEM → Tehdit İstihbaratı → Signature/Behavior →
+> AI Correlation → Risk → SOAR → Olay Sonrası. Başarı **gerçek benchmark
+> verisiyle** kanıtlanır. Tamamen savunma.
+>
+> **Durum:** ✅ = motor+test+panel canlı · 🔧 = motor+test+API hazır, panel
+> görselleştirmesi **devam ediyor**.
+
+- ✅ **Faz 31 — Sensör sağlığı** (`mesh/health.py`): heartbeat, packet-loss, bütünlük
+- 🔧 **Faz 32-33 — SIEM + IOC grafiği** (`siem/normalizer.py`, `intel/correlation_graph.py`):
+  varlık çıkarımı (ECS) + IOC→olay→saldırgan→ATT&CK→kampanya→hedef *(grafik görseli bekliyor)*
+- 🔧 **Faz 34-35 — AI korelasyon + 9-aşama** (`intel/correlator.py`, `attack_stages.py`) *(Attack Replay görseli bekliyor)*
+- 🔧 **Faz 36 — Açıklanabilir tersine mühendislik** (`reverse/explainer.py`): neden+pattern+confidence+MITRE *(Reverse paneli bekliyor)*
+- ✅ **Faz 37 — SOAR genişletme**: 9 playbook, 12 eylem (oturum sonlandırma, izolasyon, bildirim)
+- ✅ **Faz 39 — Metrik motoru** (`metrics/evaluation.py`): Precision/Recall/F1/FPR/MTTD/MTTR/P95/events-sec *(Genel Bakış'ta canlı)*
+- 🔧 **Faz 40 — Benchmark + uçtan-uca** (`benchmark/harness.py`, `scripts/demo_benchmark.py`, `demo_e2e.py`):
+  ölçülen **F1 0.834 (sadece imza) → 0.976 (tam sistem), yanlış pozitif %0** *(Attack Replay görseli bekliyor)*
+
 **Ortak:**
 - **Otomatik HTML raporu**, **AI Markdown raporu**, **STIX 2.1 bundle** ve
-  **yeniden tasarlanan canlı komuta merkezi**
-- **387 birim testi** (`tests/`) ve kendi kendini test eden demo saldırı scriptleri
+  **yeniden tasarlanan canlı komuta merkezi** (gerçek performans metrikleriyle)
+- **481 birim testi** (`tests/`) ve kendi kendini test eden demo saldırı scriptleri
 
 ## Kurulum
 

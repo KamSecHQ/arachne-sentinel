@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Arachne Sentinel — Komuta Merkezi</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%95%B8%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}?v=31">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}?v=32">
 </head>
 <body>
 <div class="app">
@@ -92,6 +92,10 @@
           </div>
         </div>
         <div class="grid g-auto" id="ov-kpis"></div>
+
+        <div class="mini-h">Gerçek Performans Metrikleri <span class="muted" style="text-transform:none;font-weight:400;">(etiketli benchmark ile ölçülmüş)</span></div>
+        <div id="ov-metrics"><div class="empty">Metrikler yükleniyor…</div></div>
+
         <div class="mini-h">Alarm Zaman Çizelgesi <span class="muted" style="text-transform:none;font-weight:400;">(son 60 dk)</span></div>
         <div class="card"><div class="viz" style="height:150px;background:none;border:none;"><canvas id="ov-timeline"></canvas></div></div>
       </section>
@@ -285,7 +289,7 @@
 
 <div id="toast-root" style="position:fixed;top:4rem;right:1.2rem;z-index:100;display:flex;flex-direction:column;gap:.5rem;"></div>
 
-<script src="{{ url_for('static', filename='js/command_center.js') }}?v=31"></script>
-<script src="{{ url_for('static', filename='js/app.js') }}?v=31"></script>
+<script src="{{ url_for('static', filename='js/command_center.js') }}?v=32"></script>
+<script src="{{ url_for('static', filename='js/app.js') }}?v=32"></script>
 </body>
 </html>

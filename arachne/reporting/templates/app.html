@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Arachne Sentinel — Komuta Merkezi</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%95%B8%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}?v=32">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}?v=35">
 </head>
 <body>
 <div class="app">
@@ -41,6 +41,9 @@
       <div class="nav-item" data-view="rules">
         <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 11l3 3 8-8"/><path d="M20 12v6a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h9"/></svg>
         Kurallar & Bütünlük</div>
+      <div class="nav-item" data-view="replay">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12a9 9 0 109-9M3 12V6M3 12h6"/><path d="M11 8v5l4 2"/></svg>
+        Saldırı Tekrarı</div>
 
       <div class="nav-group-label">Müdahale</div>
       <div class="nav-item" data-view="soar">
@@ -152,6 +155,12 @@
 
         <div class="mini-h">Korele Kampanyalar</div>
         <div id="campaigns"></div>
+
+        <div class="mini-h">IOC Korelasyon Grafiği <span class="muted" style="text-transform:none;font-weight:400;">(IOC → saldırgan → ATT&CK → kampanya → hedef · bir node'a tıkla, ilişkileri açılsın)</span></div>
+        <div class="corr-wrap">
+          <div class="viz" style="height:540px;"><canvas id="corr-canvas"></canvas></div>
+          <div class="corr-side" id="corr-detail"><div class="corr-hint">Bir düğüme tıkla — bağlantıları ve komşuları burada açılır.</div></div>
+        </div>
       </section>
 
       <!-- ===== TERSİNE MÜHENDİSLİK ===== -->
@@ -283,13 +292,62 @@
         <div class="card" style="padding:0;overflow:auto;"><table class="data-table" id="ad-matrix"></table></div>
       </section>
 
+      <!-- ===== SALDIRI TEKRARI (Attack Replay) ===== -->
+      <section class="view" id="view-replay">
+        <div class="section-head"><h2>⏴ Saldırı Tekrarı — Kill Chain Oynatıcı</h2></div>
+        <p class="section-desc">Geçmiş bir saldırıyı <b>baştan sona adım adım</b> tekrar oynat. Yavaşlat, geri al, herhangi bir ana atla — her aşamada hangi savunma katmanının devreye girdiğini gör. Recon → Sömürü → Kimlik Erişimi → Kalıcılık → Yatay Hareket → Sızıntı.</p>
+        <div class="rule-line"></div>
+
+        <div id="replay-empty" class="empty" style="display:none;">Henüz tekrar oynatılacak saldırı yok<span class="hint">python scripts/demo_apt.py</span></div>
+
+        <div id="replay-wrap">
+          <!-- Saldırgan seçici -->
+          <div class="rp-attackers" id="rp-attackers"></div>
+
+          <!-- Kill chain rayı -->
+          <div class="rp-track-wrap">
+            <div class="rp-track" id="rp-track"></div>
+            <div class="rp-playhead" id="rp-playhead"></div>
+          </div>
+
+          <!-- Ana detay + savunma katmanı -->
+          <div class="grid g2" style="align-items:stretch;">
+            <div class="rp-detail" id="rp-detail"></div>
+            <div class="rp-defense" id="rp-defense"></div>
+          </div>
+
+          <!-- Kontroller -->
+          <div class="rp-controls">
+            <div class="rp-btns">
+              <button class="rp-btn" id="rp-rewind" title="Başa sar">⏮</button>
+              <button class="rp-btn" id="rp-back" title="Bir adım geri">⏪</button>
+              <button class="rp-btn rp-play" id="rp-play" title="Oynat/Duraklat">▶</button>
+              <button class="rp-btn" id="rp-fwd" title="Bir adım ileri">⏩</button>
+              <button class="rp-btn" id="rp-end" title="Sona git">⏭</button>
+            </div>
+            <div class="rp-speed" id="rp-speed">
+              <span class="rp-speed-lbl">Hız</span>
+              <button class="rp-sp" data-sp="0.25">0.25×</button>
+              <button class="rp-sp" data-sp="0.5">0.5×</button>
+              <button class="rp-sp active" data-sp="1">1×</button>
+              <button class="rp-sp" data-sp="2">2×</button>
+              <button class="rp-sp" data-sp="4">4×</button>
+            </div>
+            <div class="rp-scrub-wrap">
+              <input type="range" class="rp-scrub" id="rp-scrub" min="0" max="0" value="0" step="1">
+              <div class="rp-step-label" id="rp-step-label">Adım 0 / 0</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
     </div>
   </div>
 </div>
 
 <div id="toast-root" style="position:fixed;top:4rem;right:1.2rem;z-index:100;display:flex;flex-direction:column;gap:.5rem;"></div>
 
-<script src="{{ url_for('static', filename='js/command_center.js') }}?v=32"></script>
-<script src="{{ url_for('static', filename='js/app.js') }}?v=32"></script>
+<script src="{{ url_for('static', filename='js/command_center.js') }}?v=35"></script>
+<script src="{{ url_for('static', filename='js/app.js') }}?v=35"></script>
 </body>
 </html>

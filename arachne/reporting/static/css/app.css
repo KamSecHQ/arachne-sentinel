@@ -444,3 +444,111 @@ tbody tr:hover{background:rgba(255,255,255,.02);}
 .metric-empty{background:var(--panel);border:1px dashed var(--border);border-radius:12px;padding:1.2rem;font-size:.8rem;color:var(--muted);}
 .metric-empty b{color:var(--text);}
 .metric-empty code{display:inline-block;margin-top:.4rem;background:#060809;padding:.35rem .6rem;border-radius:6px;color:var(--accent-2);font-family:var(--font-mono);font-size:.74rem;}
+
+/* Faz 35/40 — Saldırı Tekrarı (Attack Replay) oynatıcı */
+.rp-attackers{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem;}
+.rp-att{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:.55rem .8rem;border-radius:10px;
+  background:var(--panel);border:1px solid var(--border);cursor:pointer;transition:all .2s;text-align:left;}
+.rp-att:hover{border-color:var(--accent-2);}
+.rp-att.active{border-color:var(--accent-2);background:rgba(34,211,238,.08);box-shadow:0 0 0 1px rgba(34,211,238,.3);}
+.rp-att-ip{font-family:var(--font-mono);font-size:.8rem;font-weight:700;color:var(--text);}
+.rp-att-meta{font-size:.64rem;color:var(--muted);}
+
+.rp-track-wrap{position:relative;margin:.5rem 0 1.4rem;padding-top:.5rem;}
+.rp-track{display:grid;grid-template-columns:repeat(9,1fr);gap:0;position:relative;}
+.rp-track::before{content:"";position:absolute;left:0;right:0;top:9px;height:2px;background:var(--border);z-index:0;}
+.rp-stage{display:flex;flex-direction:column;align-items:center;gap:.4rem;position:relative;z-index:1;padding:0 2px;}
+.rp-stage-dot{width:20px;height:20px;border-radius:50%;background:var(--panel-3);border:2px solid var(--border);transition:all .3s;}
+.rp-stage.reached .rp-stage-dot{background:var(--teal);border-color:var(--teal);box-shadow:0 0 8px rgba(45,212,191,.5);}
+.rp-stage.current .rp-stage-dot{background:var(--accent);border-color:var(--accent);box-shadow:0 0 0 4px rgba(255,59,69,.25),0 0 14px rgba(255,59,69,.6);transform:scale(1.25);}
+.rp-stage-name{font-size:.6rem;color:var(--dim);text-align:center;line-height:1.2;max-width:72px;}
+.rp-stage.reached .rp-stage-name{color:var(--muted);}
+.rp-stage.current .rp-stage-name{color:var(--text);font-weight:700;}
+.rp-playhead{position:absolute;top:2px;width:2px;height:26px;background:var(--accent);box-shadow:0 0 10px rgba(255,59,69,.8);
+  transition:left .4s cubic-bezier(.4,0,.2,1);pointer-events:none;border-radius:2px;}
+
+.rp-detail{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:1rem 1.1rem;}
+.rp-d-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem;}
+.rp-d-step{font-family:var(--font-mono);font-size:.66rem;letter-spacing:.1em;color:var(--accent-2);font-weight:700;}
+.rp-d-time{font-family:var(--font-mono);font-size:.66rem;color:var(--dim);}
+.rp-d-stage{font-family:var(--font-display);font-weight:700;font-size:1.4rem;color:var(--text);margin-bottom:.3rem;}
+.rp-d-mitre{font-size:.72rem;color:var(--muted);margin-bottom:.8rem;}
+.rp-d-mitre b{color:var(--warn);font-family:var(--font-mono);}
+.rp-d-plabel{font-size:.62rem;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);margin-bottom:.35rem;}
+.rp-d-payload{display:block;background:#060809;border:1px solid var(--border-soft);border-radius:8px;padding:.7rem .8rem;
+  font-family:var(--font-mono);font-size:.74rem;color:#e0b0b0;word-break:break-all;line-height:1.5;max-height:110px;overflow:auto;}
+
+.rp-defense{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:1rem;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;}
+.rp-def-lbl{font-size:.62rem;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);margin-bottom:.9rem;}
+.rp-def-ring{--c:45,212,191;width:96px;height:96px;border-radius:50%;border:3px solid rgb(var(--c));
+  display:flex;align-items:center;justify-content:center;box-shadow:0 0 24px rgba(var(--c),.5),inset 0 0 20px rgba(var(--c),.15);
+  position:relative;margin-bottom:.9rem;animation:rpPulse 2s ease-in-out infinite;}
+.rp-def-core{width:34px;height:34px;border-radius:50%;background:radial-gradient(circle,rgba(var(--c),.9),rgba(var(--c),.2));}
+@keyframes rpPulse{0%,100%{transform:scale(1);}50%{transform:scale(1.06);}}
+.rp-def-name{font-family:var(--font-display);font-weight:700;font-size:1rem;margin-bottom:.5rem;}
+.rp-def-desc{font-size:.68rem;color:var(--muted);line-height:1.5;max-width:280px;}
+
+.rp-controls{display:flex;align-items:center;gap:1.2rem;flex-wrap:wrap;margin-top:1rem;background:var(--panel);
+  border:1px solid var(--border);border-radius:12px;padding:.8rem 1rem;}
+.rp-btns{display:flex;gap:.4rem;}
+.rp-btn{width:40px;height:40px;border-radius:9px;background:var(--panel-2);border:1px solid var(--border);
+  color:var(--text);font-size:.95rem;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;}
+.rp-btn:hover{border-color:var(--accent-2);background:var(--panel-3);}
+.rp-btn.rp-play{background:var(--accent-2);color:#04262b;border-color:var(--accent-2);font-size:1.05rem;}
+.rp-btn.rp-play:hover{filter:brightness(1.1);}
+.rp-speed{display:flex;align-items:center;gap:.3rem;}
+.rp-speed-lbl{font-size:.64rem;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;margin-right:.2rem;}
+.rp-sp{padding:.35rem .55rem;border-radius:7px;background:var(--panel-2);border:1px solid var(--border);
+  color:var(--muted);font-family:var(--font-mono);font-size:.68rem;cursor:pointer;transition:all .15s;}
+.rp-sp:hover{border-color:var(--accent-2);}
+.rp-sp.active{background:rgba(34,211,238,.14);border-color:var(--accent-2);color:var(--accent-2);font-weight:700;}
+.rp-scrub-wrap{flex:1;min-width:200px;display:flex;flex-direction:column;gap:.3rem;}
+.rp-scrub{width:100%;-webkit-appearance:none;appearance:none;height:6px;border-radius:4px;
+  background:linear-gradient(90deg,var(--teal),var(--accent));outline:none;cursor:pointer;}
+.rp-scrub::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:#fff;
+  border:2px solid var(--accent-2);cursor:pointer;box-shadow:0 0 8px rgba(34,211,238,.6);}
+.rp-scrub::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:#fff;border:2px solid var(--accent-2);cursor:pointer;}
+.rp-step-label{font-family:var(--font-mono);font-size:.66rem;color:var(--muted);text-align:center;}
+
+/* Faz 36 — Açıklanabilir tespit paneli (Reverse) */
+.explain-panel{background:linear-gradient(180deg,rgba(34,211,238,.05),transparent);border:1px solid var(--border);
+  border-left:3px solid var(--accent-2);border-radius:12px;padding:1rem 1.1rem;margin-bottom:1rem;}
+.xp-head{display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;margin-bottom:.6rem;}
+.xp-title{font-family:var(--font-display);font-weight:600;font-size:.9rem;}
+.xp-conf{display:flex;align-items:center;gap:.5rem;}
+.xpc-lbl{font-size:.62rem;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);}
+.xpc-bar{width:120px;height:8px;background:var(--panel-3);border-radius:5px;overflow:hidden;}
+.xpc-fill{height:100%;border-radius:5px;background:var(--muted);transition:width .6s;}
+.xp-conf.ok .xpc-fill{background:linear-gradient(90deg,var(--warn),var(--accent));}
+.xp-conf.warn .xpc-fill{background:var(--warn);}
+.xpc-val{font-family:var(--font-mono);font-size:.78rem;font-weight:700;color:var(--text);}
+.xp-types{display:flex;gap:.35rem;flex-wrap:wrap;margin-bottom:.7rem;}
+.xp-why{font-size:.82rem;line-height:1.6;color:var(--text);margin:0 0 .5rem;}
+.xp-conf-reason{font-size:.72rem;color:var(--muted);font-style:italic;margin-bottom:.8rem;}
+.xp-table{width:100%;border-collapse:collapse;font-size:.72rem;margin-bottom:.8rem;}
+.xp-table th{text-align:left;padding:.4rem .6rem;background:var(--panel-2);color:var(--muted);
+  font-family:var(--font-mono);font-size:.62rem;letter-spacing:.06em;border-bottom:1px solid var(--border);}
+.xp-table td{padding:.4rem .6rem;border-bottom:1px solid var(--border-soft);vertical-align:top;color:var(--text);}
+.xpat{background:#060809;padding:.1rem .35rem;border-radius:4px;color:#e0b0b0;font-size:.7rem;word-break:break-all;}
+.xp-foot{display:flex;gap:1.2rem;flex-wrap:wrap;font-size:.74rem;color:var(--muted);padding-top:.6rem;border-top:1px solid var(--border-soft);}
+.xp-mitre b{color:var(--warn);font-family:var(--font-mono);}
+.xp-evasion{color:var(--warn);}
+
+/* Faz 33 — IOC korelasyon grafiği */
+.corr-wrap{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:.8rem;align-items:stretch;}
+.corr-wrap .viz{background:radial-gradient(ellipse at 50% 50%,#0a1016,var(--panel));}
+.corr-side{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:.9rem;overflow:auto;max-height:540px;}
+.corr-hint{font-size:.74rem;color:var(--dim);font-style:italic;line-height:1.6;}
+.cd-head{display:flex;flex-direction:column;gap:2px;border-left:3px solid var(--border);padding-left:.6rem;margin-bottom:.7rem;}
+.cd-type{font-family:var(--font-mono);font-size:.6rem;text-transform:uppercase;letter-spacing:.08em;}
+.cd-label{font-family:var(--font-mono);font-size:.82rem;font-weight:700;color:var(--text);word-break:break-all;}
+.cd-meta{font-size:.66rem;color:var(--muted);margin-bottom:.7rem;line-height:1.7;}
+.cd-meta span{color:var(--dim);text-transform:uppercase;font-size:.58rem;letter-spacing:.05em;}
+.cd-neigh-lbl{font-size:.64rem;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.5rem;border-top:1px solid var(--border-soft);padding-top:.6rem;}
+.cd-group{margin-bottom:.6rem;}
+.cd-gt{font-family:var(--font-mono);font-size:.66rem;font-weight:700;margin-bottom:.25rem;}
+.cd-item{font-family:var(--font-mono);font-size:.68rem;color:var(--muted);padding:.22rem .4rem;border-radius:5px;cursor:pointer;
+  background:var(--panel-2);margin-bottom:2px;word-break:break-all;transition:all .15s;}
+.cd-item:hover{background:var(--panel-3);color:var(--text);}
+@media(max-width:900px){.corr-wrap{grid-template-columns:1fr;}.corr-side{max-height:none;}}

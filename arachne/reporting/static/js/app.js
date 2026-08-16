@@ -27,6 +27,30 @@
     soar: ["SOAR & Aktif Savunma", "Otonom müdahale, tarpit/aldatma, honeytoken tuzakları"],
     mesh: ["Sensör Ağı", "Dağıtık, HMAC imzalı sensör ağı"],
     adaptive: ["Adaptif Savunma", "Ko-evrim · D3FEND/CSF kapsamı · oyun teorisi · kolektif bağışıklık"],
+    replay: ["Saldırı Tekrarı", "Kill chain oynatıcı — yavaşlat, geri al, adım adım incele"],
+  };
+
+  // Kubbe katman renkleri (savunma katmanı çipleri için — command_center ile aynı)
+  const LAYER_COLORS = {
+    soar: "255,59,69", posture: "255,99,72", zero_trust: "251,146,60",
+    mtd: "245,166,35", collective: "234,179,8", ensemble: "163,230,53",
+    waf: "74,222,128", fingerprint: "45,212,191", slow_burn: "34,211,238",
+    deception_grid: "56,189,248", honeytoken: "96,165,250", deception: "129,140,248",
+    detection: "167,139,250", integrity: "192,132,252",
+  };
+  const LAYER_NAMES = {
+    soar: "SOAR Kısıtlama", posture: "Adaptif Duruş", zero_trust: "Sıfır Güven Kapısı",
+    mtd: "Hareketli Hedef (MTD)", collective: "Kolektif Bağışıklık", ensemble: "Topluluk Motoru",
+    waf: "WAF İmza Motoru", fingerprint: "Parmak İzi / Sybil", slow_burn: "Düşük-ve-Yavaş",
+    deception_grid: "Aldatma Ağı / Kırıntı", honeytoken: "Honeytoken Tuzağı",
+    deception: "Aldatma Yüzeyi", detection: "Kural Motoru + ML", integrity: "Bütünlük Zinciri",
+  };
+  const STAGE_ORDER = ["Reconnaissance", "Scanning", "Initial Access", "Execution",
+    "Persistence", "Privilege Escalation", "Credential Access", "Lateral Movement", "Exfiltration"];
+  const STAGE_TR = {
+    "Reconnaissance": "Keşif", "Scanning": "Tarama", "Initial Access": "İlk Erişim",
+    "Execution": "Yürütme", "Persistence": "Kalıcılık", "Privilege Escalation": "Yetki Yükseltme",
+    "Credential Access": "Kimlik Erişimi", "Lateral Movement": "Yatay Hareket", "Exfiltration": "Sızıntı",
   };
 
   const $ = (s) => document.querySelector(s);
@@ -52,10 +76,11 @@
     // Gizli canvas'lar aktif olunca yeniden boyutlanmali
     window.dispatchEvent(new Event("resize"));
     // Derin veri gerektiren gorunumler acilinca hemen cek
-    if ((view === "threats" || view === "rules" || view === "adaptive") && !deepData) fetchDeep();
-    if (view === "threats" && deepData) renderThreats(deepData.threats);
+    if ((view === "threats" || view === "rules" || view === "adaptive" || view === "replay") && !deepData) fetchDeep();
+    if (view === "threats" && deepData) { renderThreats(deepData.threats); CorrGraph.load(deepData.correlation); }
     if (view === "rules" && deepData) renderRules(deepData.rules_integrity);
     if (view === "adaptive" && deepData) renderAdaptive(deepData.adaptive);
+    if (view === "replay" && deepData) ReplayPlayer.load(deepData.replay);
   }
   $$(".nav-item").forEach((n) => n.addEventListener("click", () => switchView(n.dataset.view)));
 
@@ -386,7 +411,39 @@
     const poly = t.polyglot || {};
     const inj = san.injection_attempt ? `<div class="injection-alert"><b>⚠ PROMPT ENJEKSİYONU DENEMESİ</b><p>${esc(san.injection_assessment_tr)}</p><p style="border-top:1px solid rgba(255,59,69,.2);padding-top:.4rem;font-style:italic;">Datamarking (Spotlighting) savunması sayesinde talimat olarak değil <b>kanıt</b> olarak işlendi.</p></div>` : "";
     const polyBanner = poly.is_polyglot ? `<div class="injection-alert" style="border-color:rgba(245,166,35,.4);background:rgba(245,166,35,.08);"><b style="color:var(--warn);">⚠ POLYGLOT YÜK</b><p>${esc(poly.assessment_tr)}</p></div>` : "";
-    root.innerHTML = `${inj}${polyBanner}<div class="an-grid">
+    // Faz 36: Açıklanabilir tespit bloğu (neden + pattern + confidence + MITRE)
+    const ex = d.explanation;
+    let explHtml = "";
+    if (ex && (ex.attack_types || []).length) {
+      const conf = ex.confidence || 0;
+      const confTone = conf >= 0.75 ? "ok" : conf >= 0.4 ? "warn" : "muted";
+      const emt = ex.mitre_technique || {};
+      const pats = (ex.matched_patterns || []).map((p) =>
+        `<tr><td class="mono" style="color:var(--warn);">${esc(p.category)}</td>
+          <td>${esc(p.pattern_desc)}</td>
+          <td><code class="xpat">${esc(p.matched_text || "—")}</code></td></tr>`).join("");
+      const types = (ex.attack_types || []).map((a) => `<span class="badge badge-high">${esc(a)}</span>`).join(" ");
+      explHtml = `<div class="explain-panel">
+        <div class="xp-head">
+          <div class="xp-title">🔬 Açıklanabilir Tespit <span class="muted">— neden bu bir saldırı?</span></div>
+          <div class="xp-conf ${confTone}">
+            <span class="xpc-lbl">Güven</span>
+            <div class="xpc-bar"><div class="xpc-fill" style="width:${Math.round(conf * 100)}%"></div></div>
+            <span class="xpc-val">%${Math.round(conf * 100)}</span>
+          </div>
+        </div>
+        <div class="xp-types">${types}</div>
+        <p class="xp-why">${esc(ex.why_tr || "")}</p>
+        <div class="xp-conf-reason">${esc(ex.confidence_reason_tr || "")}</div>
+        <table class="xp-table"><thead><tr><th>Kategori</th><th>Eşleşen pattern</th><th>Yakalanan metin</th></tr></thead><tbody>${pats}</tbody></table>
+        <div class="xp-foot">
+          <span class="xp-mitre">MITRE: <b>${esc(emt.id || "-")}</b> ${esc(emt.name || "")}</span>
+          ${ex.evasion_notes_tr ? `<span class="xp-evasion">⚠ ${esc(ex.evasion_notes_tr)}</span>` : ""}
+        </div>
+      </div>`;
+    }
+
+    root.innerHTML = `${inj}${polyBanner}${explHtml}<div class="an-grid">
       <div class="an-block"><h5>Tehdit Değerlendirmesi</h5><div class="verdict v-${esc(t.verdict || "temiz")}"><span class="v-score">${t.threat_score ?? 0}</span><span class="v-label">${esc(t.verdict || "temiz")}</span></div><div class="an-classes">${classes}</div><div class="kc-bar" style="height:8px;"><div class="kc-fill" style="width:${kc.progress_pct || 0}%"></div></div><div class="kc-label">Kill chain: ${esc(kc.phase_tr || "-")} (${kc.stage_index || 0}/${kc.total_stages || 7})</div><div style="margin-top:.6rem;"><span class="ig-key">Entropi: ${t.entropy || 0} bit</span><div class="entropy-bar"><div class="entropy-fill" style="width:${entropyPct}%"></div></div><div style="font-size:.68rem;color:var(--muted);">${esc(t.entropy_verdict || "")}</div></div></div>
       <div class="an-block"><h5>Kodlama Çözümü ${chain ? `<span class="badge badge-critical">${[...(deob.steps || []), ...(adv.steps || [])].length} adım</span>` : ""}</h5>${chain ? `<div class="deob-chain">${esc(chain)}</div>${steps}<div style="margin-top:.5rem;font-size:.72rem;"><span class="muted">Çözülmüş:</span> <code style="background:#060809;padding:.15rem .4rem;border-radius:4px;color:var(--ok);">${esc(adv.decoded || deob.decoded || "")}</code></div>` : '<div class="feed-empty">Yük kodlanmamış (düz metin).</div>'}</div>
       <div class="an-block"><h5>Analist Yorumu</h5><p style="font-size:.8rem;line-height:1.6;margin:0 0 .6rem;">${esc(op.summary)}</p><div style="font-size:.72rem;color:var(--muted);line-height:1.7;"><b style="color:var(--text);">Amaç:</b> ${esc(op.attacker_intent || "-")}<br><b style="color:var(--text);">Odak:</b> ${esc(op.recommended_focus || "-")}<br><b style="color:var(--text);">Kaynak:</b> ${esc(op._source || "-")}</div></div>
@@ -557,6 +614,374 @@
   }
 
   /* ============================================================
+     Faz 35/40: SALDIRI TEKRARI (Attack Replay) oynatıcı
+     Yavaşlat · geri al · adım adım · scrubber ile her ana atla.
+     ============================================================ */
+  const ReplayPlayer = (function () {
+    let replays = [];
+    let cur = null;      // seçili replay
+    let steps = [];      // kill-chain sırasına göre sıralı adımlar
+    let idx = 0;
+    let playing = false;
+    let speed = 1;
+    let timer = null;
+    let bound = false;
+
+    function el(id) { return document.getElementById(id); }
+
+    function load(data) {
+      replays = (data && data.replays) || [];
+      const empty = el("replay-empty"), wrap = el("replay-wrap");
+      if (!replays.length) {
+        if (empty) empty.style.display = "";
+        if (wrap) wrap.style.display = "none";
+        return;
+      }
+      if (empty) empty.style.display = "none";
+      if (wrap) wrap.style.display = "";
+      bindOnce();
+      renderAttackerChips();
+      // İlk saldırganı otomatik seç (henüz seçili yoksa veya liste değiştiyse)
+      if (!cur || !replays.find((r) => r.source_ip === cur.source_ip)) {
+        select(replays[0]);
+      }
+    }
+
+    function renderAttackerChips() {
+      const root = el("rp-attackers");
+      if (!root) return;
+      root.innerHTML = replays.map((r) => {
+        const prog = r.progression || {};
+        const reached = (prog.stages_reached || []).length;
+        const active = cur && cur.source_ip === r.source_ip;
+        return `<button class="rp-att ${active ? "active" : ""}" data-ip="${esc(r.source_ip)}">
+          <span class="rp-att-ip">${esc(r.source_ip)}</span>
+          <span class="rp-att-meta">${r.event_count} olay · ${reached}/9 aşama · %${Math.round(prog.progress_pct || 0)}</span>
+        </button>`;
+      }).join("");
+      root.querySelectorAll(".rp-att").forEach((b) =>
+        b.addEventListener("click", () => {
+          const rp = replays.find((r) => r.source_ip === b.dataset.ip);
+          if (rp) select(rp);
+        }));
+    }
+
+    function select(rp) {
+      pause();
+      cur = rp;
+      // Kill-chain kanonik sırasına göre sırala: hikaye Recon→Exfiltration akar
+      steps = [...(rp.timeline || [])].sort((a, b) =>
+        (STAGE_ORDER.indexOf(a.stage) - STAGE_ORDER.indexOf(b.stage)) || (a.step - b.step));
+      idx = 0;
+      const scrub = el("rp-scrub");
+      if (scrub) { scrub.max = Math.max(0, steps.length - 1); scrub.value = 0; }
+      renderAttackerChips();
+      render();
+    }
+
+    function currentStageIndex() {
+      if (!steps.length) return -1;
+      return STAGE_ORDER.indexOf(steps[idx].stage);
+    }
+
+    function render() {
+      if (!steps.length) return;
+      const step = steps[idx];
+      const csi = currentStageIndex();
+
+      // --- Kill chain rayı ---
+      const track = el("rp-track");
+      if (track) {
+        track.innerHTML = STAGE_ORDER.map((st, i) => {
+          const layer = (cur.progression && cur.progression) ? null : null;
+          const reached = i <= csi;
+          const isCur = i === csi;
+          const tr = STAGE_TR[st] || st;
+          return `<div class="rp-stage ${reached ? "reached" : ""} ${isCur ? "current" : ""}" data-i="${i}">
+            <span class="rp-stage-dot"></span>
+            <span class="rp-stage-name">${esc(tr)}</span>
+          </div>`;
+        }).join("");
+      }
+      // Playhead konumu (rayın yüzdesi)
+      const ph = el("rp-playhead");
+      if (ph && steps.length > 1) {
+        ph.style.left = (idx / (steps.length - 1) * 100) + "%";
+      }
+
+      // --- Detay paneli ---
+      const detail = el("rp-detail");
+      if (detail) {
+        const mt = step.mitre_tactic || {};
+        detail.innerHTML = `
+          <div class="rp-d-head">
+            <span class="rp-d-step">ADIM ${idx + 1} / ${steps.length}</span>
+            <span class="rp-d-time">${esc(step.timestamp || "")}</span>
+          </div>
+          <div class="rp-d-stage">${esc(step.stage_tr || STAGE_TR[step.stage] || step.stage)}</div>
+          <div class="rp-d-mitre">MITRE: <b>${esc(mt.id || "-")}</b> ${esc(mt.name || "")}</div>
+          <div class="rp-d-plabel">Gözlemlenen yük / eylem</div>
+          <code class="rp-d-payload">${esc(step.payload_excerpt || "(yük yok — bağlantı olayı)")}</code>`;
+      }
+
+      // --- Devreye giren savunma katmanı ---
+      const dfz = el("rp-defense");
+      if (dfz) {
+        const lid = step.defense_layer;
+        const color = LAYER_COLORS[lid] || "139,149,168";
+        const name = LAYER_NAMES[lid] || lid;
+        dfz.innerHTML = `
+          <div class="rp-def-lbl">Devreye giren savunma katmanı</div>
+          <div class="rp-def-ring" style="--c:${color}">
+            <div class="rp-def-core"></div>
+          </div>
+          <div class="rp-def-name" style="color:rgb(${color})">${esc(name)}</div>
+          <div class="rp-def-desc">Bu aşamada saldırıyı işleyen katman. Çekirdeğe hiçbir zaman ulaşılmaz — honeypot gerçek sistemden ayrıdır.</div>`;
+      }
+
+      // --- Scrubber + adım etiketi + play düğmesi ---
+      const scrub = el("rp-scrub");
+      if (scrub && +scrub.value !== idx) scrub.value = idx;
+      const lbl = el("rp-step-label");
+      if (lbl) lbl.textContent = `Adım ${idx + 1} / ${steps.length} · ${STAGE_TR[step.stage] || step.stage}`;
+      const play = el("rp-play");
+      if (play) play.textContent = playing ? "⏸" : "▶";
+    }
+
+    function tick() {
+      if (!playing) return;
+      render();
+      if (idx >= steps.length - 1) { playing = false; render(); return; }
+      timer = setTimeout(() => { idx++; tick(); }, 1200 / speed);
+    }
+    function play() {
+      if (!steps.length) return;
+      if (idx >= steps.length - 1) idx = 0;
+      playing = true; tick();
+    }
+    function pause() { playing = false; if (timer) clearTimeout(timer); render(); }
+    function toggle() { playing ? pause() : play(); }
+    function stepFwd() { pause(); idx = Math.min(steps.length - 1, idx + 1); render(); }
+    function stepBack() { pause(); idx = Math.max(0, idx - 1); render(); }
+    function rewind() { pause(); idx = 0; render(); }
+    function toEnd() { pause(); idx = steps.length - 1; render(); }
+    function setSpeed(s) {
+      speed = s;
+      document.querySelectorAll("#rp-speed .rp-sp").forEach((b) =>
+        b.classList.toggle("active", +b.dataset.sp === s));
+    }
+
+    function bindOnce() {
+      if (bound) return; bound = true;
+      el("rp-play") && el("rp-play").addEventListener("click", toggle);
+      el("rp-rewind") && el("rp-rewind").addEventListener("click", rewind);
+      el("rp-back") && el("rp-back").addEventListener("click", stepBack);
+      el("rp-fwd") && el("rp-fwd").addEventListener("click", stepFwd);
+      el("rp-end") && el("rp-end").addEventListener("click", toEnd);
+      const scrub = el("rp-scrub");
+      if (scrub) scrub.addEventListener("input", () => { pause(); idx = +scrub.value; render(); });
+      document.querySelectorAll("#rp-speed .rp-sp").forEach((b) =>
+        b.addEventListener("click", () => setSpeed(+b.dataset.sp)));
+    }
+
+    return { load };
+  })();
+
+  /* ============================================================
+     Faz 33: IOC KORELASYON GRAFİĞİ (etkileşimli node-link)
+     IOC → saldırgan → ATT&CK → kampanya → hedef. Node'a tıkla → komşular.
+     ============================================================ */
+  const CorrGraph = (function () {
+    const COLS = [
+      { type: "ioc", label: "IOC", cap: 16, color: "245,166,35" },
+      { type: "attacker", label: "Saldırgan", cap: 14, color: "255,59,69" },
+      { type: "technique", label: "ATT&CK", cap: 12, color: "167,139,250" },
+      { type: "campaign", label: "Kampanya", cap: 5, color: "34,211,238" },
+      { type: "target", label: "Hedef", cap: 8, color: "74,222,128" },
+    ];
+    const COLOR = {}; COLS.forEach((c) => COLOR[c.type] = c.color);
+    let canvas, ctx, w = 0, h = 0, dpr = 1;
+    let nodes = [], edges = [], selected = null, hover = null;
+    let bound = false, lastData = null;
+
+    function collapse(rawNodes, rawEdges) {
+      const byId = {}; rawNodes.forEach((n) => byId[n.id] = n);
+      const adj = {}; rawNodes.forEach((n) => adj[n.id] = new Set());
+      rawEdges.forEach((e) => { if (adj[e.from] && adj[e.to]) { adj[e.from].add(e.to); adj[e.to].add(e.from); } });
+      // event düğümlerini atla: ioc-event-attacker -> ioc-attacker
+      function neigh(id) {
+        const out = new Set();
+        (adj[id] || []).forEach((n) => {
+          if (byId[n] && byId[n].type === "event") {
+            (adj[n] || []).forEach((m) => { if (m !== id && byId[m] && byId[m].type !== "event") out.add(m); });
+          } else if (byId[n]) out.add(n);
+        });
+        return out;
+      }
+      // görünür düğümler: event dışı, tür başına cap
+      const visible = {};
+      COLS.forEach((c) => {
+        const list = rawNodes.filter((n) => n.type === c.type);
+        // dereceye göre sırala (daha bağlı olan önce)
+        list.sort((a, b) => (adj[b.id] ? adj[b.id].size : 0) - (adj[a.id] ? adj[a.id].size : 0));
+        list.slice(0, c.cap).forEach((n) => visible[n.id] = n);
+      });
+      const cadj = {};
+      Object.keys(visible).forEach((id) => {
+        cadj[id] = [...neigh(id)].filter((m) => visible[m]);
+      });
+      return { visible, cadj, byId };
+    }
+
+    function layout(data) {
+      const g = (data && data.graph) || {};
+      const c = collapse(g.nodes || [], g.edges || []);
+      nodes = []; edges = [];
+      const colX = {}; COLS.forEach((col, i) => colX[col.type] = (i + 0.5) / COLS.length);
+      const perCol = {}; COLS.forEach((col) => perCol[col.type] = []);
+      Object.values(c.visible).forEach((n) => perCol[n.type].push(n));
+      const posById = {};
+      COLS.forEach((col) => {
+        const list = perCol[col.type];
+        list.forEach((n, i) => {
+          const x = colX[col.type];
+          const y = (i + 0.5) / (list.length || 1);
+          const node = { id: n.id, type: n.type, label: n.label || n.id, meta: n.meta || {},
+            nx: x, ny: y, deg: (c.cadj[n.id] || []).length, color: COLOR[n.type] };
+          posById[n.id] = node; nodes.push(node);
+        });
+      });
+      const seen = new Set();
+      Object.keys(c.cadj).forEach((id) => {
+        (c.cadj[id] || []).forEach((m) => {
+          const key = id < m ? id + "|" + m : m + "|" + id;
+          if (seen.has(key)) return; seen.add(key);
+          if (posById[id] && posById[m]) edges.push({ a: posById[id], b: posById[m] });
+        });
+      });
+    }
+
+    function resize() {
+      if (!canvas) return;
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      w = canvas.clientWidth; h = canvas.clientHeight;
+      canvas.width = w * dpr; canvas.height = h * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    function X(n) { return 40 + n.nx * (w - 80); }
+    function Y(n) { return 46 + n.ny * (h - 70); }
+
+    function draw() {
+      if (!ctx) return;
+      ctx.clearRect(0, 0, w, h);
+      // sütun başlıkları
+      ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
+      COLS.forEach((col, i) => {
+        const x = 40 + ((i + 0.5) / COLS.length) * (w - 80);
+        ctx.font = "700 11px 'JetBrains Mono', monospace";
+        ctx.fillStyle = `rgba(${col.color},0.9)`;
+        ctx.fillText(col.label.toUpperCase(), x, 22);
+      });
+      // kenarlar
+      edges.forEach((e) => {
+        const hot = selected && (e.a.id === selected.id || e.b.id === selected.id);
+        const dim = selected && !hot;
+        const ax = X(e.a), ay = Y(e.a), bx = X(e.b), by = Y(e.b);
+        ctx.beginPath();
+        ctx.moveTo(ax, ay);
+        const mx = (ax + bx) / 2;
+        ctx.bezierCurveTo(mx, ay, mx, by, bx, by);
+        ctx.strokeStyle = hot ? `rgba(${e.a.color},0.8)` : dim ? "rgba(120,130,150,0.06)" : "rgba(120,130,150,0.18)";
+        ctx.lineWidth = hot ? 1.8 : 1;
+        ctx.stroke();
+      });
+      // düğümler
+      nodes.forEach((n) => {
+        const x = X(n), y = Y(n);
+        const r = 4 + Math.min(6, n.deg);
+        const isSel = selected && n.id === selected.id;
+        const isHov = hover && n.id === hover.id;
+        const dim = selected && !isSel && !isNeighbor(n, selected);
+        ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${n.color},${dim ? 0.2 : 0.95})`;
+        ctx.shadowColor = isSel || isHov ? `rgba(${n.color},0.9)` : "transparent";
+        ctx.shadowBlur = isSel || isHov ? 12 : 0;
+        ctx.fill(); ctx.shadowBlur = 0;
+        if (isSel) { ctx.strokeStyle = "#fff"; ctx.lineWidth = 1.5; ctx.stroke(); }
+        // etiket (seçili/hover ya da yeterince büyük)
+        if (isSel || isHov || n.deg >= 2 || nodes.length < 40) {
+          ctx.font = "500 9.5px 'JetBrains Mono', monospace";
+          ctx.textAlign = n.nx < 0.5 ? "left" : "right";
+          ctx.fillStyle = `rgba(233,237,245,${dim ? 0.25 : 0.85})`;
+          const lbl = String(n.label).length > 22 ? String(n.label).slice(0, 21) + "…" : n.label;
+          ctx.fillText(lbl, x + (n.nx < 0.5 ? r + 4 : -r - 4), y + 3);
+        }
+      });
+    }
+    function isNeighbor(n, sel) {
+      return edges.some((e) => (e.a.id === sel.id && e.b.id === n.id) || (e.b.id === sel.id && e.a.id === n.id));
+    }
+    function nodeAt(mx, my) {
+      let best = null, bd = 16;
+      nodes.forEach((n) => {
+        const d = Math.hypot(X(n) - mx, Y(n) - my);
+        if (d < bd) { bd = d; best = n; }
+      });
+      return best;
+    }
+    function showDetail(n) {
+      const root = $("#corr-detail"); if (!root) return;
+      if (!n) { root.innerHTML = '<div class="corr-hint">Bir düğüme tıkla — bağlantıları burada açılır.</div>'; return; }
+      const neigh = nodes.filter((m) => isNeighbor(m, n));
+      const byType = {};
+      neigh.forEach((m) => { (byType[m.type] = byType[m.type] || []).push(m); });
+      const typeLbl = { ioc: "IOC", attacker: "Saldırgan", technique: "ATT&CK", campaign: "Kampanya", target: "Hedef" };
+      const groups = Object.keys(byType).map((tp) =>
+        `<div class="cd-group"><div class="cd-gt" style="color:rgb(${COLOR[tp]})">${typeLbl[tp] || tp} (${byType[tp].length})</div>
+          ${byType[tp].map((m) => `<div class="cd-item" data-id="${esc(m.id)}">${esc(m.label)}</div>`).join("")}</div>`).join("");
+      root.innerHTML = `
+        <div class="cd-head" style="border-color:rgb(${COLOR[n.type]})">
+          <span class="cd-type" style="color:rgb(${COLOR[n.type]})">${typeLbl[n.type] || n.type}</span>
+          <span class="cd-label">${esc(n.label)}</span>
+        </div>
+        <div class="cd-meta">${Object.entries(n.meta || {}).slice(0, 5).map(([k, v]) => `<div><span>${esc(k)}</span> ${esc(typeof v === "object" ? JSON.stringify(v) : v)}</div>`).join("") || ""}</div>
+        <div class="cd-neigh-lbl">${neigh.length} bağlantı</div>
+        ${groups || '<div class="corr-hint">Bağlantı yok.</div>'}`;
+      root.querySelectorAll(".cd-item").forEach((el) =>
+        el.addEventListener("click", () => { const nn = nodes.find((x) => x.id === el.dataset.id); if (nn) { selected = nn; showDetail(nn); draw(); } }));
+    }
+
+    function bindOnce() {
+      if (bound || !canvas) return; bound = true;
+      canvas.addEventListener("click", (ev) => {
+        const rect = canvas.getBoundingClientRect();
+        const n = nodeAt(ev.clientX - rect.left, ev.clientY - rect.top);
+        selected = n; showDetail(n); draw();
+      });
+      canvas.addEventListener("mousemove", (ev) => {
+        const rect = canvas.getBoundingClientRect();
+        const n = nodeAt(ev.clientX - rect.left, ev.clientY - rect.top);
+        if ((n && (!hover || hover.id !== n.id)) || (!n && hover)) { hover = n; canvas.style.cursor = n ? "pointer" : "default"; draw(); }
+      });
+      window.addEventListener("resize", () => { resize(); draw(); });
+    }
+
+    function load(data) {
+      canvas = document.getElementById("corr-canvas");
+      if (!canvas) return;
+      ctx = canvas.getContext("2d");
+      bindOnce();
+      lastData = data;
+      resize(); layout(data);
+      // seçili düğüm kaybolduysa sıfırla
+      if (selected && !nodes.find((n) => n.id === selected.id)) selected = null;
+      draw();
+      if (!selected) showDetail(null);
+    }
+    return { load };
+  })();
+
+  /* ============================================================
      POLL DONGULERI
      ============================================================ */
   let deepData = null;
@@ -613,9 +1038,10 @@
     let d; try { d = await (await fetch("/api/deep", { cache: "no-store" })).json(); } catch (e) { return; }
     deepData = d;
     renderMetrics(d.metrics);   // Genel Bakış her zaman görünür - metrikleri hep güncelle
-    if (currentView === "threats") renderThreats(d.threats);
+    if (currentView === "threats") { renderThreats(d.threats); CorrGraph.load(d.correlation); }
     if (currentView === "rules") renderRules(d.rules_integrity);
     if (currentView === "adaptive") renderAdaptive(d.adaptive);
+    if (currentView === "replay") ReplayPlayer.load(d.replay);
     if (d.adaptive && d.adaptive.posture) {
       const lvl = d.adaptive.posture.level;
       updateBadge("badge-adaptive", lvl && lvl !== "NORMAL" ? d.adaptive.posture.rank : 0);

@@ -296,7 +296,14 @@ def api_analyze():
         return jsonify({"error": "Bos yuk"}), 400
 
     try:
-        return jsonify(report_writer.analyze_attack(payload))
+        result = report_writer.analyze_attack(payload)
+        # Faz 36: aciklanabilir tespit (neden + pattern + confidence + MITRE)
+        try:
+            from ..reverse import explainer
+            result["explanation"] = explainer.explain_detection(payload)
+        except Exception:
+            logger.exception("Aciklanabilir tespit uretilemedi")
+        return jsonify(result)
     except Exception:
         logger.exception("Yuk analizi basarisiz")
         return jsonify({"error": "Analiz sirasinda hata olustu"}), 500

@@ -338,10 +338,14 @@ def metrics_view(db_path=None) -> dict:
 
 
 def correlation_view(db_path=None, limit=400) -> dict:
-    """Faz 33-34: IOC korelasyon grafigi + AI korelasyon (kampanya/zincir)."""
+    """Faz 33-34: IOC korelasyon grafigi + AI korelasyon (kampanya/zincir).
+
+    Tehdit istihbarati BIRIKIMLIDIR: canli dome'un aksine daha genis bir
+    pencere (24 saat) kullaniriz ki gecmis kampanyalar/iliskiler grafikte
+    kalsin. Yine de `limit` ile ust sinir korunur (asiri buyume onlenir)."""
     from ..intel import correlation_graph, correlator
 
-    events = storage.get_recent_events(since_seconds=7200, db_path=db_path)[:limit]
+    events = storage.get_recent_events(since_seconds=86400, db_path=db_path)[:limit]
     alerts = storage.get_all_alerts(limit=200, db_path=db_path)
     graph = correlation_graph.build_correlation_graph(events, alerts=alerts)
     gsummary = correlation_graph.graph_summary(graph)

@@ -37,12 +37,16 @@ def main():
     parser = argparse.ArgumentParser(description="Arachne Sentinel")
     parser.add_argument(
         "command",
-        choices=["run", "dashboard", "report", "waf-demo", "scan", "train-ml", "mtd-demo",
+        choices=["run", "dashboard", "app", "report", "waf-demo", "scan", "train-ml", "mtd-demo",
                  "soar-demo", "mesh-demo", "analyze", "ai-report", "stix-export",
                  "full-demo"],
     )
     parser.add_argument("--unprotected", action="store_true",
                          help="waf-demo icin: WAF'siz calistir (karsilastirma)")
+    parser.add_argument("--no-intro", action="store_true",
+                         help="dashboard icin: sinematik acilis dizisini atla")
+    parser.add_argument("--no-open", action="store_true",
+                         help="dashboard icin: tarayiciyi otomatik acma")
     parser.add_argument("--host", default="127.0.0.1", help="scan icin: hedef host")
     parser.add_argument("--port", type=int, default=None,
                          help="dinlenecek port. waf-demo icin varsayilan 8090, "
@@ -79,7 +83,14 @@ def main():
         # kullanilir. Panel calismadiginda o servis isteklere 403 Forbidden
         # doner - bu, "sunucu kapali" hatasi gibi gorunmedigi icin kafa
         # karistiricidir. Cakisma yasarsaniz: --port 5001
-        run_dashboard(port=args.port or 5000)
+        run_dashboard(port=args.port or 5000,
+                      cinematic=not args.no_intro,
+                      open_browser=not args.no_open)
+
+    elif args.command == "app":
+        # Native masaustu komuta merkezi penceresi (PyWebView) - tarayici degil.
+        from arachne.reporting.desktop_app import run_app
+        run_app(port=args.port or 5001, cinematic_terminal=not args.no_intro)
 
     elif args.command == "report":
         path = generate_html_report()

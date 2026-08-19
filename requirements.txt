@@ -1,3 +1,11 @@
 flask>=3.0
 scikit-learn>=1.4
 joblib>=1.3
+
+# Native masaustu Komuta Merkezi penceresi (python main.py app) icin.
+# Kurulu degilse panel yine calisir; sadece "app" komutu tarayiciya duser.
+pywebview>=5.0
+# macOS'ta PyWebView'in Cocoa/WebKit arka ucu icin:
+pyobjc-core>=10.0 ; sys_platform == "darwin"
+pyobjc-framework-Cocoa>=10.0 ; sys_platform == "darwin"
+pyobjc-framework-WebKit>=10.0 ; sys_platform == "darwin"

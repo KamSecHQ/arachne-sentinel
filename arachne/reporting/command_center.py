@@ -28,11 +28,14 @@ from ..intel.geo import geo_for_ip
 # Savunma katmanlari - disaridan iceriye. `radius` degeri arayuzdeki
 # halkanin goreli yaricapidir (1.0 = en dis, 0.0 = cekirdek).
 #
-# Faz 30: kubbe 5 halkadan 14 halkaya genisletildi (~2.8x). Yeni halkalar
-# Faz 21-30 adaptif savunma katmanlarini temsil eder. Sira, savunmanin
+# Faz 30: kubbe 5 halkadan 14 halkaya genisletildi (~2.8x). Faz 44: dort yeni
+# ko-evrim halkasi (Faz 41-44) eklendi -> toplam 18 halka. Yeni halkalar
+# Faz 21-44 adaptif/ko-evrim savunma katmanlarini temsil eder. Sira, savunmanin
 # fiziksel derinligiyle ayni: en disarida caydirici/otomatik katmanlar
-# (saldirgan iceri girmeden), en iceride tespit ve butunluk. Her halkanin
-# "interceptions" degeri GERCEK veriden turetilir (build_dome_state icinde).
+# (saldirgan iceri girmeden), en iceride tespit ve butunluk. Yaricaplar 18 halka
+# arasinda ~1.00 (en dis) ile ~0.09 (cekirdek) arasinda esit dagitilmistir. Her
+# halkanin "interceptions" degeri GERCEK veriden turetilir (build_dome_state
+# icinde); veri yoksa 0 (durustce "bu kosuda tetiklenmedi").
 DEFENSE_LAYERS = [
     {
         "id": "soar", "name": "SOAR Kisitlama", "name_en": "Autonomous Response",
@@ -43,63 +46,97 @@ DEFENSE_LAYERS = [
     },
     {
         "id": "posture", "name": "Adaptif Durus", "name_en": "Adaptive Posture",
-        "phase": "Faz 26", "radius": 0.93, "color": "255,99,72",
+        "phase": "Faz 26", "radius": 0.95, "color": "255,99,72",
         "description_tr": (
             "Tehdit seviyesine gore yukselen savunma durusu (NORMAL->KRITIK). "
             "Tirmandikca daha guclu ama maliyetli savunmalar acilir."),
     },
     {
         "id": "zero_trust", "name": "Sifir Guven Kapisi", "name_en": "Zero Trust PDP",
-        "phase": "Faz 25", "radius": 0.86, "color": "251,146,60",
+        "phase": "Faz 25", "radius": 0.89, "color": "251,146,60",
         "description_tr": (
             "NIST 800-207. Her istek oturum bazinda guven skoruyla degerlendirilir; "
             "dusuk guven reddedilir veya sahte ortama yonlendirilir."),
     },
     {
         "id": "mtd", "name": "Hareketli Hedef (MTD)", "name_en": "Moving Target Defense",
-        "phase": "Faz 4", "radius": 0.79, "color": "245,166,35",
+        "phase": "Faz 4", "radius": 0.84, "color": "245,166,35",
         "description_tr": (
             "Kimlik rotasyonu. Saldirganin onceki taramasinda topladigi "
             "port/banner bilgisi gecersizlestirilir; eski hedefe atis bosa duser."),
     },
     {
         "id": "collective", "name": "Kolektif Bagisiklik", "name_en": "Collective Defense",
-        "phase": "Faz 29", "radius": 0.72, "color": "234,179,8",
+        "phase": "Faz 29", "radius": 0.79, "color": "234,179,8",
         "description_tr": (
             "Bir sensor bir saldirgani yakalayinca gostergeyi paylasir; tum ag "
             "saldirgan onlara ulasmadan bagisiklanir (STIX/TAXII benzeri)."),
     },
     {
+        # Faz 44 - Kimlik/cografi anomali. Kolektif bagisiklik ile Sifir Guven'in
+        # yaninda, dis-orta bant: kimlik daha derin denetimden GECMEDEN once
+        # cografi tutarlilik acisindan degerlendirilir.
+        "id": "geo_velocity", "name": "Imkansiz Seyahat", "name_en": "Impossible Travel",
+        "phase": "Faz 44", "radius": 0.73, "color": "202,214,30",
+        "description_tr": (
+            "Imkansiz seyahat tespiti (MITRE T1078). Ayni aktor kisa surede "
+            "cografi olarak cok uzak iki bolgeden gorunurse gereken hiz fiziksel "
+            "tavani (900 km/s) asar ve olasi hesap-ele-gecirme olarak isaretlenir; "
+            "bolge merkezleri yaklasiktir, karar insana yukseltmedir."),
+    },
+    {
         "id": "ensemble", "name": "Topluluk Motoru", "name_en": "Ensemble Detector",
-        "phase": "Faz 24", "radius": 0.65, "color": "163,230,53",
+        "phase": "Faz 24", "radius": 0.68, "color": "163,230,53",
         "description_tr": (
             "Birden cok bagimsiz dedektorun oylamasi. Tek bir kurali atlatmak "
             "sistemi atlatmaya yetmez."),
     },
     {
+        # Faz 43 - Meta/skorlama halkasi. Topluluk motorunun hemen icinde, orta
+        # derinlikte: bagimsiz dedektorlerin kararlarini olasiliksal olarak birlestirir.
+        "id": "threat_fusion", "name": "Bayes Tehdit Fuzyonu", "name_en": "Bayesian Threat Fusion",
+        "phase": "Faz 43", "radius": 0.63, "color": "116,226,90",
+        "description_tr": (
+            "Bayesci tehdit fuzyonu. Bagimsiz dedektorlerin (imza, honeytoken, "
+            "beacon, yavas-yanma, sybil) sinyalleri log-odds uzayinda tek bir "
+            "sonsal olasiliga birlestirilir; esigi asan IP'ler onceliklendirilir "
+            "(olasilik tahminidir, kesin degil)."),
+    },
+    {
         "id": "waf", "name": "WAF Imza Motoru", "name_en": "Web Application Firewall",
-        "phase": "Faz 2", "radius": 0.58, "color": "74,222,128",
+        "phase": "Faz 2", "radius": 0.57, "color": "74,222,128",
         "description_tr": (
             "Uygulama katmani guvenlik duvari. SQLi/XSS/komut enjeksiyonu "
             "imzalari eslesen istekler 403 ile reddedilir."),
     },
     {
         "id": "fingerprint", "name": "Parmak Izi / Sybil", "name_en": "Fingerprint / Sybil",
-        "phase": "Faz 22", "radius": 0.51, "color": "45,212,191",
+        "phase": "Faz 22", "radius": 0.52, "color": "45,212,191",
         "description_tr": (
             "JA3/JA4 benzeri istemci parmak izi. Tek bir aktor cok kimlik gibi "
             "gorunmeye calissa da parmak izi altindan yakalanir."),
     },
     {
         "id": "slow_burn", "name": "Dusuk-ve-Yavas", "name_en": "Low-and-Slow",
-        "phase": "Faz 21", "radius": 0.44, "color": "34,211,238",
+        "phase": "Faz 21", "radius": 0.46, "color": "34,211,238",
         "description_tr": (
             "CUSUM/EWMA kayma tespiti. Flood esiginin altinda kalmaya calisan "
             "sabirli saldirgan, birikimli sapma ve ritim duzenliligiyle yakalanir."),
     },
     {
+        # Faz 41 - Zamanlama-korelasyonu halkasi. Parmak izi / yavas-yanma bandinda:
+        # payload opak olsa bile call-home ritmini istatistikle yakalar.
+        "id": "beacon", "name": "C2 Isaret Tespiti", "name_en": "Beacon Detection",
+        "phase": "Faz 41", "radius": 0.41, "color": "40,205,244",
+        "description_tr": (
+            "Zamanlama tabanli C2 beacon tespiti. Payload sifreli olsa bile "
+            "implantin duzenli call-home ritmi gelis-araligi istatistigiyle "
+            "(dusuk jitter/degisim katsayisi) yakalanir; kesin kanit degil, "
+            "insan incelemesine yukseltme sinyalidir."),
+    },
+    {
         "id": "deception_grid", "name": "Aldatma Agi / Kirinti", "name_en": "Deception Grid",
-        "phase": "Faz 23", "radius": 0.37, "color": "56,189,248",
+        "phase": "Faz 23", "radius": 0.36, "color": "56,189,248",
         "description_tr": (
             "Katmanli aldatma. Belirgin tuzaklardan kacan saldirgan bile kirinti "
             "yolunu izleyip daha derin bir sahte dugume duser (yanlis-pozitif ~sifir)."),
@@ -113,21 +150,32 @@ DEFENSE_LAYERS = [
     },
     {
         "id": "deception", "name": "Aldatma Yuzeyi", "name_en": "Deception Surface",
-        "phase": "Faz 1", "radius": 0.24, "color": "129,140,248",
+        "phase": "Faz 1", "radius": 0.25, "color": "129,140,248",
         "description_tr": (
             "Honeypot katmani. Saldirgan gercek sistem yerine sahte servise duser; "
             "her etkilesim kayit altina alinir, hicbir gercek varlik risk almaz."),
     },
     {
+        # Faz 42 - Davranissal/yeni desen halkasi. Tespit motorunun hemen disinda,
+        # derinde: imza bulunmayan ama tanidik-olmayan payload'lari isaretler.
+        "id": "novelty", "name": "Sifir-Gun Sezgisi", "name_en": "Zero-Day Novelty",
+        "phase": "Faz 42", "radius": 0.20, "color": "150,140,250",
+        "description_tr": (
+            "Imzasiz sifir-gun sezgisi. Bir payload'un bilinen saldiri korpusuna "
+            "ve son trafige gore ne kadar TANIDIK OLMADIGI karakter n-gram "
+            "nadirligiyle olculur; yuksek yenilik 'kesin kotu' degil 'daha once "
+            "gorulmemis' demektir, insan incelemesine yonlendirilir."),
+    },
+    {
         "id": "detection", "name": "Kural Motoru + ML", "name_en": "Detection Engine",
-        "phase": "Faz 1-2", "radius": 0.17, "color": "167,139,250",
+        "phase": "Faz 1-2", "radius": 0.14, "color": "167,139,250",
         "description_tr": (
             "Aciklanabilir kural motoru ve ML siniflandirici. Davranisi puanlayip "
             "alarma cevirir; her alarm gerekcesiyle birlikte kaydedilir."),
     },
     {
         "id": "integrity", "name": "Butunluk Zinciri", "name_en": "Integrity Chain",
-        "phase": "Faz 17", "radius": 0.10, "color": "192,132,252",
+        "phase": "Faz 17", "radius": 0.09, "color": "192,132,252",
         "description_tr": (
             "Kurcalama-kaniti hash zinciri + Merkle koku. Uretilen tum kanit "
             "kaydinin degistirilmedigi kriptografik olarak dogrulanir."),
@@ -152,7 +200,9 @@ def _classify_interception(event: dict, ctx: dict) -> str:
       waf           : yuk bir WAF imzasiyla eslesti (SQLi/XSS/RCE...)
       fingerprint   : IP bir kimlik-rotasyonu kumesinin ilk uyesi -> parmak izi
       slow_burn     : IP dusuk-ve-yavas ritimde -> birikimli sapmayla yakalandi
+      beacon        : IP duzenli call-home ritmi gosteriyor -> C2 beacon (Faz 41)
       honeytoken    : yuk bir honeytoken degeri iceriyor -> neredeyse kesin ihlal
+      novelty       : yuk bilinen desenlere benzemiyor -> sifir-gun sezgisi (Faz 42)
       detection     : alarmli + yuklu ama imza yok -> DAVRANISLA yakalandi (yeni/gizli)
       deception     : honeypot'a dusen ama henuz alarm uretmeyen etkilesim
     """
@@ -185,10 +235,16 @@ def _classify_interception(event: dict, ctx: dict) -> str:
     # 7) Dusuk-ve-yavas (uzun-pencere korelasyon)
     if ip in ctx["slow_ips"]:
         return "slow_burn"
-    # 8) Davranissal tespit - alarmli + yuklu ama imza yok (yeni/gizli saldiri)
+    # 8) C2 beacon - zamanlama ritmi duzenli (Faz 41, korelasyon/istatistik)
+    if ip in ctx.get("beacon_ips", ()):
+        return "beacon"
+    # 9) Sifir-gun sezgisi - yuk bilinen desenlere benzemiyor (Faz 42, davranissal)
+    if payload and ip in ctx.get("novel_ips", ()):
+        return "novelty"
+    # 10) Davranissal tespit - alarmli + yuklu ama imza yok (yeni/gizli saldiri)
     if ip in ctx["alert_ips"] and payload:
         return "detection"
-    # 9) Aldatma yuzeyi - honeypot'a dustu, henuz alarm yok
+    # 11) Aldatma yuzeyi - honeypot'a dustu, henuz alarm yok
     return "deception"
 
 
@@ -196,6 +252,178 @@ def _subnet(ip: str) -> str:
     """IP'nin /24 blogunu dondurur (kaba kimlik-rotasyonu kumeleme icin)."""
     parts = (ip or "").split(".")
     return ".".join(parts[:3]) if len(parts) >= 3 else ip
+
+
+# Faz 44 geo-velocity icin bolge (RIR/LAB) -> temsili merkez koordinat. Bunlar
+# JITTER'SIZ (kanonik) merkezlerdir: ayni bolgedeki iki gozlemin mesafesi tam
+# olarak 0 olsun ki jitter gurultusu YANLIS bir "imkansiz seyahat" uretmesin.
+# Yalnizca gozlemler GERCEKTEN farkli bolgelere dustugunde mesafe > 0 olur.
+_REGION_CENTROIDS = {
+    "NA": (39.0, -98.0), "EU": (50.0, 10.0), "AP": (25.0, 115.0),
+    "LA": (-14.0, -51.0), "AF": (0.0, 20.0), "LAB": (41.0, 29.0),
+}
+
+
+def _parse_ts(ts):
+    """ISO/SQL zaman damgasini epoch saniyeye cevirir; basarisizsa None."""
+    if not ts:
+        return None
+    import datetime as _dt
+    try:
+        return _dt.datetime.fromisoformat(str(ts).replace("Z", "+00:00")).timestamp()
+    except (ValueError, TypeError):
+        return None
+
+
+def _coevolution_counts(db_path, distinct_alert_ips, slow_ips, sybil_subnets):
+    """Faz 41-44 ko-evrim halkalarinin 'interceptions' sayilarini GERCEK
+    veriden turetir. Her sayi var olan bir kayittan/analizden gelir; veri yoksa
+    0 (durustce 'bu kosuda tetiklenmedi'). Her hesap ayri try/except ile
+    korunur: bir dedektor patlarsa o halka 0 kalir, kubbe cokmez.
+
+    Ayrica siniflandirma (build_dome_state ctx) icin yardimci kumeler doner:
+      beacon_ips : call-home ritmi duzenli bulunan IP'ler
+      novel_ips  : bilinen desenlere benzemeyen (yeni) bir payload gonderen IP'ler
+    """
+    from collections import Counter, defaultdict
+
+    counts = {"beacon": 0, "novelty": 0, "threat_fusion": 0, "geo_velocity": 0}
+    beacon_ips, novel_ips = set(), set()
+
+    # Son 2 saatin olaylari: beacon ritmi + novelty payload korpusu icin ortak
+    # kaynak. (Kubbenin 15dk penceresi bu korelasyonlar icin cok dar.)
+    try:
+        recent = storage.get_recent_events(since_seconds=7200, db_path=db_path)
+    except Exception:
+        recent = []
+
+    ts_by_ip = defaultdict(list)
+    pay_by_ip = defaultdict(list)
+    for ev in recent:
+        ip = ev.get("source_ip")
+        if not ip:
+            continue
+        t = _parse_ts(ev.get("timestamp"))
+        if t is not None:
+            ts_by_ip[ip].append(t)
+        if ev.get("payload"):
+            pay_by_ip[ip].append(ev["payload"])
+
+    # --- Faz 41: C2 beacon (zamanlama) --------------------------------------
+    # Her IP'nin sirali zaman damgalarini beacon_score'a ver; is_beacon True
+    # olanlari say. beacon_score kendi esigini (>=6 olay, regularity>=0.5)
+    # uygular - biz uydurmayiz, sadece dedektorun kararini sayariz.
+    try:
+        from ..adaptive.beacon import beacon_score
+        for ip, ts in ts_by_ip.items():
+            if len(ts) < 6:
+                continue
+            if beacon_score(sorted(ts)).get("is_beacon"):
+                beacon_ips.add(ip)
+        counts["beacon"] = len(beacon_ips)
+    except Exception:
+        beacon_ips = set()
+        counts["beacon"] = 0
+
+    # --- Faz 42: Sifir-gun yenilik (novelty) --------------------------------
+    # Ayni payload'i egitim setine koyup test etmek her seyi 'tanidik' yapar;
+    # bilinen saldiri korpusuyla egitip test etmek her normal istegi 'yeni'
+    # yapar. Ikisinin de tuzagina dusmemek icin BIRAK-BIRINI-DISARIDA
+    # (leave-one-out) yontemi: her farkli payload, DIGER tum payload'lar +
+    # bilinen saldiri korpusu uzerine egitilmis modelle skorlanir. Boylece
+    # 'yeni' = hem bilinen saldirilara hem de son trafige benzemeyen demektir.
+    try:
+        from ..adaptive.novelty import NoveltyModel, _DEFAULT_CORPUS
+        distinct_payloads = list(dict.fromkeys(
+            p for ps in pay_by_ip.values() for p in ps))
+        # Anlamli bir 'digerleri' olusabilmesi icin en az 3 farkli payload gerek.
+        # Cok buyuk kumelerde LOO'yu makul bir tavanla sinirla (deterministik).
+        if len(distinct_payloads) >= 3:
+            loo_set = distinct_payloads[:250]
+            novel_payloads = set()
+            for i, p in enumerate(loo_set):
+                others = _DEFAULT_CORPUS + [q for j, q in enumerate(loo_set) if j != i]
+                model = NoveltyModel(n=3).train(others)
+                if model.novelty(p).get("is_novel"):
+                    novel_payloads.add(p)
+            if novel_payloads:
+                for ip, ps in pay_by_ip.items():
+                    if any(p in novel_payloads for p in ps):
+                        novel_ips.add(ip)
+                # Sayi = payload'i yeni bulunan olay sayisi (halka etkinligi).
+                counts["novelty"] = sum(
+                    1 for ev in recent if ev.get("payload") in novel_payloads)
+    except Exception:
+        novel_ips = set()
+        counts["novelty"] = 0
+
+    # --- Faz 43: Bayes tehdit fuzyonu ---------------------------------------
+    # Her farkli alarmli IP icin, o IP hakkinda ELIMIZDE OLAN kanitlari
+    # (imza, honeytoken, beacon, yavas-yanma, sybil, novelty) atesleyen
+    # dedektorler olarak topla ve fuse() ile tek bir sonsal olasiliga birlestir.
+    # sonsal > 0.5 olan IP'leri say. Sinyaller uydurulmaz; hepsi baska halkalarin
+    # zaten hesapladigi gercek kanit kumelerinden gelir.
+    try:
+        from ..adaptive.threat_fusion import ThreatFusion
+        from ..waf import rules as _waf_rules
+        ht_values = {h.get("value") for h in storage.get_honeytokens(db_path=db_path)
+                     if h.get("value") and len(str(h.get("value"))) >= 8}
+        tf = ThreatFusion()
+        for ip in distinct_alert_ips:
+            if not ip:
+                continue
+            pays = pay_by_ip.get(ip, [])
+            fired = []
+            try:
+                if any(p and _waf_rules.scan_text(p) for p in pays):
+                    fired.append("signature")
+            except Exception:
+                pass
+            if ht_values and any(tok and tok in p for p in pays for tok in ht_values):
+                fired.append("honeytoken")
+            if ip in beacon_ips:
+                fired.append("beacon")
+            if ip in slow_ips:
+                fired.append("slow_burn")
+            if _subnet(ip) in sybil_subnets:
+                fired.append("sybil")
+            if ip in novel_ips:
+                fired.append("novelty")
+            if fired and tf.assess(fired).get("posterior", 0.0) > 0.5:
+                counts["threat_fusion"] += 1
+    except Exception:
+        counts["threat_fusion"] = 0
+
+    # --- Faz 44: Imkansiz seyahat (geo-velocity) ----------------------------
+    # KIMLIK secimi: bu proje bir /24'u 'tek aktorun kimlik rotasyonu' olarak
+    # modeller (bkz. sybil). Dolayisiyla aktor = /24; gozlem = alarmli IP'nin
+    # KANONIK bolge merkezi (jitter'siz). Ayni aktor kisa surede iki FARKLI
+    # bolgeden gorunurse gereken hiz tavani asar -> imkansiz seyahat. Jitter
+    # kullanmadigimiz icin ayni bolge = 0 mesafe; sahte pozitif uretmez.
+    try:
+        from ..adaptive.geo_velocity import GeoVelocityMonitor
+        obs = []
+        for ev in recent:
+            ip = ev.get("source_ip")
+            if not ip or ip not in distinct_alert_ips:
+                continue
+            t = _parse_ts(ev.get("timestamp"))
+            if t is None:
+                continue
+            region = geo_for_ip(ip).get("region")
+            coord = _REGION_CENTROIDS.get(region)
+            if not coord:
+                continue          # bilinmeyen bolge: konum iddia etmeyiz
+            obs.append((t, _subnet(ip), coord[0], coord[1]))
+        obs.sort(key=lambda o: o[0])   # kronolojik (observe boyle bekler)
+        mon = GeoVelocityMonitor()
+        for t, actor, lat, lon in obs:
+            mon.observe(actor, lat, lon, t)
+        counts["geo_velocity"] = mon.report().get("flagged_count", 0)
+    except Exception:
+        counts["geo_velocity"] = 0
+
+    return {"counts": counts, "beacon_ips": beacon_ips, "novel_ips": novel_ips}
 
 
 def build_adaptive_layer_counts(db_path=None, alerts=None, blocked=None,
@@ -297,9 +525,17 @@ def build_adaptive_layer_counts(db_path=None, alerts=None, blocked=None,
         "honeytoken": ht_triggered,
         "integrity": len(storage.get_soar_actions(limit=500, db_path=db_path)),
     }
+
+    # Faz 41-44 ko-evrim halkalari: beacon/novelty/fusion/geo sayilarini gercek
+    # veriden turet ve ayni counts sozlugune ekle. Yardimci kumeler (beacon_ips,
+    # novel_ips) siniflandirma icin yukari tasinir.
+    sybil_subnets = {sn for sn, ips in subnet_ips.items() if len(ips) >= 3}
+    coevo = _coevolution_counts(db_path, distinct_alert_ips, slow_ips, sybil_subnets)
+    counts.update(coevo["counts"])
+
     return {"counts": counts, "posture": snap, "posture_score": score,
-            "slow_ips": slow_ips, "sybil_subnets": {
-                sn for sn, ips in subnet_ips.items() if len(ips) >= 3}}
+            "slow_ips": slow_ips, "sybil_subnets": sybil_subnets,
+            "beacon_ips": coevo["beacon_ips"], "novel_ips": coevo["novel_ips"]}
 
 
 def build_dome_state(db_path=None, limit: int = 60) -> dict:
@@ -350,6 +586,8 @@ def build_dome_state(db_path=None, limit: int = 60) -> dict:
         "collective_siblings": collective_siblings,
         "sybil_first": sybil_first,
         "slow_ips": adaptive.get("slow_ips", set()),
+        "beacon_ips": adaptive.get("beacon_ips", set()),
+        "novel_ips": adaptive.get("novel_ips", set()),
         "honeytoken_values": honeytoken_values,
         "signature_hit": lambda p: bool(_waf_rules.scan_text(p)),
     }

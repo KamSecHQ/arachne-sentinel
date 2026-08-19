@@ -391,3 +391,179 @@ def explain_payload(payload: str) -> dict:
     confidence + MITRE)."""
     from ..reverse import explainer
     return explainer.explain_detection(payload or "")
+
+
+def _parse_iso(ts):
+    """DB zaman damgasini (ISO/epoch) epoch saniyeye cevirir; olmazsa None."""
+    import datetime as _dt
+    if ts is None:
+        return None
+    if isinstance(ts, (int, float)):
+        return float(ts)
+    s = str(ts).strip()
+    try:
+        return float(s)
+    except ValueError:
+        pass
+    try:
+        return _dt.datetime.fromisoformat(s.replace("Z", "+00:00")).timestamp()
+    except (ValueError, TypeError):
+        return None
+
+
+def coevolution_advanced(db_path=None) -> dict:
+    """Faz 41-44 + 61: ko-evrim halkalarinin (beacon / novelty / imkansiz
+    seyahat / Bayes fuzyon / tarama-kaba kuvvet) TEK, durust anlik goruntusu.
+
+    Her sayi gercek olay/alarm kaydindan turer; veri yoksa 0/bos doner (asla
+    uydurma yok). Ic bloklarin her biri ayri try/except ile korunur - bir alt
+    dedektorun basarisizligi digerlerini dusurmez. Bu, asistanin/panelin tek
+    cagriyla ozet alabilmesi icin bir kolaylik katmanidir; mevcut aggregator
+    fonksiyonlarindan hicbirini degistirmez.
+    """
+    from collections import defaultdict
+
+    out = {
+        "beacon": {"count": 0, "top_ip": None, "top_period_sec": None},
+        "novelty": {"count": 0, "flagged_ips": []},
+        "geo_velocity": {"violations": 0, "identities": [], "top_regions": []},
+        "fusion": {"top_posterior": 0.0, "top_ip": None, "top_factors": []},
+        "scan_bruteforce": {
+            "scanner_count": 0, "bruteforce_count": 0,
+            "top_scanner": None, "top_bruteforcer": None,
+        },
+        "note_tr": (
+            "Ko-evrim ozeti gercek olaylardan turer; veri yoksa ilgili "
+            "gosterge 0 kalir (uydurma yok)."
+        ),
+    }
+
+    # Ortak: son 2 saatlik olaylari bir kez cek, IP'ye gore grupla.
+    try:
+        events = storage.get_recent_events(since_seconds=7200, db_path=db_path)
+    except Exception:
+        events = []
+    by_ip = defaultdict(list)
+    for ev in events:
+        ip = ev.get("source_ip")
+        if ip:
+            by_ip[ip].append(ev)
+
+    alert_ips = set()
+    try:
+        alerts = storage.get_all_alerts(limit=200, db_path=db_path)
+        alert_ips = {a.get("source_ip") for a in alerts if a.get("source_ip")}
+    except Exception:
+        alert_ips = set()
+
+    # --- Beacon: IP basi zaman damgalarindan C2 call-home ritmi -------------
+    beacon_ips = set()
+    try:
+        from ..adaptive import beacon as _beacon
+        best = None  # (regularity, ip, period)
+        for ip, evs in by_ip.items():
+            stamps = [t for t in (_parse_iso(e.get("timestamp")) for e in evs) if t is not None]
+            if len(stamps) < 6:
+                continue
+            res = _beacon.beacon_score(stamps)
+            if res.get("is_beacon"):
+                beacon_ips.add(ip)
+                reg = res.get("regularity", 0.0)
+                if best is None or reg > best[0]:
+                    best = (reg, ip, res.get("period_sec"))
+        out["beacon"]["count"] = len(beacon_ips)
+        if best:
+            out["beacon"]["top_ip"] = best[1]
+            out["beacon"]["top_period_sec"] = best[2]
+    except Exception:
+        pass
+
+    # --- Novelty: gorulmemis/sifir-gun payload'lari isaretle ---------------
+    novel_ips = set()
+    try:
+        from ..adaptive import novelty as _novelty
+        model = _novelty.default_model()
+        for ip, evs in by_ip.items():
+            for e in evs:
+                payload = e.get("payload")
+                if not payload:
+                    continue
+                if model.novelty(str(payload)).get("is_novel"):
+                    novel_ips.add(ip)
+                    break
+        out["novelty"]["count"] = len(novel_ips)
+        out["novelty"]["flagged_ips"] = sorted(novel_ips)
+    except Exception:
+        pass
+
+    # --- Geo-velocity: imkansiz seyahat (ayni IP != burada anlamli degil;
+    # gercek deger cok-bolgeli kimlikte olusur - yine de gercek konumdan turet) -
+    geo_regions = []
+    try:
+        from ..adaptive.geo_velocity import GeoVelocityMonitor
+        from ..intel.geo import geo_for_ip
+        from collections import Counter as _Counter
+        mon = GeoVelocityMonitor()
+        region_counter = _Counter()
+        # Kronolojik sirada her IP'yi kendi kimligi olarak izle (gercek konum).
+        chron = sorted(
+            (e for e in events if e.get("source_ip")),
+            key=lambda e: _parse_iso(e.get("timestamp")) or 0.0,
+        )
+        for e in chron:
+            ip = e.get("source_ip")
+            g = geo_for_ip(ip)
+            if g.get("scope") not in ("loopback", "private"):
+                region_counter[g.get("region_name", "?")] += 1
+            t = _parse_iso(e.get("timestamp"))
+            if t is not None:
+                mon.observe(ip, g.get("lat", 0.0), g.get("lon", 0.0), t)
+        rep = mon.report()
+        out["geo_velocity"]["violations"] = rep.get("flagged_count", 0)
+        out["geo_velocity"]["identities"] = rep.get("identities", [])
+        geo_regions = [{"region": r, "count": c}
+                       for r, c in region_counter.most_common(5)]
+        out["geo_velocity"]["top_regions"] = geo_regions
+    except Exception:
+        pass
+
+    # --- Bayes fuzyon: IP basi atesleyen dedektorleri birlestir ------------
+    try:
+        from ..adaptive import threat_fusion as _fusion
+        engine = _fusion.ThreatFusion()
+        best = None  # (posterior, ip, top_factors)
+        for ip, evs in by_ip.items():
+            fired = []
+            if ip in alert_ips:
+                fired.append("signature")
+            if ip in beacon_ips:
+                fired.append("beacon")
+            if ip in novel_ips:
+                fired.append("novelty")
+            if not fired:
+                continue
+            res = engine.assess(fired)
+            post = res.get("posterior", 0.0)
+            if best is None or post > best[0]:
+                best = (post, ip, res.get("top_factors", []))
+        if best:
+            out["fusion"]["top_posterior"] = best[0]
+            out["fusion"]["top_ip"] = best[1]
+            out["fusion"]["top_factors"] = best[2]
+    except Exception:
+        pass
+
+    # --- Tarama & kaba-kuvvet ---------------------------------------------
+    try:
+        from ..adaptive import scan_bruteforce as _sb
+        sbr = _sb.analyze_recent(db_path=db_path, since_seconds=7200)
+        out["scan_bruteforce"] = {
+            "scanner_count": sbr.get("scanner_count", 0),
+            "bruteforce_count": sbr.get("bruteforce_count", 0),
+            "top_scanner": sbr.get("top_scanner"),
+            "top_bruteforcer": sbr.get("top_bruteforcer"),
+        }
+    except Exception:
+        pass
+
+    return out

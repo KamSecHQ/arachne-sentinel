@@ -5,9 +5,41 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Arachne Sentinel — Komuta Merkezi</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%95%B8%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}?v=36">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}?v=49">
 </head>
 <body>
+
+<!-- ============ CANLI 3D ARKA PLAN (tüm arayüzün arkasında) ============ -->
+<canvas id="scene3d"></canvas>
+
+<!-- ============ SİNEMATİK AÇILIŞ (JARVIS-vari boot) ============ -->
+<div id="boot" class="boot">
+  <canvas id="boot-canvas"></canvas>
+  <div class="boot-scanline"></div>
+  <div class="boot-ui">
+    <div class="boot-brand">
+      <div class="boot-title">A R A C H N E</div>
+      <div class="boot-sub">S E N T I N E L · UNIVERSAL COGNITIVE OS · 70 FAZ</div>
+    </div>
+
+    <!-- Güç düğmesi (autoplay için: tıkla → boot + ses başlar) -->
+    <button id="boot-power" class="boot-power" aria-label="Sistemi başlat">
+      <span class="bp-ring"></span>
+      <span class="bp-core">⏻</span>
+      <span class="bp-label">SİSTEMİ BAŞLAT</span>
+    </button>
+
+    <!-- Boot log + ilerleme (güç düğmesine basınca görünür) -->
+    <div class="boot-console" id="boot-console">
+      <div class="boot-log" id="boot-log"></div>
+      <div class="boot-bar"><div class="boot-bar-fill" id="boot-bar-fill"></div></div>
+      <div class="boot-status" id="boot-status">ÇEKİRDEK BEKLEMEDE</div>
+    </div>
+
+    <button class="boot-skip" id="boot-skip">ATLA ✕</button>
+  </div>
+</div>
+
 <div class="app">
 
   <!-- ============ SIDEBAR ============ -->
@@ -16,7 +48,7 @@
       <svg class="logo" viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="1.5">
         <circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4M5 5l3 3M16 16l3 3M19 5l-3 3M8 16l-3 3"/>
       </svg>
-      <div>ARACHNE<br><small>SENTINEL · 40 FAZ</small></div>
+      <div>ARACHNE<br><small>SENTINEL · 70 FAZ</small></div>
     </div>
 
     <nav class="nav" id="nav">
@@ -108,13 +140,13 @@
         <div class="section-head"><h2>🛡️ Katmanlı Savunma & Küresel Harita</h2></div>
         <p class="section-desc">Gelen her saldırı bir mermi; her savunma katmanı bir halka. Çarptığı halka, o kaydı <b>gerçekten işleyen</b> katmandır — hiçbir şey uydurulmaz.</p>
         <div class="rule-line"></div>
-        <div class="viz dome-viz" style="height:720px;">
-          <div class="viz-title">Çelik Kubbe — Katmanlı Savunma<small>14 savunma halkası · her mermi gerçek bir olay · çarptığı halka onu <b>gerçekten durduran</b> katman</small></div>
+        <div class="viz dome-viz" style="height:860px;">
+          <div class="viz-title">Çelik Kubbe — Katmanlı Savunma<small>18 savunma halkası · her mermi gerçek bir olay · çarptığı halka onu <b>gerçekten durduran</b> katman</small></div>
           <canvas id="dome-canvas"></canvas>
         </div>
         <div class="viz-legend wide" id="dome-legend"></div>
-        <div class="viz map" style="height:440px;margin-top:1rem;">
-          <div class="viz-title">Küresel Saldırı Haritası<small>Saldırgan kaynakları ve yayları</small></div>
+        <div class="viz map" style="height:600px;margin-top:1rem;">
+          <div class="viz-title">Küresel Saldırı Haritası — 3B Dünya<small>Dönen küre · saldırgan bölgeleri · gelen taraf öne döner</small></div>
           <canvas id="map-canvas"></canvas>
           <div class="viz-stats" id="map-stats"></div>
         </div>
@@ -359,7 +391,54 @@
 
 <div id="toast-root" style="position:fixed;top:4rem;right:1.2rem;z-index:100;display:flex;flex-direction:column;gap:.5rem;"></div>
 
-<script src="{{ url_for('static', filename='js/command_center.js') }}?v=36"></script>
-<script src="{{ url_for('static', filename='js/app.js') }}?v=36"></script>
+<!-- ============ KRİTİK OLAY RAYI (Faz 63 · incidents.js doldurur) ============ -->
+<aside id="incident-rail" aria-live="polite" aria-label="Kritik alarm rayı"></aside>
+
+<!-- ============ AI KOMUTA ASİSTANI ============ -->
+<div id="ai-dock">
+  <button id="ai-launch" title="Komuta asistanı ile konuş">
+    <span class="ai-orb"></span><span class="ai-launch-txt">ASİSTAN</span>
+  </button>
+  <div id="ai-panel">
+    <div class="ai-head">
+      <span class="ai-orb sm"></span>
+      <span class="ai-head-t">ARACHNE ASİSTAN<small id="ai-status">dinlemeye hazır</small></span>
+      <button id="ai-mute" title="Sesi aç/kapat">🔊</button>
+      <button id="ai-close" title="Kapat">×</button>
+    </div>
+    <div class="ai-msgs" id="ai-msgs">
+      <div class="ai-msg bot">Merhaba komutan. Savunma durumu, saldırı durumu, en riskli saldırgan, metrikler — ne sormak istersin?</div>
+    </div>
+    <div class="ai-chips">
+      <button data-q="Savunma durumumuz ne?">Savunma durumu</button>
+      <button data-q="Saldırı durumu ne?">Saldırı durumu</button>
+      <button data-q="En riskli saldırgan kim?">En riskli IP</button>
+      <button data-q="Metrikler nasıl?">Metrikler</button>
+      <button data-q="Honeytoken tetiklendi mi?">Honeytoken</button>
+      <button data-q="Kaç IP engellendi?">Engelli IP</button>
+      <button data-q="Beacon durumu?">Beacon durumu</button>
+      <button data-q="Sıfır-gün var mı?">Sıfır-gün</button>
+      <button data-q="İmkansız seyahat?">İmkansız seyahat</button>
+      <button data-q="Tarama var mı?">Tarama</button>
+      <button data-q="Bayes füzyon?">Bayes füzyon</button>
+    </div>
+    <form id="ai-form">
+      <input id="ai-input" placeholder="Bir şey sor… (örn. savunma durumu ne?)" autocomplete="off">
+      <button type="submit" title="Gönder">➤</button>
+    </form>
+  </div>
+</div>
+
+<!-- 3B motoru (yerel, offline) — command_center.js'ten ÖNCE yüklenir -->
+<script src="{{ url_for('static', filename='js/vendor/three.min.js') }}?v=49"></script>
+<script src="{{ url_for('static', filename='js/scene3d.js') }}?v=49"></script>
+<script src="{{ url_for('static', filename='js/dome3d.js') }}?v=49"></script>
+<script src="{{ url_for('static', filename='js/globe3d.js') }}?v=49"></script>
+<script src="{{ url_for('static', filename='js/boot.js') }}?v=49"></script>
+<script src="{{ url_for('static', filename='js/fx.js') }}?v=49"></script>
+<script src="{{ url_for('static', filename='js/command_center.js') }}?v=49"></script>
+<script src="{{ url_for('static', filename='js/assistant.js') }}?v=49"></script>
+<script src="{{ url_for('static', filename='js/app.js') }}?v=49"></script>
+<script src="{{ url_for('static', filename='js/incidents.js') }}?v=49"></script>
 </body>
 </html>

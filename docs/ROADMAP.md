@@ -613,6 +613,105 @@ testte fark edildi ve düzeltildi.
   sensör; tıkla → ilişkiler + detay açılır)
 
 
+# İLERİ SAVUNMA + SİNEMATİK KOMUTA MERKEZİ — Faz 41-50 (TAMAMLANDI)
+
+DÜRÜSTLÜK: Faz 41-44 gerçek, test edilmiş tespit motorlarıdır; her biri
+Çelik Kubbe'de kendi halkasıyla temsil edilir ve sayıları GERÇEK veriden
+türetilir (veri yoksa 0 = "bu koşuda tetiklenmedi"). Faz 45-50 komuta
+merkezinin görsel/işitsel/etkileşim katmanıdır. Kubbe artık **18 halka**.
+
+## Faz 41 — C2 İşaret (Beacon) Tespiti (tamamlandı)
+- [x] `arachne/adaptive/beacon.py`: `BeaconMonitor` + `beacon_score()`.
+  Bir IP'nin olay zaman damgalarındaki periyodik ritmi (C2 geri-arama)
+  jitter/düzenlilik ile yakalar. Kubbe halkası: **C2 İşaret Tespiti**.
+
+## Faz 42 — Sıfır-Gün Sezgisi (Novelty) (tamamlandı)
+- [x] `arachne/adaptive/novelty.py`: karakter n-gram nadirliğiyle daha önce
+  görülmemiş yükleri işaretler. Leave-one-out ile "her şeyi novel sayma"
+  tuzağından kaçınır. Kubbe halkası: **Sıfır-Gün Sezgisi**.
+
+## Faz 43 — Bayes Tehdit Füzyonu (tamamlandı)
+- [x] `arachne/adaptive/threat_fusion.py`: bağımsız dedektör sinyallerini
+  log-odds (Bayes) ile birleştirip tek olasılık üretir; hangi faktörün ne
+  kadar katkı yaptığını açıklar. Kubbe halkası: **Bayes Tehdit Füzyonu**.
+
+## Faz 44 — İmkânsız Seyahat (Geo-Velocity) (tamamlandı)
+- [x] `arachne/adaptive/geo_velocity.py`: aynı aktörün (/24) bölgeler arası
+  fiziksel imkânsız hızda görünmesini haversine ile yakalar. Kubbe halkası:
+  **İmkânsız Seyahat**. (Jitter'sız bölge merkezleri → yanlış pozitif yok.)
+
+## Faz 45-46 — Sinematik Çelik Kubbe + Küresel Harita (tamamlandı)
+- [x] `command_center.js` yeniden yazıldı: atmosferik gökkubbe gradyanı +
+  toz, dönen radar tarama huzmesi, halkalarda akan enerji, çok-katmanlı şok
+  dalgaları + kalkan parıltısı, dönen reaktör çekirdek. Harita: parlayan
+  kıyı şeritleri, nabızlı düğümler, kayan enerji yayları, sonar darbeleri.
+  Tümü gerçek-zamanlı; altındaki sayılar tamamen gerçek.
+
+## Faz 47 — Ortak Telsiz/SFX Motoru (tamamlandı)
+- [x] `boot.js` `window.ArachneSFX`: nav geçişinde telsiz "kanal değişti"
+  cızırtısı, hover tık, onay tonu, kritik klakson — giriş sesiyle AYNI
+  prosedürel Web Audio motoru (sessel bütünlük).
+
+## Faz 48 — AI Komuta Asistanı (tamamlandı)
+- [x] `arachne/ai/assistant.py` + `/api/assistant` + `assistant.js`:
+  operatör Türkçe doğal dilde sorar ("savunma durumu ne?", "en riskli
+  saldırgan kim?"); asistan GERÇEK sistem verisinden yanıtlar ve sesli okur.
+  Salt-okunur, harici LLM yok, deterministik (niyet sınıflandırma).
+
+## Faz 49 — Proaktif Saldırı Anonsu (tamamlandı)
+- [x] Yeni saldırı geldiğinde asistan otomatik, profesyonel durum raporu
+  verir: "Saldırı tespit edildi · N yeni olay · karşılayan hat · SAVUNMA
+  AKTİF — çekirdeğe sızıntı YOK". Görsel kart + sesli anons (kısılır, mute'e
+  saygılı) + kritik klakson. `command_center.js` → `arachne:attack` olayı.
+
+## Faz 50 — Sinematik yoğunluk katmanı + 50-faz bütünlüğü (tamamlandı)
+- [x] `fx.js` sinematik HUD (köşe braketleri, üst ray + saat, kayan
+  telemetri şeridi, scanline, arka plan parçacık/ızgara/veri-yağmuru).
+  Boot/sidebar "50 FAZ", kubbe "18 halka" olarak bütünlendi.
+- [x] Toplam **529 test** yeşil.
+
+# GLOBAL SEVIYE — Faz 61-70 (TAMAMLANDI)
+
+DURUSTLUK korunur: yeni dedektor gercek veriden turer (veri yoksa 0); tum
+gorseller kozmetiktir, altindaki sayilar gercektir. Toplam **546 test** yesil.
+
+## Faz 61 — Tarama & Kaba-Kuvvet Hiz Dedektoru (tamamlandi)
+- [x] `arachne/adaptive/scan_bruteforce.py`: yatay port/servis taramasi ve
+  ayni servise hizli tekrarli kaba-kuvvet/kimlik-doldurma tespiti; `SweepMonitor`
+  + `analyze_recent()`. Testler: `tests/test_scan_bruteforce.py`.
+
+## Faz 62 — AI Komuta Asistani genisletme (tamamlandi)
+- [x] Yeni niyetler: beacon, novelty (sifir-gun), geo (imkansiz seyahat),
+  fusion (Bayes), scan (tarama/kaba-kuvvet), health (sistem sagligi),
+  layer_detail (belirli katman sorgusu). Hepsi GERCEK veriden, dogru Turkce
+  seslendirmeyle (ozel `_LAYER_SPOKEN`/`_say_posture` ile ı/i dogru okunur).
+
+## Faz 63 — Profesyonel Kritik-Olay Rayi (tamamlandi)
+- [x] `static/js/incidents.js` + `#incident-rail`: sag kenarda canli KRITIK
+  ALARM kartlari (IP, skor, zaman) — SCADA mimic-wall hissi. `/api/state`ten.
+
+## Faz 64 — 3B Dunya derinlestirme (tamamlandi)
+- [x] `globe3d.js`: gunes/terminator + prosedurel gece SEHIR ISIKLARI (shader),
+  parlayan huzme yaylar, nabizli dugum haleleri, onem-renk gostergesi,
+  fresnel atmosfer; yeni saldirgan bolgesi one doner ve buyur.
+
+## Faz 65 — 3B Kalkan Kubbe derinlestirme (tamamlandi)
+- [x] `dome3d.js`: enlem/boylam aksan cizgileriyle KATI enerji kalkani hissi,
+  isin carpmasinda HEX KALKAN CATLAGI + yerel flas, tarama temas blipleri,
+  okunakli plakali etiketler.
+
+## Faz 66-67 — Birlesik Cam + 3B Tasarim Dili (tamamlandi)
+- [x] Tum gorunumlerde cam (glassmorphism) paneller + canli 3B arka plan;
+  saldiri aninda tum cerceve KIRMIZI alarm; tutarli aksan/tipografi cilasi.
+
+## Faz 68 — Konsolide ko-evrim gorunumu (tamamlandi)
+- [x] `aggregator.coevolution_advanced()`: beacon/novelty/geo/fusion/tarama
+  ozetini tek, durust (0-guvenli) API'de birlestirir; asistan bunu kullanir.
+
+## Faz 69-70 — Testler + butunluk (tamamlandi)
+- [x] 529 -> **546 test** yesil; ROADMAP/README Faz 70'e guncellendi.
+
+
 ## Sıradaki hedefler (stretch-goal, isteğe bağlı)
 
 - İkinci bilgisayar (Windows/x86-64) edinildiğinde Faz 3'ün assembly

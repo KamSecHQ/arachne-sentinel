@@ -8,6 +8,7 @@ birkac saniyede bir GERCEK verileri poll edip sayfayi (tam yenileme
 yapmadan) canli gunceller - tehdit radari ve canli akis paneli de ayni
 gercek verilerle tetiklenir, hicbir sahte/simule veri uretilmez."""
 import logging
+import os
 import random
 import re
 import string
@@ -309,6 +310,27 @@ def api_analyze():
         return jsonify({"error": "Analiz sirasinda hata olustu"}), 500
 
 
+@app.route("/api/assistant", methods=["POST"])
+def api_assistant():
+    """Faz 48: AI Komuta Asistani. Dogal dilde soru -> gercek veriden Turkce yanit.
+
+    GUVENLIK: salt-okunur. Asistan yalnizca durum raporlar; hicbir mudahale
+    eylemi baslatmaz, hicbir dis sisteme dokunmaz."""
+    from flask import request
+    from ..ai import assistant
+    body = request.get_json(silent=True) or {}
+    question = str(body.get("question", ""))[:500]
+    if not question.strip():
+        return jsonify({"error": "Bos soru"}), 400
+    try:
+        return jsonify(assistant.answer(question))
+    except Exception:
+        logger.exception("Asistan yaniti uretilemedi")
+        return jsonify({"intent": "error",
+                        "text_tr": "Yanit uretilirken bir hata olustu.",
+                        "spoken_tr": "Bir hata olustu.", "data": {}}), 500
+
+
 @app.route("/api/stix")
 def api_stix():
     """Bulgulari STIX 2.1 Bundle olarak disari aktarir.
@@ -349,5 +371,13 @@ def ai_report():
     return Response(content, mimetype="text/markdown; charset=utf-8")
 
 
-def run_dashboard(host="127.0.0.1", port=5000):
+def run_dashboard(host="127.0.0.1", port=5000, cinematic=True, open_browser=True):
+    # Sinematik acilis dizisi (kozmetik; --no-intro ile kapatilabilir).
+    if cinematic:
+        try:
+            from . import boot_sequence
+            boot_sequence.play(host, port, open_browser=open_browser,
+                               voice=True, fast=bool(os.environ.get("ARACHNE_FAST_BOOT")))
+        except Exception:
+            logger.exception("Acilis dizisi oynatilamadi (kozmetik, atlaniyor)")
     app.run(host=host, port=port, debug=False)

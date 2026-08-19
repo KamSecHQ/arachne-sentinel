@@ -82,7 +82,13 @@
     if (view === "adaptive" && deepData) renderAdaptive(deepData.adaptive);
     if (view === "replay" && deepData) ReplayPlayer.load(deepData.replay);
   }
-  $$(".nav-item").forEach((n) => n.addEventListener("click", () => switchView(n.dataset.view)));
+  $$(".nav-item").forEach((n) => {
+    n.addEventListener("click", () => {
+      if (window.ArachneSFX) window.ArachneSFX.radioBlip();  // telsiz "kanal değişti" sesi
+      switchView(n.dataset.view);
+    });
+    n.addEventListener("mouseenter", () => { if (window.ArachneSFX) window.ArachneSFX.tick(); });
+  });
 
   /* ============================================================
      RADAR (canli akis gorunumu)

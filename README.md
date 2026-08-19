@@ -1,8 +1,9 @@
 # 🕸 Arachne Sentinel
 
-Honeypot tabanlı, **40 fazlı** bir **erken uyarı, saldırı tespit, otonom
+Honeypot tabanlı, **70 fazlı** bir **erken uyarı, saldırı tespit, otonom
 müdahale, aktif savunma, adaptif (ko-evrim) savunma ve ölçülebilir SOC
-platformu**. Faz 1-40 tam — motor + test + panel görünümleri. Sahte servisler açar, gelen her etkileşimi kaydeder,
+platformu**. Faz 1-70 tam — motor + test + sinematik komuta merkezi + AI
+komuta asistanı. **18 halkalı** Çelik Kubbe. Sahte servisler açar, gelen her etkileşimi kaydeder,
 saldırgan davranışını **açıklanabilir** şekilde puanlar, saldırıyı tersine
 mühendislikle çözer, saldırgan profili çıkarır, otomatik müdahale eder ve
 tüm bunları canlı bir komuta merkezinde gösterir.
@@ -193,10 +194,36 @@ uygulama (SPA), iki hızlı poll döngüsü, birleşik toplayıcı
   ölçülen **F1 0.834 (sadece imza) → 0.976 (tam sistem), yanlış pozitif %0**
 - **Canlı Akış**: gerçek varlık ilişki grafiği (her düğüm gerçek IP/servis/sensör, tıkla→ilişkiler)
 
+### Faz 41-50 — İleri savunma + sinematik komuta merkezi + AI asistan
+
+> Faz 41-44 gerçek, test edilmiş tespit motorlarıdır ve Çelik Kubbe'de kendi
+> halkalarıyla temsil edilir (kubbe artık **18 halka**). Faz 45-50 komuta
+> merkezinin görsel/işitsel/etkileşim katmanıdır. Tamamen savunma.
+
+- **Faz 41 — C2 İşaret (Beacon) tespiti** (`adaptive/beacon.py`): periyodik
+  geri-arama ritmini jitter/düzenlilikle yakalar
+- **Faz 42 — Sıfır-gün sezgisi** (`adaptive/novelty.py`): karakter n-gram
+  nadirliğiyle daha önce görülmemiş yükleri işaretler (leave-one-out)
+- **Faz 43 — Bayes tehdit füzyonu** (`adaptive/threat_fusion.py`): bağımsız
+  sinyalleri log-odds ile tek olasılığa birleştirir + faktör açıklaması
+- **Faz 44 — İmkânsız seyahat** (`adaptive/geo_velocity.py`): aynı aktörün
+  bölgeler arası fiziksel imkânsız hızını haversine ile yakalar
+- **Faz 45-46 — Sinematik kubbe + harita** (`command_center.js`): atmosferik
+  gökkubbe, dönen radar huzmesi, akan enerji, şok dalgaları, sonar darbeleri
+- **Faz 47 — Ortak telsiz/SFX motoru** (`ArachneSFX`): nav/hover/onay/klakson
+  sesleri, girişle aynı prosedürel Web Audio motoru
+- **Faz 48 — AI Komuta Asistanı** (`ai/assistant.py`, `/api/assistant`):
+  Türkçe doğal dil ile sorulur ("savunma durumu ne?"), GERÇEK veriden sesli
+  yanıt; salt-okunur, harici LLM yok, deterministik
+- **Faz 49 — Proaktif saldırı anonsu**: yeni saldırıda asistan otomatik
+  profesyonel durum raporu verir (görsel kart + sesli anons + klakson)
+- **Faz 50 — Sinematik yoğunluk katmanı** (`fx.js`): HUD çerçeve, telemetri
+  şeridi, arka plan parçacık/ızgara/veri-yağmuru
+
 **Ortak:**
 - **Otomatik HTML raporu**, **AI Markdown raporu**, **STIX 2.1 bundle** ve
-  **yeniden tasarlanan canlı komuta merkezi** (gerçek performans metrikleriyle)
-- **481 birim testi** (`tests/`) ve kendi kendini test eden demo saldırı scriptleri
+  **sinematik canlı komuta merkezi** (gerçek performans metrikleriyle)
+- **546 birim testi** (`tests/`) ve kendi kendini test eden demo saldırı scriptleri
 
 ## Kurulum
 

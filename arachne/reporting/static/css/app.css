@@ -567,3 +567,413 @@ tbody tr:hover{background:rgba(255,255,255,.02);}
 .lg-d-meta{font-size:.68rem;color:var(--text);line-height:1.8;margin-bottom:.5rem;}
 .lg-d-meta span{color:var(--dim);text-transform:uppercase;font-size:.58rem;letter-spacing:.04em;display:inline-block;min-width:96px;}
 .lg-d-neigh{font-size:.64rem;color:var(--muted);border-top:1px solid var(--border-soft);padding-top:.4rem;line-height:1.5;}
+
+/* ============================================================
+   SİNEMATİK AÇILIŞ (JARVIS-vari boot overlay)
+   ============================================================ */
+.boot{position:fixed;inset:0;z-index:9999;background:radial-gradient(ellipse at 50% 42%,rgba(4,18,26,0.80) 0%,rgba(3,6,10,0.90) 68%,rgba(0,0,0,0.96) 100%);
+  display:flex;align-items:center;justify-content:center;overflow:hidden;transition:opacity 1s ease;font-family:var(--font-mono);}
+.boot-out{opacity:0;}
+#boot-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;}
+.boot-scanline{position:absolute;inset:0;pointer-events:none;z-index:2;
+  background:repeating-linear-gradient(to bottom,rgba(34,211,238,0.03) 0px,rgba(34,211,238,0.03) 1px,transparent 2px,transparent 4px);
+  animation:bootScan 8s linear infinite;}
+@keyframes bootScan{from{background-position:0 0;}to{background-position:0 100px;}}
+.boot-ui{position:absolute;inset:0;z-index:3;pointer-events:none;}
+.boot-brand{position:absolute;top:10%;left:0;right:0;text-align:center;pointer-events:none;}
+.boot-title{font-family:var(--font-display);font-weight:800;font-size:clamp(1.8rem,5vw,3.4rem);letter-spacing:.35em;
+  color:#dffcff;text-shadow:0 0 24px rgba(34,211,238,.7);animation:bootFlick 4s ease-in-out infinite;}
+.boot-sub{margin-top:.6rem;font-size:clamp(.55rem,1.4vw,.78rem);letter-spacing:.28em;color:rgba(34,211,238,.7);}
+@keyframes bootFlick{0%,100%{opacity:1;}48%{opacity:1;}49%{opacity:.7;}50%{opacity:1;}92%{opacity:.85;}}
+
+/* Güç düğmesi: ⏻ TAM olarak canvas çekirdeğinin (42%) merkezinde */
+.boot-power{pointer-events:auto;background:none;border:none;cursor:pointer;color:#dffcff;transition:transform .2s;
+  position:absolute;top:42%;left:50%;width:132px;height:132px;transform:translate(-50%,-50%);padding:0;}
+.boot-power:hover{transform:translate(-50%,-50%) scale(1.06);}
+.boot-power.hidden{display:none;}
+.bp-ring{position:absolute;inset:0;border-radius:50%;border:2px solid rgba(34,211,238,.5);
+  box-shadow:0 0 40px rgba(34,211,238,.4),inset 0 0 30px rgba(34,211,238,.2);animation:bpPulse 2s ease-in-out infinite;}
+.bp-ring::before{content:"";position:absolute;inset:-12px;border-radius:50%;border:1px dashed rgba(34,211,238,.35);
+  animation:bpSpin 8s linear infinite;}
+@keyframes bpSpin{to{transform:rotate(360deg);}}
+@keyframes bpPulse{0%,100%{box-shadow:0 0 40px rgba(34,211,238,.4),inset 0 0 30px rgba(34,211,238,.2);}
+  50%{box-shadow:0 0 70px rgba(34,211,238,.7),inset 0 0 40px rgba(34,211,238,.35);}}
+.bp-core{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-size:3rem;color:#dffcff;text-shadow:0 0 22px rgba(34,211,238,.95);}
+.boot-power .bp-label{position:absolute;top:100%;left:50%;transform:translateX(-50%);margin-top:1rem;white-space:nowrap;
+  font-size:.82rem;letter-spacing:.28em;color:rgba(223,252,255,.95);font-weight:700;text-shadow:0 0 14px rgba(34,211,238,.5);}
+
+.boot-console{position:absolute;top:60%;left:50%;transform:translate(-50%,12px);width:min(560px,86vw);
+  pointer-events:none;opacity:0;transition:opacity .5s,transform .5s;}
+.boot-console.show{opacity:1;transform:translate(-50%,0);}
+.boot-log{height:190px;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;
+  font-size:.72rem;line-height:1.85;margin-bottom:.8rem;
+  -webkit-mask-image:linear-gradient(to bottom,transparent,#000 30%);mask-image:linear-gradient(to bottom,transparent,#000 30%);}
+.bl-line{animation:blIn .35s ease;white-space:nowrap;overflow:hidden;}
+@keyframes blIn{from{opacity:0;transform:translateX(-8px);}to{opacity:1;transform:none;}}
+.bl-tag{color:var(--accent-2);font-weight:700;}
+.bl-desc{color:rgba(200,220,235,.85);}
+.bl-ok{color:var(--ok);font-weight:700;float:right;}
+.boot-bar{height:5px;background:rgba(34,211,238,.12);border-radius:4px;overflow:hidden;}
+.boot-bar-fill{height:100%;width:0;background:linear-gradient(90deg,#22d3ee,#7af8ff);border-radius:4px;
+  box-shadow:0 0 12px rgba(34,211,238,.8);transition:width .5s cubic-bezier(.4,0,.2,1);}
+.boot-status{margin-top:.6rem;font-size:.66rem;letter-spacing:.14em;color:rgba(34,211,238,.85);text-align:center;text-transform:uppercase;}
+
+.boot-skip{position:absolute;bottom:4vh;right:4vw;pointer-events:auto;background:rgba(255,255,255,.04);
+  border:1px solid rgba(34,211,238,.25);border-radius:8px;color:rgba(200,220,235,.6);font-family:var(--font-mono);
+  font-size:.66rem;letter-spacing:.1em;padding:.4rem .8rem;cursor:pointer;transition:all .2s;}
+.boot-skip:hover{border-color:var(--accent-2);color:var(--text);}
+
+/* ============================================================
+   SİNEMATİK YOĞUNLUK KATMANI (body.cinematic) — native pencere
+   ============================================================ */
+#fx-bg{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;}
+body.cinematic .app{position:relative;z-index:1;}
+/* içerik arka planlarını hafif saydamlaştır → fx-bg altta görünür */
+body.cinematic .main{background:rgba(5,7,10,0.72);}
+body.cinematic .content{background:transparent;}
+body.cinematic .sidebar{background:rgba(8,11,17,0.82);backdrop-filter:blur(2px);}
+body.cinematic .topbar{background:linear-gradient(180deg,rgba(6,10,16,0.9),rgba(6,10,16,0.6));}
+
+/* Ekranı saran HUD çerçevesi */
+#fx-frame{position:fixed;inset:0;z-index:60;pointer-events:none;}
+.fx-corner{position:absolute;width:26px;height:26px;border:2px solid rgba(34,211,238,0.6);
+  box-shadow:0 0 12px rgba(34,211,238,0.4);animation:fxCorner 3s ease-in-out infinite;}
+.fx-corner.tl{top:10px;left:10px;border-right:none;border-bottom:none;}
+.fx-corner.tr{top:10px;right:10px;border-left:none;border-bottom:none;}
+.fx-corner.bl{bottom:10px;left:10px;border-right:none;border-top:none;}
+.fx-corner.br{bottom:10px;right:10px;border-left:none;border-top:none;}
+@keyframes fxCorner{0%,100%{opacity:.55;}50%{opacity:1;}}
+.fx-rail{position:absolute;left:44px;right:44px;display:flex;justify-content:space-between;align-items:center;
+  font-family:var(--font-mono);font-size:.6rem;letter-spacing:.14em;color:rgba(34,211,238,.7);}
+.fx-rail.top{top:14px;}
+.fx-rail.bottom{bottom:14px;}
+.fx-rail-l b{color:var(--accent-2);}
+.fx-rail-r{display:flex;align-items:center;gap:.4rem;color:var(--ok);}
+.fx-dot{width:6px;height:6px;border-radius:50%;background:var(--ok);box-shadow:0 0 8px var(--ok);animation:fxBlink 1.4s infinite;}
+@keyframes fxBlink{0%,100%{opacity:1;}50%{opacity:.3;}}
+.fx-ticker{width:100%;overflow:hidden;white-space:nowrap;-webkit-mask-image:linear-gradient(90deg,transparent,#000 5%,#000 95%,transparent);
+  mask-image:linear-gradient(90deg,transparent,#000 5%,#000 95%,transparent);}
+.fx-ticker-track{display:inline-block;padding-left:100%;animation:fxTick 34s linear infinite;color:rgba(34,211,238,.75);}
+@keyframes fxTick{from{transform:translateX(0);}to{transform:translateX(-100%);}}
+.fx-scan{position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(to bottom,rgba(34,211,238,0.018) 0,rgba(34,211,238,0.018) 1px,transparent 2px,transparent 4px);
+  animation:bootScan 10s linear infinite;}
+
+/* Kartlara köşe braketleri + canlı glow (yoğunluk) */
+body.cinematic .card,body.cinematic .viz,body.cinematic .metric-tile,body.cinematic .table-card,
+body.cinematic .metric-compare,body.cinematic .rp-detail,body.cinematic .rp-defense,body.cinematic .corr-side,
+body.cinematic .explain-panel,body.cinematic .adaptive-posture{position:relative;}
+body.cinematic .card::before,body.cinematic .viz::before,body.cinematic .table-card::before,
+body.cinematic .metric-compare::before{content:"";position:absolute;top:-1px;left:-1px;width:14px;height:14px;
+  border-top:2px solid rgba(34,211,238,.55);border-left:2px solid rgba(34,211,238,.55);pointer-events:none;z-index:2;}
+body.cinematic .card::after,body.cinematic .viz::after,body.cinematic .table-card::after,
+body.cinematic .metric-compare::after{content:"";position:absolute;bottom:-1px;right:-1px;width:14px;height:14px;
+  border-bottom:2px solid rgba(34,211,238,.55);border-right:2px solid rgba(34,211,238,.55);pointer-events:none;z-index:2;}
+body.cinematic .viz{box-shadow:0 0 0 1px rgba(34,211,238,.1),0 0 24px rgba(34,211,238,.06);}
+body.cinematic .metric-tile{box-shadow:inset 0 0 20px rgba(34,211,238,.04);}
+body.cinematic .mini-h{position:relative;padding-left:.9rem;}
+body.cinematic .mini-h::before{content:"";position:absolute;left:0;top:50%;transform:translateY(-50%);
+  width:4px;height:14px;background:var(--accent-2);box-shadow:0 0 10px var(--accent-2);border-radius:1px;}
+/* kenar boşlukları HUD raylarına çarpmasın */
+body.cinematic .content{padding-top:2rem;padding-bottom:2.4rem;}
+body.cinematic .topbar{margin-top:.6rem;}
+
+/* ============================================================
+   AI KOMUTA ASİSTANI
+   ============================================================ */
+#ai-dock{position:fixed;bottom:1.4rem;right:1.4rem;z-index:200;font-family:var(--font-body);}
+.ai-orb{display:inline-block;width:16px;height:16px;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,#dffcff,#22d3ee 55%,#0891b2);
+  box-shadow:0 0 12px rgba(34,211,238,.8),0 0 30px rgba(34,211,238,.35);animation:aiPulse 2.4s ease-in-out infinite;}
+.ai-orb.sm{width:13px;height:13px;}
+@keyframes aiPulse{0%,100%{transform:scale(1);box-shadow:0 0 12px rgba(34,211,238,.8);}50%{transform:scale(1.15);box-shadow:0 0 20px rgba(34,211,238,1);}}
+#ai-dock.speaking .ai-orb{animation:aiSpeak .35s ease-in-out infinite;}
+@keyframes aiSpeak{0%,100%{transform:scale(1);}50%{transform:scale(1.35);}}
+#ai-launch{display:flex;align-items:center;gap:.55rem;padding:.7rem 1.1rem;border-radius:30px;cursor:pointer;
+  background:linear-gradient(135deg,rgba(8,12,18,.95),rgba(12,20,30,.95));border:1px solid rgba(34,211,238,.45);
+  color:#dffcff;font-weight:700;font-size:.78rem;letter-spacing:.12em;box-shadow:0 6px 24px rgba(0,0,0,.5),0 0 20px rgba(34,211,238,.2);
+  transition:all .2s;}
+#ai-launch:hover{border-color:var(--accent-2);box-shadow:0 6px 30px rgba(0,0,0,.6),0 0 30px rgba(34,211,238,.4);transform:translateY(-2px);}
+#ai-dock.open #ai-launch{display:none;}
+
+#ai-panel{display:none;flex-direction:column;width:380px;max-width:92vw;height:520px;max-height:76vh;
+  background:linear-gradient(180deg,rgba(9,13,20,.98),rgba(6,10,16,.98));border:1px solid rgba(34,211,238,.4);
+  border-radius:16px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.7),0 0 40px rgba(34,211,238,.15);
+  animation:aiIn .25s cubic-bezier(.2,.8,.2,1);}
+#ai-dock.open #ai-panel{display:flex;}
+@keyframes aiIn{from{opacity:0;transform:translateY(20px) scale(.96);}to{opacity:1;transform:none;}}
+.ai-head{display:flex;align-items:center;gap:.6rem;padding:.85rem 1rem;border-bottom:1px solid rgba(34,211,238,.2);
+  background:linear-gradient(90deg,rgba(34,211,238,.08),transparent);}
+.ai-head-t{flex:1;display:flex;flex-direction:column;font-family:var(--font-display);font-weight:700;font-size:.82rem;color:var(--text);letter-spacing:.05em;}
+.ai-head-t small{font-family:var(--font-mono);font-size:.6rem;font-weight:400;color:var(--accent-2);letter-spacing:.08em;text-transform:uppercase;}
+.ai-head button{background:none;border:none;color:var(--muted);font-size:1rem;cursor:pointer;padding:.1rem .3rem;border-radius:6px;}
+.ai-head button:hover{color:var(--text);background:rgba(255,255,255,.06);}
+.ai-msgs{flex:1;overflow-y:auto;padding:1rem;display:flex;flex-direction:column;gap:.7rem;}
+.ai-msg{max-width:86%;padding:.6rem .85rem;border-radius:12px;font-size:.82rem;line-height:1.55;white-space:pre-wrap;word-break:break-word;}
+.ai-msg.bot{align-self:flex-start;background:rgba(34,211,238,.08);border:1px solid rgba(34,211,238,.2);color:var(--text);border-bottom-left-radius:3px;}
+.ai-msg.user{align-self:flex-end;background:var(--panel-3);border:1px solid var(--border);color:var(--text);border-bottom-right-radius:3px;}
+.ai-msg.typing{display:flex;gap:4px;}
+.ai-msg.typing span{width:6px;height:6px;border-radius:50%;background:var(--accent-2);animation:aiDot 1.2s infinite;}
+.ai-msg.typing span:nth-child(2){animation-delay:.2s;}.ai-msg.typing span:nth-child(3){animation-delay:.4s;}
+@keyframes aiDot{0%,60%,100%{opacity:.25;transform:translateY(0);}30%{opacity:1;transform:translateY(-4px);}}
+.ai-chips{display:flex;gap:.4rem;flex-wrap:wrap;padding:.5rem 1rem;border-top:1px solid rgba(255,255,255,.04);}
+.ai-chips button{padding:.32rem .6rem;border-radius:20px;background:var(--panel-2);border:1px solid var(--border);
+  color:var(--muted);font-size:.68rem;cursor:pointer;transition:all .15s;font-family:var(--font-body);}
+.ai-chips button:hover{border-color:var(--accent-2);color:var(--accent-2);}
+#ai-form{display:flex;gap:.5rem;padding:.7rem 1rem 1rem;border-top:1px solid rgba(255,255,255,.04);}
+#ai-input{flex:1;background:#060809;border:1px solid var(--border);border-radius:10px;padding:.6rem .8rem;
+  color:var(--text);font-size:.8rem;font-family:var(--font-body);outline:none;}
+#ai-input:focus{border-color:var(--accent-2);box-shadow:0 0 0 2px rgba(34,211,238,.15);}
+#ai-form button{width:42px;border-radius:10px;background:var(--accent-2);border:none;color:#04262b;font-size:1rem;cursor:pointer;font-weight:700;}
+#ai-form button:hover{filter:brightness(1.1);}
+
+/* ============ AI proaktif saldiri anonsu (Faz 49) ============ */
+.ai-msg.alert{align-self:stretch;max-width:100%;
+  background:linear-gradient(180deg,rgba(255,59,69,.10),rgba(255,59,69,.03));
+  border:1px solid rgba(255,90,90,.42);color:var(--text);border-radius:10px;
+  box-shadow:0 0 22px rgba(255,60,60,.15);animation:aiAlertIn .35s ease;}
+.ai-alert-head{font-family:var(--font-mono,monospace);font-size:.72rem;font-weight:700;
+  letter-spacing:.04em;color:#ff8a7a;margin-bottom:.35rem;}
+.ai-alert-head span{color:var(--muted);font-weight:500;}
+.ai-alert-row{font-size:.78rem;line-height:1.5;color:var(--text-2,#c9d3e0);}
+.ai-alert-row b{color:var(--text);}
+.ai-alert-ok{margin-top:.4rem;font-family:var(--font-mono,monospace);font-size:.74rem;
+  font-weight:700;color:#22c55e;letter-spacing:.02em;}
+@keyframes aiAlertIn{from{opacity:0;transform:translateY(6px) scale(.98);}to{opacity:1;transform:none;}}
+/* dock kapaliyken orb kirmizi nabiz + rozet */
+#ai-dock.alerting #ai-launch{border-color:rgba(255,90,90,.7);
+  box-shadow:0 6px 30px rgba(0,0,0,.6),0 0 34px rgba(255,60,60,.55);}
+#ai-dock.alerting .ai-orb{background:#ff5a5a !important;
+  box-shadow:0 0 14px rgba(255,70,70,.9);animation:aiAlarm .6s ease-in-out infinite;}
+@keyframes aiAlarm{0%,100%{transform:scale(1);opacity:1;}50%{transform:scale(1.5);opacity:.55;}}
+
+/* ============ Faz 51-60: CANLI 3D ARKA PLAN + CAM ARAYÜZ ============ */
+#scene3d{position:fixed;inset:0;width:100vw;height:100vh;z-index:0;pointer-events:none;display:block;}
+/* 3B sahne başarıyla başladıysa (body.gl3d) paneller CAM olur: arka plan görünür */
+body.gl3d{background:#02040a;}
+body.gl3d .app{position:relative;z-index:1;background:transparent;}
+body.gl3d .main{background:rgba(5,10,18,0.30);backdrop-filter:blur(1px);-webkit-backdrop-filter:blur(1px);}
+body.gl3d .content{background:transparent;}
+body.gl3d .sidebar{background:rgba(6,10,18,0.62);backdrop-filter:blur(11px);-webkit-backdrop-filter:blur(11px);
+  border-right:1px solid rgba(90,150,190,0.18);}
+body.gl3d .topbar{background:rgba(6,10,18,0.46);backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px);}
+body.gl3d .card{background:linear-gradient(160deg,rgba(13,22,35,0.46),rgba(7,12,20,0.40));
+  backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px);border-color:rgba(90,150,190,0.20);}
+/* Çelik Kubbe kutusu saydam: 3B radar arka planla kaynaşsın */
+body.gl3d .viz.dome-viz{background:radial-gradient(ellipse at center,rgba(8,22,30,0.30) 0%,rgba(6,10,18,0.10) 75%);
+  border-color:rgba(90,160,200,0.22);}
+/* KIRMIZI SALDIRI ALARMI: tüm çerçeve kızarır */
+body.attack-alarm .main{box-shadow:inset 0 0 140px rgba(255,50,60,0.14);transition:box-shadow .4s;}
+body.attack-alarm .topbar{border-bottom-color:rgba(255,70,70,0.55);}
+body.attack-alarm .sidebar{border-right-color:rgba(255,70,70,0.35);}
+body.attack-alarm #fx-frame .fx-corner{border-color:rgba(255,80,80,0.7) !important;}
+
+/* ============================================================
+   Faz 66 — BİRLEŞİK CAM + 3D TASARIM DİLİ (tüm görünümler)
+   body.gl3d altında HER panel aynı cam dilini kullanır: yarı
+   saydam, hafif blur, ince mavi kenar, yumuşak iç parıltı — canlı
+   3B arka plan tutarlı biçimde arkalarından görünür. gl3d yoksa
+   mevcut 2D görünüm korunur (bu bloklar yalnızca .gl3d altında).
+   ============================================================ */
+/* okunabilirlik: hareketli arka plan üstünde metin AA kalsın */
+body.gl3d{ text-rendering:optimizeLegibility; }
+body.gl3d .content{ text-shadow:0 1px 2px rgba(2,5,12,0.55); }
+body.gl3d .view-title,body.gl3d .section-head h2,body.gl3d .kpi .val,
+body.gl3d .posture-box .pv,body.gl3d .viz-title{ text-shadow:0 1px 3px rgba(2,5,12,0.7); }
+
+/* Ortak cam yüzey — canvas içeren .viz HARİÇ (onların kendi radyal
+   arka planı var); metin panelleri saydam cam olur. */
+body.gl3d .table-card,
+body.gl3d .terminal,
+body.gl3d .metric-tile,
+body.gl3d .metric-compare,
+body.gl3d .metric-empty,
+body.gl3d .layer-card,
+body.gl3d .campaign,
+body.gl3d .finding,
+body.gl3d .an-block,
+body.gl3d .corr-side,
+body.gl3d .rp-att,
+body.gl3d .rp-detail,
+body.gl3d .rp-defense,
+body.gl3d .rp-controls,
+body.gl3d .col-kpi,
+body.gl3d .posture-box,
+body.gl3d .adaptive-posture,
+body.gl3d .explain-panel,
+body.gl3d #view-adaptive .viz{
+  background:linear-gradient(160deg,rgba(13,22,35,0.50),rgba(7,12,20,0.44));
+  backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px);
+  border-color:rgba(90,150,190,0.20);
+  box-shadow:inset 0 0 22px rgba(80,160,210,0.05),0 6px 24px rgba(2,6,14,0.28);
+}
+/* canvas .viz'leri (dome/map/graph/radar/corr) saydamlaştır ki 3B görünsün,
+   ama radyal iç parıltıyı koru */
+body.gl3d .viz{
+  background:radial-gradient(ellipse at bottom,rgba(11,26,26,0.42) 0%,rgba(7,12,20,0.34) 72%);
+  backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
+  border-color:rgba(90,150,190,0.20);
+  box-shadow:0 0 0 1px rgba(90,160,210,0.06),0 0 26px rgba(60,140,190,0.05);
+}
+body.gl3d .viz.map{background:radial-gradient(ellipse at center,rgba(10,20,32,0.44) 0%,rgba(7,12,20,0.34) 75%);}
+body.gl3d .lg-viz{background:radial-gradient(ellipse at 50% 56%,rgba(10,21,25,0.46),rgba(7,12,20,0.36));}
+body.gl3d .corr-wrap .viz{background:radial-gradient(ellipse at 50% 50%,rgba(10,16,22,0.44),rgba(7,12,20,0.34));}
+/* tablo başlıkları/satırları cam üstünde okunur kalsın */
+body.gl3d thead th{background:rgba(12,20,32,0.72);}
+body.gl3d tbody tr:hover{background:rgba(120,180,220,0.05);}
+body.gl3d .terminal-head{background:rgba(12,20,32,0.66);}
+body.gl3d .terminal-body{background:transparent;}
+body.gl3d .sitrep-head,body.gl3d .chain-status{background:rgba(12,20,32,0.34);}
+/* iç girdi alanları hafif koyu kalsın (kontrast) */
+body.gl3d .analyzer-form input,body.gl3d #ai-input,body.gl3d .rp-d-payload{background:rgba(3,6,10,0.7);}
+
+/* ============================================================
+   Faz 67 — TASARIM CİLASI (profesyonel detay)
+   ============================================================ */
+:root{
+  --accent-soft:rgba(34,211,238,0.14);
+  --accent-line:linear-gradient(90deg,rgba(34,211,238,0.55),rgba(34,211,238,0));
+  --lift:0 10px 30px rgba(2,8,18,0.45);
+}
+/* KPI kartları: üst aksan çizgisi + net rakamlar + hover kalkışı */
+.kpi{transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease;}
+.kpi::after{content:"";position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,var(--accent-c,var(--accent-2)),transparent 78%);opacity:.7;pointer-events:none;}
+.kpi .val{font-variant-numeric:tabular-nums;letter-spacing:.01em;}
+.card:hover,.kpi:hover{transform:translateY(-2px);border-color:rgba(90,160,210,0.32);box-shadow:var(--lift);}
+.metric-tile{transition:transform .18s ease,border-color .18s ease;}
+.metric-tile:hover{transform:translateY(-2px);border-color:rgba(90,160,210,0.30);}
+
+/* Bölüm başlıkları: ince degrade çizgi */
+.section-head{position:relative;padding-bottom:.45rem;}
+.section-head::after{content:"";position:absolute;left:0;bottom:0;width:110px;height:2px;
+  background:var(--accent-line);border-radius:2px;}
+.mini-h{position:relative;}
+
+/* Rafine scrollbar */
+::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#243040,#1b2330);border-radius:6px;
+  border:2px solid transparent;background-clip:padding-box;}
+::-webkit-scrollbar-thumb:hover{background:linear-gradient(180deg,#2c3a4d,#222c3b);background-clip:padding-box;}
+*{scrollbar-width:thin;scrollbar-color:#243040 transparent;}
+
+/* Rafine chip/badge: hafif iç parıltı */
+.chip{transition:border-color .15s ease,color .15s ease;}
+.chip:hover{border-color:rgba(90,160,210,0.4);color:var(--text);}
+.badge{box-shadow:inset 0 0 12px rgba(255,255,255,0.02);}
+
+/* AI dock: chip'ler daha akıcı, aktif his */
+.ai-chips{max-height:118px;overflow-y:auto;}
+.ai-chips button{transition:all .15s ease;}
+.ai-chips button:hover{background:var(--accent-soft);border-color:var(--accent-2);color:var(--accent-2);transform:translateY(-1px);}
+.ai-chips button:active{transform:translateY(0);}
+
+/* ============================================================
+   Faz 63 — KRİTİK OLAY RAYI (incident rail)
+   Sağ kenarda sabit sütun; geniş ekranda görünür, dar ekranda
+   gizlenir. gl3d altında cam; attack-alarm'da kırmızı nabız.
+   ============================================================ */
+#incident-rail{
+  position:fixed;top:4.4rem;right:1rem;z-index:120;width:236px;
+  display:flex;flex-direction:column;max-height:calc(100vh - 9rem);
+  background:linear-gradient(180deg,rgba(12,17,24,0.94),rgba(8,11,17,0.94));
+  border:1px solid var(--border);border-radius:14px;overflow:hidden;
+  box-shadow:0 18px 44px rgba(2,6,14,0.5);
+  font-family:var(--font-body);
+  transition:width .25s cubic-bezier(.4,0,.2,1),box-shadow .3s ease,border-color .3s ease;
+}
+body.gl3d #incident-rail{
+  background:linear-gradient(180deg,rgba(13,22,35,0.62),rgba(7,12,20,0.58));
+  backdrop-filter:blur(13px);-webkit-backdrop-filter:blur(13px);
+  border-color:rgba(90,150,190,0.24);
+}
+#incident-rail .ir-head{
+  display:flex;align-items:center;gap:.5rem;padding:.6rem .8rem;
+  border-bottom:1px solid var(--border);background:linear-gradient(90deg,rgba(255,59,69,0.10),transparent);
+}
+#incident-rail .ir-title{
+  display:flex;align-items:center;gap:.45rem;flex:1;
+  font-family:var(--font-display);font-weight:700;font-size:.68rem;letter-spacing:.1em;color:var(--text);
+}
+#incident-rail .ir-beacon{width:8px;height:8px;border-radius:50%;background:var(--accent);
+  box-shadow:0 0 10px var(--accent);animation:pulse 1.8s infinite;flex-shrink:0;}
+#incident-rail .ir-count{
+  font-family:var(--font-mono);font-size:.64rem;font-weight:700;color:var(--accent);
+  background:rgba(255,59,69,0.14);border:1px solid rgba(255,59,69,0.32);border-radius:20px;
+  padding:.06rem .42rem;min-width:20px;text-align:center;
+}
+#incident-rail .ir-count.zero{color:var(--ok);background:rgba(34,197,94,0.12);border-color:rgba(34,197,94,0.3);}
+#incident-rail .ir-toggle{
+  background:none;border:none;color:var(--muted);font-size:1.05rem;line-height:1;cursor:pointer;
+  padding:.1rem .25rem;border-radius:6px;transition:color .15s,background .15s;
+}
+#incident-rail .ir-toggle:hover{color:var(--text);background:rgba(255,255,255,0.06);}
+#incident-rail .ir-list{
+  display:flex;flex-direction:column;gap:.5rem;padding:.7rem;overflow-y:auto;flex:1;
+}
+#incident-rail .ir-foot{
+  padding:.4rem .8rem;border-top:1px solid var(--border-soft);
+  font-family:var(--font-mono);font-size:.58rem;letter-spacing:.06em;color:var(--dim);text-align:center;
+}
+/* daraltılmış hal: sadece başlık şeridi kalır */
+#incident-rail.collapsed{width:52px;}
+#incident-rail.collapsed .ir-title,
+#incident-rail.collapsed .ir-count,
+#incident-rail.collapsed .ir-list,
+#incident-rail.collapsed .ir-foot{display:none;}
+#incident-rail.collapsed .ir-head{justify-content:center;padding:.6rem 0;background:none;}
+
+/* kritik alarm kartı */
+.ir-card{
+  position:relative;display:flex;gap:0;border-radius:10px;overflow:hidden;
+  background:rgba(20,14,16,0.6);border:1px solid rgba(255,90,90,0.22);
+}
+.ir-card .ir-bar{width:4px;flex-shrink:0;background:var(--high);}
+.ir-card.sev-critical .ir-bar{background:var(--accent);box-shadow:0 0 10px rgba(255,59,69,0.6);}
+.ir-card.sev-critical{border-color:rgba(255,59,69,0.42);background:rgba(28,12,14,0.62);}
+.ir-card .ir-body{flex:1;min-width:0;padding:.55rem .7rem;}
+.ir-card .ir-row1{display:flex;align-items:center;justify-content:space-between;gap:.4rem;margin-bottom:.3rem;}
+.ir-card .ir-sev{
+  font-family:var(--font-mono);font-size:.58rem;font-weight:700;letter-spacing:.08em;
+  color:var(--high);text-transform:uppercase;
+}
+.ir-card.sev-critical .ir-sev{color:var(--accent);}
+.ir-card .ir-time{font-family:var(--font-mono);font-size:.58rem;color:var(--dim);white-space:nowrap;}
+.ir-card .ir-ip{
+  font-family:var(--font-mono);font-size:.82rem;font-weight:700;color:var(--text);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.ir-card .ir-row2{display:flex;align-items:center;justify-content:space-between;margin-top:.25rem;}
+.ir-card .ir-score{font-family:var(--font-mono);font-size:.64rem;color:var(--muted);}
+.ir-card .ir-score b{color:var(--text);font-size:.72rem;}
+.ir-card .ir-clock{font-family:var(--font-mono);font-size:.58rem;color:var(--dim);}
+/* yeni kart giriş animasyonu */
+.ir-enter{animation:irIn .4s cubic-bezier(.2,.8,.2,1);}
+@keyframes irIn{from{opacity:0;transform:translateX(14px);}to{opacity:1;transform:none;}}
+/* sakin durum */
+.ir-calm{display:flex;flex-direction:column;align-items:center;gap:.2rem;padding:1.6rem .6rem;text-align:center;}
+.ir-calm-ico{font-size:1.5rem;opacity:.75;}
+.ir-calm-t{font-family:var(--font-display);font-weight:700;font-size:.78rem;color:var(--ok);}
+.ir-calm-s{font-family:var(--font-mono);font-size:.62rem;color:var(--muted);}
+
+/* saldırı alarmında ray kırmızı nabız atar */
+body.attack-alarm #incident-rail{
+  border-color:rgba(255,70,70,0.6);
+  box-shadow:0 18px 44px rgba(2,6,14,0.5),0 0 30px rgba(255,50,60,0.35);
+  animation:irAlarm 1s ease-in-out infinite;
+}
+@keyframes irAlarm{0%,100%{box-shadow:0 18px 44px rgba(2,6,14,0.5),0 0 22px rgba(255,50,60,0.28);}
+  50%{box-shadow:0 18px 44px rgba(2,6,14,0.5),0 0 40px rgba(255,50,60,0.6);}}
+body.attack-alarm #incident-rail .ir-head{background:linear-gradient(90deg,rgba(255,59,69,0.22),transparent);}
+
+/* dar ekran: rayı gizle (ana içeriği örtmesin) */
+@media (max-width:1180px){ #incident-rail{display:none;} }
+/* geniş ekranda toast'lar rayın soluna kaysın (üstüne binmesin) */
+@media (min-width:1181px){ #toast-root{right:17rem !important;} }
+
+/* AI saldırı anonsu — katman dökümü (Faz 71 detay) */
+.ai-alert-layers{margin:.35rem 0 .1rem;display:flex;flex-direction:column;gap:.16rem;}
+.ai-alert-layer{display:flex;justify-content:space-between;gap:1rem;
+  font-family:var(--font-mono,monospace);font-size:.72rem;color:var(--text-2,#c9d3e0);
+  border-bottom:1px dashed rgba(255,120,110,.18);padding-bottom:.1rem;}
+.ai-alert-layer b{color:#ff8a7a;font-weight:700;}

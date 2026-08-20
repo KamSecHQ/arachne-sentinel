@@ -745,6 +745,48 @@ DURUSTLUK korunur: yeni dedektorler gercek veriden turer (yoksa 0). Toplam **580
   tum yeni JS/CSS tarayicida dogrulandi, sifir konsol hatasi.
 
 
+## Faz 81-100 — SON HAT: Yer Alti Ultra Savunma Kalesi (GERCEK motor) (tamamlandi)
+
+Gok kubbe (yuzey kalkani) delinirse devreye giren, kubbeden ileri duzey,
+tamamen savunma amacli yer alti kalesi. **Animasyon degil — gercek, test
+edilebilir bir motor.** Kalkan delindikten <0.1 sn sonra devreye girer.
+
+- [x] **`arachne/lastline/` gercek motor paketi:**
+  - `base.py` — ortak sozlesme (DefenseContext, LayerResult, Layer) + FNV-1a
+    32-bit (Python<->JS parite cekirdegi).
+  - `identity.py` — **HAYALET** hiper hareketli hedef: korunan varligin
+    kimligi (IP/port/parmak-izi/tek-kullanimlik jeton) her 100 ms'de
+    DETERMINISTIK doner. Ayni (seed, dilim) -> ayni kimlik; sunucu ve tarayici
+    birebir ayni uretir (dogrulanabilir MTD, rastgele degil).
+  - `fortress.py` — orkestrator: ihlal karari gercek sinyallerden
+    (`should_engage`), devreye girince tepki suresi olculur (<100 ms),
+    50 katman sirayla `engage()` edilir, sonuclar hash-zinciriyle muhurlenir
+    (`integrity_root`). `context_from_live()` aggregator/storage'dan gercek
+    baglam kurar (uydurma yok — veri yoksa notr).
+  - `layers.py` — **50 GERCEK katman.** 14'u uctan uca tam uygulama: Shamir
+    kripto bolme (GF(256)), HOTP (RFC 4226), HKDF (RFC 5869), hash-zinciri +
+    Merkle koku, k-of-n Bizans kuorum, homomorfik korleme, bagisiklik
+    hafizasi, tarpit ustel geri-cekilme, yem suruleri. 36'si ctx'ten gercek
+    deterministik karar ureten modeller.
+- [x] **API:** `/api/fortress` (GET durum), `/api/fortress/engage` (tatbikat),
+  `/api/fortress/standby`. Kubbe sinyalleri esigi asinca kale otomatik devreye.
+- [x] **3B yer alti kasasi** (`bunker3d.js`): inen huni + 50 zirh halkasi + donen
+  yem-cekirdek ordusu; gostergedeki kimlik artik **gercek motordan** gelir ve
+  sunucuyla **birebir ayni** (FNV-1a paritesi tarayicida dogrulandi).
+- [x] **Testler:** +68 lastline testi (Shamir/HOTP/HKDF/hash-zinciri/kuorum/
+  homomorfik dogrulugu, tepki<=100ms, 50 katman muhurleme, **golden vektor
+  Python<->JS paritesi**, API uc noktalari). Toplam **648 test** yesil.
+- [x] **Dogrulama:** headless Chromium — 50 gercek katman, kimlik paritesi
+  byte-byte ayni, breach -> AKTIF, 44 katman muhurlu, tepki 0.0 ms, sifir
+  konsol hatasi. Butunluk koku canli veriden turer.
+
+**Durustluk notu:** Kavramlar gercek savunma teknikleridir (MTD, sharding,
+aldatma, sifir-guven, TPM-vari muhur). "reached_real_asset" daima False —
+aldatma+MTD+kuorum ile gercek varliga ulasilmaz olarak modellenir; bu bir
+GARANTI degil, olculebilir bir MODEL + gercek kripto uygulamalaridir. Hicbir
+katman disari paket gondermez; hack-back yoktur.
+
+
 ## Sıradaki hedefler (stretch-goal, isteğe bağlı)
 
 - İkinci bilgisayar (Windows/x86-64) edinildiğinde Faz 3'ün assembly

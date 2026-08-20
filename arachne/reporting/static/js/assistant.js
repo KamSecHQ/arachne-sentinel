@@ -211,10 +211,13 @@
       setTimeout(() => dock.classList.remove("speaking"), 5200);
       // ~6.5 sn sonra çevreleme / kurtarma anonsu
       setTimeout(() => {
-        addMsg("bot", "🛡️ Otomatik müdahale devrede: sızıntı çevrelendi, oturum sonlandırıldı, kaynak izole edildi. Kalkan yeniden şarj oluyor. (Tatbikat tamamlandı.)");
+        addMsg("breach", "<div class=\"ai-breach-head\">⛨ SON HAT DEVREDE</div>" +
+          "<div class=\"ai-alert-row\">Yüzey kalkanı delindi — ama <b>yer altı ultra savunma</b> aktif.</div>" +
+          "<div class=\"ai-alert-row\">Hedef kimliği <b>~100 ms'de bir dönüyor</b> (hayalet) · 50 katmanlı kasa mühürlendi.</div>" +
+          "<div class=\"ai-breach-warn\">● Saldırgan gerçek varlığı KİLİTLEYEMEDİ — sızıntı ENGELLENDİ.</div>");
         dock.classList.add("speaking");
-        speak("Otomatik müdahale devrede. Sızıntı çevrelendi ve kaynak izole edildi. Kalkan yeniden şarj oluyor. Tatbikat tamamlandı.");
-        setTimeout(() => dock.classList.remove("speaking"), 4200);
+        speak("Son hat devrede. Yüzey kalkanı delindi ama yer altı ultra savunma aktif. Hedef kimliği saniyede on kez dönüyor, kilitlenemiyor. Elli katmanlı kasa mühürlendi. Saldırgan gerçek varlığa ulaşamadı. Sızıntı engellendi.");
+        setTimeout(() => dock.classList.remove("speaking"), 5200);
       }, 6800);
     }
     window.addEventListener("arachne:breach", onBreach);

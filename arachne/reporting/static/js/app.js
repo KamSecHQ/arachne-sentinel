@@ -20,6 +20,7 @@
   const VIEW_META = {
     overview: ["Genel Bakış", "Sistemin canlı durumu ve tehdit özeti"],
     command: ["Çelik Kubbe", "Katmanlı savunma simülasyonu ve küresel harita"],
+    bunker: ["Son Hat — Yer Altı Ultra Savunma", "Kubbe delinirse devreye giren 50 katmanlı gizli savunma + hayalet kimlik"],
     feed: ["Canlı Akış", "Gerçek zamanlı olay radarı ve akış terminali"],
     threats: ["Tehdit İstihbaratı", "AI durum raporu, risk sıralı profiller, saldırı grafiği"],
     reverse: ["Tersine Mühendislik", "Yük analiz laboratuvarı — kodlama çözümü ve ATT&CK"],

@@ -281,6 +281,62 @@ def api_intel():
     return jsonify(_gather_intel_data())
 
 
+# --- SON HAT KALESI (Yer Alti Ultra Savunma) — GERCEK motor ------------------
+# Tek bir kale ornegi tum surec boyunca yasar; devreye girme durumu poll'lar
+# arasinda korunur. Kubbe delinince (should_engage) ya da tatbikatla devreye
+# girer; 50 GERCEK katman + HAYALET hiper-MTD calisir. Tamamen savunma.
+_FORTRESS = None
+
+
+def _get_fortress():
+    global _FORTRESS
+    if _FORTRESS is None:
+        from ..lastline import LastLineFortress
+        _FORTRESS = LastLineFortress()
+    return _FORTRESS
+
+
+@app.route("/api/fortress")
+def api_fortress():
+    """Son Hat kalesinin GERCEK durumu. Kubbe sinyallerinden ihlal karari
+    verilir; esik asilinca kale otomatik devreye girer (kimlik 100 ms'de
+    doner, 50 katman muhurlenir). Rastgele degil — deterministik, dogrulanabilir."""
+    from ..lastline import context_from_live
+
+    fort = _get_fortress()
+    ctx = context_from_live()
+    should, reason = fort.should_engage(ctx)
+    if should and not fort.engaged:
+        fort.engage(ctx)              # kubbe delindi -> son hat devreye
+    elif not should and fort.engaged and not ctx.extra.get("drill"):
+        # esik altina dondu ve manuel tatbikat degil -> beklemeye al
+        pass                          # devreye girmis kale beklemede birakilmaz
+    st = fort.status()
+    st["should_engage"] = should
+    st["engage_reason"] = reason
+    return jsonify(st)
+
+
+@app.route("/api/fortress/engage", methods=["POST"])
+def api_fortress_engage():
+    """Tatbikat: kaleyi elle devreye al (kubbe delinmis gibi). Savunma
+    sistemine dokunmaz — sadece son hat motorunu baslatir ve tepki suresini olcer."""
+    from ..lastline import context_from_live
+
+    fort = _get_fortress()
+    ctx = context_from_live(drill=True)
+    fort.engage(ctx)
+    return jsonify(fort.status())
+
+
+@app.route("/api/fortress/standby", methods=["POST"])
+def api_fortress_standby():
+    """Kaleyi beklemeye al (tatbikat sonrasi)."""
+    fort = _get_fortress()
+    fort.standby()
+    return jsonify(fort.status())
+
+
 @app.route("/api/analyze", methods=["POST"])
 def api_analyze():
     """Tek bir yuku tersine muhendislik + AI analistine gonderir.

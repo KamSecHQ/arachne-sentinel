@@ -1,9 +1,12 @@
 # 🕸 Arachne Sentinel
 
-Honeypot tabanlı, **80 fazlı** bir **erken uyarı, saldırı tespit, otonom
+Honeypot tabanlı, **100 fazlı** bir **erken uyarı, saldırı tespit, otonom
 müdahale, aktif savunma, adaptif (ko-evrim) savunma ve ölçülebilir SOC
-platformu**. Faz 1-80 tam — motor + test + sinematik komuta merkezi + AI
-komuta asistanı. **18 halkalı** Çelik Kubbe. Sahte servisler açar, gelen her etkileşimi kaydeder,
+platformu**. Faz 1-100 tam — motor + test + sinematik komuta merkezi + AI
+komuta asistanı. **18 halkalı** Çelik Kubbe + **50 katmanlı Son Hat yer altı
+ultra savunma kalesi** (kubbe delinirse <0.1 sn'de devreye giren, deterministik
+hiper hareketli hedef "HAYALET" kimlik motoru — sunucu/tarayıcı birebir parite).
+Sahte servisler açar, gelen her etkileşimi kaydeder,
 saldırgan davranışını **açıklanabilir** şekilde puanlar, saldırıyı tersine
 mühendislikle çözer, saldırgan profili çıkarır, otomatik müdahale eder ve
 tüm bunları canlı bir komuta merkezinde gösterir.
@@ -220,10 +223,35 @@ uygulama (SPA), iki hızlı poll döngüsü, birleşik toplayıcı
 - **Faz 50 — Sinematik yoğunluk katmanı** (`fx.js`): HUD çerçeve, telemetri
   şeridi, arka plan parçacık/ızgara/veri-yağmuru
 
+### Faz 81-100 — SON HAT: Yer altı ultra savunma kalesi (`arachne/lastline/`)
+
+> Gök kubbe (yüzey kalkanı) **delinirse** devreye giren gizli, kubbeden ileri
+> düzey, **50 katmanlı** yer altı kalesi. Süs animasyon değil — **gerçek, test
+> edilebilir bir motor**. Kalkan delindikten **<0.1 sn** sonra devreye girer.
+> Tamamen savunma; hiçbir katman dışarı paket göndermez (hack-back yok).
+
+- **HAYALET hiper hareketli hedef** (`identity.py`): korunan varlığın kimliği
+  (IP/port/parmak-izi/tek-kullanımlık jeton) her **100 ms'de deterministik**
+  döner. Aynı (seed, zaman-dilimi) → aynı kimlik; **sunucu ve tarayıcı birebir
+  aynı üretir** (FNV-1a paritesi, golden-vektör testiyle kilitli) — gösterge
+  rastgele değil, **doğrulanabilir**. Saldırgan gerçek varlığı kilitleyemez.
+- **50 GERÇEK katman** (`layers.py`): 14'ü uçtan uca tam kripto uygulaması —
+  Shamir gizli paylaşımı (GF(256)), HOTP (RFC 4226), HKDF (RFC 5869),
+  hash-zinciri + Merkle kökü, k-of-n Bizans kuorum, homomorfik körleme, tarpit
+  üstel geri-çekilme, bağışıklık hafızası, yem sürüleri; 36'sı ctx'ten gerçek
+  deterministik karar üreten modeller.
+- **Kale orkestratörü** (`fortress.py`): ihlal kararı gerçek sinyallerden
+  verilir, tepki süresi ölçülür (**≤100 ms**), katmanlar sırayla mühürlenir,
+  sonuçlar hash-zinciriyle bütünlük köküne bağlanır. `/api/fortress` uç noktası.
+- **3B yer altı kasası** (`bunker3d.js`): inen huni + 50 zırh halkası + dönen
+  yem-çekirdek ordusu; en dipte korunan varlık. `arachne:breach` ile otomatik
+  devreye girer. **Dürüstlük:** `reached_real_asset` daima False — bu ölçülebilir
+  bir MODEL + gerçek kripto uygulamalarıdır, mutlak garanti değil.
+
 **Ortak:**
 - **Otomatik HTML raporu**, **AI Markdown raporu**, **STIX 2.1 bundle** ve
   **sinematik canlı komuta merkezi** (gerçek performans metrikleriyle)
-- **580 birim testi** (`tests/`) ve kendi kendini test eden demo saldırı scriptleri
+- **648 birim testi** (`tests/`) ve kendi kendini test eden demo saldırı scriptleri
 
 ## Kurulum
 
@@ -320,7 +348,7 @@ export ARACHNE_MESH_SECRET="uzun-rastgele-bir-sir"
 
 ```bash
 pip install pytest
-pytest tests/ -v      # 387 test
+pytest tests/ -v      # 648 test
 ```
 
 ## Mimari ve yol haritası

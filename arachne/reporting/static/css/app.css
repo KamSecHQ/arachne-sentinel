@@ -1166,3 +1166,56 @@ body.breach-crisis::after{content:"";position:fixed;inset:0;z-index:150;pointer-
   animation:breachPulse .9s ease-in-out infinite;}
 @keyframes breachPulse{0%,100%{opacity:.55;}50%{opacity:1;}}
 body.breach-crisis .topbar,body.breach-crisis #view-title{color:#ff6a5a;}
+
+/* ============ SON HAT · YER ALTI ULTRA SAVUNMA (Faz 82-100) ============ */
+.nav-bunker .badge-count{background:rgba(155,107,255,.2);color:#c9b0ff;}
+.nav-bunker .badge-count.hot{background:rgba(255,60,60,.25);color:#ff9a8a;animation:aiAlarm .7s infinite;}
+.bk-statusbar{margin:.2rem 0 1rem;}
+.bk-status{display:inline-block;font-family:var(--font-mono,monospace);font-weight:700;font-size:.82rem;
+  padding:.45rem .9rem;border-radius:10px;letter-spacing:.03em;
+  background:rgba(155,107,255,.12);border:1px solid rgba(155,107,255,.4);color:#c9b0ff;}
+.bk-status.on{background:rgba(255,50,50,.14);border-color:rgba(255,70,70,.6);color:#ff6a5a;
+  box-shadow:0 0 26px rgba(255,50,50,.35);animation:breachPulse .9s ease-in-out infinite;}
+.bk-grid2{display:grid;grid-template-columns:1fr 340px;gap:1rem;align-items:stretch;}
+@media (max-width:1100px){.bk-grid2{grid-template-columns:1fr;}}
+.viz.bunker-viz{background:radial-gradient(ellipse at 50% 20%,rgba(40,20,70,.35),rgba(6,4,14,.15) 70%);
+  border-color:rgba(155,107,255,.28);}
+.bk-side{display:flex;flex-direction:column;gap:1rem;}
+.bk-mtd{border-color:rgba(53,224,208,.3) !important;}
+.bk-mtd-h{font-family:var(--font-mono,monospace);font-size:.72rem;font-weight:800;letter-spacing:.06em;
+  color:#35e0d0;margin-bottom:.7rem;text-shadow:0 0 10px rgba(53,224,208,.5);}
+.bk-mtd-row{display:flex;justify-content:space-between;align-items:center;gap:1rem;
+  font-family:var(--font-mono,monospace);font-size:.8rem;padding:.35rem 0;border-bottom:1px dashed rgba(120,140,180,.14);}
+.bk-mtd-row span{color:var(--muted);}
+.bk-mtd-row b{color:#eaf6ff;font-weight:700;letter-spacing:.02em;
+  background:rgba(53,224,208,.08);padding:.12rem .4rem;border-radius:5px;min-width:120px;text-align:right;}
+.bk-mtd-note{margin-top:.7rem;font-size:.72rem;color:var(--muted);line-height:1.5;}
+.bk-layers{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:.4rem;margin-top:.3rem;}
+.bk-layer{display:flex;align-items:center;gap:.5rem;padding:.4rem .6rem;border-radius:8px;
+  background:linear-gradient(160deg,rgba(30,22,52,.5),rgba(12,10,22,.4));border:1px solid rgba(120,100,180,.18);
+  font-family:var(--font-mono,monospace);font-size:.72rem;transition:.25s;}
+.bk-layer .bk-idx{color:#9b6bff;font-weight:800;min-width:1.6rem;}
+.bk-layer .bk-name{flex:1;color:var(--text-2,#c9d3e0);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.bk-layer .bk-state{font-size:.62rem;color:#8b95a8;letter-spacing:.05em;}
+.bk-layer.sealed{border-color:rgba(255,207,106,.6);background:linear-gradient(160deg,rgba(255,207,106,.14),rgba(255,160,60,.05));
+  box-shadow:0 0 14px rgba(255,190,90,.25);}
+.bk-layer.sealed .bk-name{color:#fff;}
+.bk-layer.sealed .bk-state{color:#ffcf6a;font-weight:800;}
+.bk-layer:last-child{border-color:rgba(255,207,106,.5);} /* KORUNAN VARLIK */
+
+/* Son Hat — HAYALET yatay şerit (alarm rayının altında kalmasın) */
+.bk-mtd{max-width:calc(100% - 360px);margin-bottom:1rem;}
+@media (max-width:1100px){.bk-mtd{max-width:100%;}}
+.bk-mtd-strip{display:flex;gap:.8rem;flex-wrap:wrap;margin:.2rem 0 .3rem;}
+.bk-stat{flex:1;min-width:150px;background:rgba(53,224,208,.06);border:1px solid rgba(53,224,208,.22);
+  border-radius:10px;padding:.55rem .8rem;}
+.bk-stat span{display:block;font-size:.6rem;letter-spacing:.08em;color:var(--muted);}
+.bk-stat b{display:block;font-family:var(--font-mono,monospace);font-size:1.15rem;font-weight:800;
+  color:#7ff0e6;letter-spacing:.02em;margin-top:.15rem;text-shadow:0 0 12px rgba(53,224,208,.5);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+/* ikinci şerit: gerçek motor ölçüleri (tepki/mühür/yem/bütünlük) — mor tema */
+.bk-mtd-strip2{margin-top:.1rem;}
+.bk-mtd-strip2 .bk-stat{background:rgba(155,107,255,.07);border-color:rgba(155,107,255,.28);}
+.bk-mtd-strip2 .bk-stat b{color:#c6b0ff;text-shadow:0 0 12px rgba(155,107,255,.5);}
+.bk-mono{font-size:.95rem !important;letter-spacing:0;}
+.bunker-viz{width:100%;}

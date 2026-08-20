@@ -567,3 +567,70 @@ def coevolution_advanced(db_path=None) -> dict:
         pass
 
     return out
+
+
+def credential_spray_view(db_path=None) -> dict:
+    """Faz 74: Kimlik-doldurma / parola-spreyi ozetini panel/asistan icin sarar.
+
+    `credential_spray.analyze_recent`'i cagirip 0-guvenli bir gorunum doner.
+    Her sayi gercek olaydan turer; alt modul catlasa bile bu katman 0/bos doner
+    (mevcut aggregator imzalarini/donuslerini degistirmez).
+
+    Donus dict:
+      spray_ips           : sprey isaretlenen IP'ler (str listesi)
+      top_sprayer         : {ip, distinct_users} | None
+      distinct_user_total : int - hedeflenen toplam farkli kullanici
+      count               : int - sprey kaynak sayisi
+      note_tr             : str
+    """
+    empty = {
+        "spray_ips": [], "top_sprayer": None,
+        "distinct_user_total": 0, "count": 0,
+        "note_tr": ("Parola spreyi ozeti gercek olaylardan turer; veri yoksa "
+                    "gosterge 0 kalir (uydurma yok)."),
+    }
+    try:
+        from ..adaptive import credential_spray
+        r = credential_spray.analyze_recent(db_path=db_path, since_seconds=7200)
+        return {
+            "spray_ips": r.get("spray_ips", []),
+            "top_sprayer": r.get("top_sprayer"),
+            "distinct_user_total": r.get("distinct_user_total", 0),
+            "count": r.get("count", 0),
+            "note_tr": empty["note_tr"],
+        }
+    except Exception:
+        return dict(empty)
+
+
+def session_risk_view(db_path=None) -> dict:
+    """Faz 75: Oturum-riski / etkilesim-derinligi ozetini panel/asistan icin sarar.
+
+    `session_risk.analyze_recent`'i cagirip 0-guvenli bir gorunum doner. Her
+    sayi gercek olaydan turer; alt modul catlasa bile bu katman 0/bos doner
+    (mevcut aggregator imzalarini/donuslerini degistirmez).
+
+    Donus dict:
+      ranked     : [{ip, score, band_tr, depth}] - azalan etkilesim skoru
+      top_ip     : {ip, score, band_tr} | None - en derin etkilesim
+      high_count : int - YUKSEK/KRITIK bandindaki IP sayisi
+      count      : int - skorlanan IP sayisi
+      note_tr    : str
+    """
+    empty = {
+        "ranked": [], "top_ip": None, "high_count": 0, "count": 0,
+        "note_tr": ("Oturum riski ozeti gercek olaylardan turer; veri yoksa "
+                    "gosterge 0 kalir (uydurma yok)."),
+    }
+    try:
+        from ..adaptive import session_risk
+        r = session_risk.analyze_recent(db_path=db_path, since_seconds=7200)
+        return {
+            "ranked": r.get("ranked", []),
+            "top_ip": r.get("top_ip"),
+            "high_count": r.get("high_count", 0),
+            "count": r.get("count", 0),
+            "note_tr": empty["note_tr"],
+        }
+    except Exception:
+        return dict(empty)

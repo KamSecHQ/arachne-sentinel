@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Arachne Sentinel — Komuta Merkezi</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%95%B8%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}?v=49">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}?v=51">
 </head>
 <body>
 
@@ -19,7 +19,7 @@
   <div class="boot-ui">
     <div class="boot-brand">
       <div class="boot-title">A R A C H N E</div>
-      <div class="boot-sub">S E N T I N E L · UNIVERSAL COGNITIVE OS · 70 FAZ</div>
+      <div class="boot-sub">S E N T I N E L · UNIVERSAL COGNITIVE OS · 80 FAZ</div>
     </div>
 
     <!-- Güç düğmesi (autoplay için: tıkla → boot + ses başlar) -->
@@ -48,7 +48,7 @@
       <svg class="logo" viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="1.5">
         <circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4M5 5l3 3M16 16l3 3M19 5l-3 3M8 16l-3 3"/>
       </svg>
-      <div>ARACHNE<br><small>SENTINEL · 70 FAZ</small></div>
+      <div>ARACHNE<br><small>SENTINEL · 80 FAZ</small></div>
     </div>
 
     <nav class="nav" id="nav">
@@ -421,6 +421,9 @@
       <button data-q="İmkansız seyahat?">İmkansız seyahat</button>
       <button data-q="Tarama var mı?">Tarama</button>
       <button data-q="Bayes füzyon?">Bayes füzyon</button>
+      <button data-q="Parola spreyi var mı?">Parola spreyi</button>
+      <button data-q="En derin saldırgan kim?">Oturum riski</button>
+      <button data-drill="breach" class="chip-danger" title="Kalkanı delen ihlal senaryosu (simülasyon)">⛔ İhlal Tatbikatı</button>
     </div>
     <form id="ai-form">
       <input id="ai-input" placeholder="Bir şey sor… (örn. savunma durumu ne?)" autocomplete="off">
@@ -430,15 +433,17 @@
 </div>
 
 <!-- 3B motoru (yerel, offline) — command_center.js'ten ÖNCE yüklenir -->
-<script src="{{ url_for('static', filename='js/vendor/three.min.js') }}?v=49"></script>
-<script src="{{ url_for('static', filename='js/scene3d.js') }}?v=49"></script>
-<script src="{{ url_for('static', filename='js/dome3d.js') }}?v=49"></script>
-<script src="{{ url_for('static', filename='js/globe3d.js') }}?v=49"></script>
-<script src="{{ url_for('static', filename='js/boot.js') }}?v=49"></script>
-<script src="{{ url_for('static', filename='js/fx.js') }}?v=49"></script>
-<script src="{{ url_for('static', filename='js/command_center.js') }}?v=49"></script>
-<script src="{{ url_for('static', filename='js/assistant.js') }}?v=49"></script>
-<script src="{{ url_for('static', filename='js/app.js') }}?v=49"></script>
-<script src="{{ url_for('static', filename='js/incidents.js') }}?v=49"></script>
+<script src="{{ url_for('static', filename='js/vendor/three.min.js') }}?v=51"></script>
+<script src="{{ url_for('static', filename='js/scene3d.js') }}?v=51"></script>
+<script src="{{ url_for('static', filename='js/dome3d.js') }}?v=51"></script>
+<script src="{{ url_for('static', filename='js/globe3d.js') }}?v=51"></script>
+<script src="{{ url_for('static', filename='js/boot3d.js') }}?v=51"></script>
+<script src="{{ url_for('static', filename='js/boot.js') }}?v=51"></script>
+<script src="{{ url_for('static', filename='js/fx.js') }}?v=51"></script>
+<script src="{{ url_for('static', filename='js/command_center.js') }}?v=51"></script>
+<script src="{{ url_for('static', filename='js/assistant.js') }}?v=51"></script>
+<script src="{{ url_for('static', filename='js/app.js') }}?v=51"></script>
+<script src="{{ url_for('static', filename='js/views_fx.js') }}?v=51"></script>
+<script src="{{ url_for('static', filename='js/incidents.js') }}?v=51"></script>
 </body>
 </html>

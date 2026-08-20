@@ -977,3 +977,192 @@ body.attack-alarm #incident-rail .ir-head{background:linear-gradient(90deg,rgba(
   font-family:var(--font-mono,monospace);font-size:.72rem;color:var(--text-2,#c9d3e0);
   border-bottom:1px dashed rgba(255,120,110,.18);padding-bottom:.1rem;}
 .ai-alert-layer b{color:#ff8a7a;font-weight:700;}
+
+/* ============================================================
+   Faz 72 — SİBER GÖRÜNÜM YÜKSELTMESİ (views_fx.js eşlik dosyası)
+   TÜM liste/stat/başlık görünümlerine tutarlı 3B/neon dil.
+   YALNIZCA EKLEME: mevcut kurallar korunur, gl3d cam moduyla
+   uyumlu (yarı saydam katman + neon aksan). Performanslı ve okunur.
+   ============================================================ */
+:root{
+  --sev-critical:var(--accent);
+  --sev-high:var(--high);
+  --sev-medium:var(--med);
+  --sev-low:var(--low);
+  --fx-grid:rgba(130,180,220,.05);
+  --fx-scan:rgba(190,235,255,.42);
+  --fx-hover:rgba(120,180,220,.06);
+}
+
+/* ---------- KPI + METRİK tile'lar: köşe braketleri + grid doku
+   + üstte kayan tarama-çizgisi shimmer (tek ::after katmanı) ---------- */
+.kpi.c-red{--brk:var(--accent);} .kpi.c-cyan{--brk:var(--accent-2);}
+.kpi.c-green{--brk:var(--ok);} .kpi.c-amber{--brk:var(--warn);}
+.kpi.c-purple{--brk:var(--purple);} .kpi.c-teal{--brk:var(--teal);}
+.kpi.c-pink{--brk:var(--pink);}
+.metric-tile{--brk:var(--accent-2);}
+.metric-tile.ok{--brk:var(--ok);}
+.metric-tile.warn{--brk:var(--warn);}
+.metric-tile.bad{--brk:var(--accent);}
+
+#ov-kpis .card::after,
+#ov-metrics .metric-tile::after{
+  content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;opacity:.9;
+  background-image:
+    repeating-linear-gradient(0deg,var(--fx-grid) 0 1px,transparent 1px 22px),
+    repeating-linear-gradient(90deg,var(--fx-grid) 0 1px,transparent 1px 22px),
+    linear-gradient(var(--brk,var(--accent-2)),var(--brk,var(--accent-2))),
+    linear-gradient(var(--brk,var(--accent-2)),var(--brk,var(--accent-2))),
+    linear-gradient(var(--brk,var(--accent-2)),var(--brk,var(--accent-2))),
+    linear-gradient(var(--brk,var(--accent-2)),var(--brk,var(--accent-2))),
+    linear-gradient(90deg,transparent,var(--fx-scan),transparent);
+  background-repeat:no-repeat;
+  background-size:100% 100%,100% 100%,15px 2px,2px 15px,15px 2px,2px 15px,44% 2px;
+  background-position:0 0,0 0,0 0,0 0,100% 100%,100% 100%,-44% 0;
+  animation:fxScan 3.6s linear infinite;
+}
+@keyframes fxScan{
+  0%{background-position:0 0,0 0,0 0,0 0,100% 100%,100% 100%,-46% 0;}
+  100%{background-position:0 0,0 0,0 0,0 0,100% 100%,100% 100%,146% 0;}
+}
+/* mono sayı vurgusu + hover glow (mevcut hover'ı tamamlar) */
+.kpi .val,.mt-val{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1;}
+#ov-kpis .card:hover,#ov-metrics .metric-tile:hover{
+  box-shadow:var(--lift),0 0 22px -6px var(--brk,var(--accent-2));
+}
+#ov-kpis .card:hover::after,#ov-metrics .metric-tile:hover::after{opacity:1;}
+
+/* ---------- BÖLÜM BAŞLIKLARI: sol neon çubuk + veri-hattı animasyonu ---------- */
+.mini-h::before{
+  content:"";display:inline-block;width:3px;height:.82em;margin-right:.55rem;
+  vertical-align:-1px;border-radius:2px;
+  background:var(--accent-2);box-shadow:0 0 8px var(--accent-2);
+}
+.mini-h::after{
+  content:"";position:absolute;left:0;bottom:-5px;height:2px;width:74px;border-radius:2px;
+  background:linear-gradient(90deg,var(--accent-2),rgba(34,211,238,0));
+  background-size:220% 100%;animation:fxDataline 3.2s linear infinite;
+}
+.section-head h2{position:relative;padding-left:.72rem;}
+.section-head h2::before{
+  content:"";position:absolute;left:0;top:.12em;bottom:.12em;width:3px;border-radius:2px;
+  background:var(--accent-2);box-shadow:0 0 9px var(--accent-2);
+}
+.section-head::after{background-size:220% 100%;animation:fxDataline 3.6s linear infinite;}
+@keyframes fxDataline{0%{background-position:0% 0;}100%{background-position:220% 0;}}
+
+/* ---------- LİSTE / SATIR görünümleri: önem-renk aksan çubuğu + hover glow ---------- */
+.feed-line{
+  padding-left:.55rem;border-left:2px solid transparent;border-radius:0 4px 4px 0;
+  transition:background .15s ease,box-shadow .15s ease,border-color .15s ease;
+}
+.feed-line:hover{background:var(--fx-hover);box-shadow:-2px 0 10px -4px rgba(120,180,220,.5);}
+.feed-line:has(.tag.alert){border-left-color:var(--sev-critical);}
+.feed-line:has(.tag.waf){border-left-color:var(--sev-medium);}
+.feed-line:has(.tag.event){border-left-color:var(--accent-2);}
+.feed-line:has(.tag.mtd){border-left-color:var(--teal);}
+.feed-line:has(.tag.defense){border-left-color:var(--purple);}
+.feed-line:has(.tag.token){border-left-color:var(--pink);}
+.feed-line .tag{box-shadow:inset 0 0 8px rgba(255,255,255,.03);}
+.tag.alert{box-shadow:0 0 8px rgba(255,59,69,.24),inset 0 0 8px rgba(255,59,69,.07);}
+.tag.waf{box-shadow:0 0 8px rgba(245,166,35,.22),inset 0 0 8px rgba(245,166,35,.07);}
+.tag.defense{box-shadow:0 0 8px rgba(167,139,250,.22),inset 0 0 8px rgba(167,139,250,.07);}
+
+/* honeytoken satırları */
+.token-row{
+  padding-left:.55rem;border-left:2px solid transparent;border-radius:0 5px 5px 0;
+  transition:background .15s ease,box-shadow .15s ease,border-color .15s ease;
+}
+.token-row:hover{background:var(--fx-hover);border-left-color:var(--accent-2);}
+.token-row.triggered{border-left-color:var(--pink);box-shadow:inset 0 0 16px rgba(244,114,182,.12);}
+.token-row.triggered .token-type{box-shadow:0 0 9px rgba(244,114,182,.3);}
+
+/* sensör + savunma katman kartları */
+.layer-card{transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease;}
+.layer-card:hover{transform:translateY(-2px);border-color:rgba(90,160,210,.32);box-shadow:var(--lift);}
+.layer-card .lc-dot{box-shadow:0 0 6px currentColor;}
+.layer-card.ok .lc-dot{box-shadow:0 0 9px var(--ok);}
+
+/* SITREP bulguları */
+.finding{transition:transform .15s ease,box-shadow .15s ease;}
+.finding:hover{transform:translateX(2px);box-shadow:-3px 0 12px -4px rgba(120,180,220,.4);}
+.finding.prio-1:hover{box-shadow:-3px 0 14px -3px rgba(255,59,69,.5);}
+.finding.prio-2:hover{box-shadow:-3px 0 14px -3px rgba(245,166,35,.45);}
+
+/* tablo satırları (SOAR / tehdit / kural) — önem sol aksanı ilk hücrede */
+.table-card tbody tr{transition:background .15s ease;}
+.table-card tbody tr:has(.badge-critical) td:first-child{box-shadow:inset 3px 0 0 var(--sev-critical);}
+.table-card tbody tr:has(.badge-high) td:first-child{box-shadow:inset 3px 0 0 var(--sev-high);}
+.table-card tbody tr:has(.badge-ok) td:first-child{box-shadow:inset 3px 0 0 var(--ok);}
+
+/* önem rozetleri: neon parıltı (mevcut .badge inset'ini tamamlar) */
+.badge-critical{box-shadow:0 0 9px rgba(255,59,69,.26),inset 0 0 10px rgba(255,59,69,.06);}
+.badge-high{box-shadow:0 0 9px rgba(255,122,69,.22),inset 0 0 10px rgba(255,122,69,.06);}
+.badge-medium{box-shadow:0 0 9px rgba(245,166,35,.20),inset 0 0 10px rgba(245,166,35,.06);}
+.badge-ok{box-shadow:0 0 9px rgba(34,197,94,.20),inset 0 0 10px rgba(34,197,94,.06);}
+
+/* harita / viz istatistik satırları + parlak mono sayılar */
+#map-stats .ms-row{
+  border-left:2px solid transparent;padding-left:.5rem;border-radius:0 4px 4px 0;
+  transition:background .15s ease,border-color .15s ease;
+}
+#map-stats .ms-row:hover{background:var(--fx-hover);border-left-color:var(--accent-2);}
+#map-stats .ms-row b,.viz-stats b{
+  font-family:var(--font-mono);color:var(--accent-2);text-shadow:0 0 8px rgba(34,211,238,.32);
+}
+
+/* ---------- .fx-meter / .fx-bar — veri çubuğu (views_fx.js enjekte eder) ---------- */
+.fx-meter{
+  position:relative;height:6px;border-radius:4px;margin-top:.5rem;overflow:hidden;
+  background:linear-gradient(90deg,rgba(120,150,180,.16),rgba(120,150,180,.07));
+  border:1px solid rgba(120,160,200,.13);
+}
+.fx-bar{
+  position:absolute;left:0;top:0;bottom:0;width:0;border-radius:4px;
+  background:linear-gradient(90deg,rgba(34,211,238,.55),var(--fx-c,var(--accent-2)));
+  box-shadow:0 0 10px var(--fx-c,var(--accent-2));
+  transition:width .8s cubic-bezier(.4,0,.2,1);overflow:hidden;
+}
+.fx-bar::after{
+  content:"";position:absolute;inset:0;background-repeat:no-repeat;background-size:40% 100%;
+  background-image:linear-gradient(90deg,transparent,rgba(255,255,255,.35),transparent);
+  animation:fxBarShine 2.4s linear infinite;
+}
+@keyframes fxBarShine{0%{background-position:-45% 0;}100%{background-position:145% 0;}}
+.metric-tile.ok .fx-bar{--fx-c:var(--ok);}
+.metric-tile.warn .fx-bar{--fx-c:var(--warn);}
+.metric-tile.bad .fx-bar{--fx-c:var(--accent);}
+
+/* ---------- .fx-spark — mini sparkline/canvas konteyneri ---------- */
+.fx-spark{
+  position:relative;width:100%;height:34px;border-radius:6px;overflow:hidden;margin-top:.5rem;
+  background:linear-gradient(180deg,rgba(20,30,44,.42),rgba(10,16,24,.2));
+  border:1px solid rgba(120,160,200,.1);
+}
+.fx-spark canvas{position:absolute;inset:0;width:100%;height:100%;display:block;}
+
+/* ---------- erişilebilirlik: hareket azaltma ---------- */
+@media (prefers-reduced-motion:reduce){
+  #ov-kpis .card::after,#ov-metrics .metric-tile::after,
+  .fx-bar::after,.section-head::after,.mini-h::after{animation:none;}
+}
+
+/* ============ İHLAL TATBİKATI (Faz 81) ============ */
+.chip-danger{border-color:rgba(255,80,80,.6) !important;color:#ff9a8a !important;
+  background:linear-gradient(180deg,rgba(255,60,60,.14),rgba(255,60,60,.05)) !important;font-weight:700;}
+.chip-danger:hover{box-shadow:0 0 16px rgba(255,60,60,.5);}
+.ai-msg.breach{align-self:stretch;max-width:100%;
+  background:linear-gradient(180deg,rgba(255,40,50,.18),rgba(255,40,50,.05));
+  border:1.5px solid rgba(255,70,70,.7);border-radius:10px;
+  box-shadow:0 0 30px rgba(255,50,50,.35);animation:aiAlertIn .3s ease;}
+.ai-breach-head{font-family:var(--font-mono,monospace);font-size:.76rem;font-weight:800;
+  letter-spacing:.05em;color:#ff5a4a;margin-bottom:.4rem;text-shadow:0 0 10px rgba(255,60,60,.6);}
+.ai-breach-head span{color:var(--muted);font-weight:500;}
+.ai-breach-warn{margin-top:.45rem;font-family:var(--font-mono,monospace);font-size:.7rem;
+  font-weight:700;color:#ffb020;letter-spacing:.02em;}
+/* ekran kırmızı kriz vinyeti (kalkan delindiğinde) */
+body.breach-crisis::after{content:"";position:fixed;inset:0;z-index:150;pointer-events:none;
+  box-shadow:inset 0 0 220px 40px rgba(255,30,40,.42);
+  animation:breachPulse .9s ease-in-out infinite;}
+@keyframes breachPulse{0%,100%{opacity:.55;}50%{opacity:1;}}
+body.breach-crisis .topbar,body.breach-crisis #view-title{color:#ff6a5a;}

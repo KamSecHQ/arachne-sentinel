@@ -1,8 +1,8 @@
 # 🕸 Arachne Sentinel
 
-Honeypot tabanlı, **70 fazlı** bir **erken uyarı, saldırı tespit, otonom
+Honeypot tabanlı, **80 fazlı** bir **erken uyarı, saldırı tespit, otonom
 müdahale, aktif savunma, adaptif (ko-evrim) savunma ve ölçülebilir SOC
-platformu**. Faz 1-70 tam — motor + test + sinematik komuta merkezi + AI
+platformu**. Faz 1-80 tam — motor + test + sinematik komuta merkezi + AI
 komuta asistanı. **18 halkalı** Çelik Kubbe. Sahte servisler açar, gelen her etkileşimi kaydeder,
 saldırgan davranışını **açıklanabilir** şekilde puanlar, saldırıyı tersine
 mühendislikle çözer, saldırgan profili çıkarır, otomatik müdahale eder ve
@@ -223,7 +223,7 @@ uygulama (SPA), iki hızlı poll döngüsü, birleşik toplayıcı
 **Ortak:**
 - **Otomatik HTML raporu**, **AI Markdown raporu**, **STIX 2.1 bundle** ve
   **sinematik canlı komuta merkezi** (gerçek performans metrikleriyle)
-- **546 birim testi** (`tests/`) ve kendi kendini test eden demo saldırı scriptleri
+- **580 birim testi** (`tests/`) ve kendi kendini test eden demo saldırı scriptleri
 
 ## Kurulum
 

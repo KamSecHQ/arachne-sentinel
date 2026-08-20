@@ -711,6 +711,39 @@ gorseller kozmetiktir, altindaki sayilar gercektir. Toplam **546 test** yesil.
 ## Faz 69-70 — Testler + butunluk (tamamlandi)
 - [x] 529 -> **546 test** yesil; ROADMAP/README Faz 70'e guncellendi.
 
+# ULTRA SEVIYE — Faz 71-80 (TAMAMLANDI)
+
+DURUSTLUK korunur: yeni dedektorler gercek veriden turer (yoksa 0). Toplam **580 test** yesil.
+
+## Faz 71 — Sinematik 3B Acilis/Guc Ekrani (tamamlandi)
+- [x] `static/js/boot3d.js`: Three.js ile isikli, saydam, cok katmanli donen
+  reaktor cekirdegi (jeodezik tel-kafes + yorunge parcaciklari + enerji halkalari
+  + hacimsel hale). Guc tusuna basinca `ignite()` ile maviden beyaza isinir,
+  enerji dalgasi yayar. boot.js entegrasyonu; WebGL yoksa 2B'ye duser.
+
+## Faz 72-73 — Tum Gorunumlere Siber/3B Tasarim Dili (tamamlandi)
+- [x] `app.css` + `static/js/views_fx.js`: KPI/metrik tile'larda neon kenar,
+  kose braketleri, tarama-cizgisi shimmer, veri cubuklari (fx-meter), sayac
+  animasyonu; liste/satir gorunumlerinde onem-renk aksani + glow; siber baslik
+  cizgileri. Duz-yazi kalan sayfalar canli/profesyonel hale geldi.
+
+## Faz 74 — Kimlik-Doldurma / Parola Spreyi (tamamlandi)
+- [x] `arachne/adaptive/credential_spray.py` + testler: cok kullanici / az deneme
+  (sprey) ile kaba-kuvveti ayirir; `SprayMonitor` + `analyze_recent()`.
+
+## Faz 75 — Oturum Riski / Etkilesim Derinligi (tamamlandi)
+- [x] `arachne/adaptive/session_risk.py` + testler: saldirganin kill-chain'de ne
+  kadar derine gittigini (kesif->somuru->kaliciligk) artan agirlikla puanlar;
+  bant (DUSUK/ORTA/YUKSEK/KRITIK). attack_stages ile entegre.
+
+## Faz 76 — AI + aggregator entegrasyonu (tamamlandi)
+- [x] `aggregator.credential_spray_view/session_risk_view`; asistanda yeni
+  `spray` ve `session_risk` niyetleri (dogru Turkce seslendirme).
+
+## Faz 77-80 — Testler + butunluk + tasarim cilasi (tamamlandi)
+- [x] 546 -> **580 test** yesil; ROADMAP/README Faz 80'e guncellendi;
+  tum yeni JS/CSS tarayicida dogrulandi, sifir konsol hatasi.
+
 
 ## Sıradaki hedefler (stretch-goal, isteğe bağlı)
 

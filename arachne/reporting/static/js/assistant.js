@@ -189,4 +189,46 @@
     window.addEventListener("arachne:attack", onAttack);
     return {};
   })();
+
+  /* ============================================================
+     İHLAL TATBİKATI — kalkan delindiğinde profesyonel ihlal anonsu.
+     SİMÜLASYON'dur; savunma tespit/skorlama motoruna DOKUNMAZ.
+     Tetikleme: Shift+B, "İhlal Tatbikatı" düğmesi veya ArachneBreachDrill().
+     ============================================================ */
+  (function () {
+    function onBreach() {
+      const ts = new Date().toLocaleTimeString("tr-TR", { hour12: false });
+      const html =
+        `<div class="ai-breach-head">⛔ İHLAL TATBİKATI · <span>${esc(ts)}</span></div>` +
+        `<div class="ai-alert-row"><b>KALKAN DELİNDİ</b> — koordineli 9 vektörlü saldırı</div>` +
+        `<div class="ai-alert-row">18 savunma halkası aşıldı · <b>çekirdeğe sızıntı</b></div>` +
+        `<div class="ai-breach-warn">● SİMÜLASYON — gerçek ihlal değildir (müdahale tatbikatı)</div>`;
+      addMsg("breach", html);
+      dock.classList.add("open", "alerting");
+      if (window.ArachneSFX) window.ArachneSFX.alarm();
+      dock.classList.add("speaking");
+      speak("Alarm. İhlal tatbikatı. Kalkan delindi. Dokuz vektörlü koordineli saldırı, on sekiz savunma halkasını aştı. Çekirdeğe sızıntı tespit edildi. Bu bir simülasyondur.");
+      setTimeout(() => dock.classList.remove("speaking"), 5200);
+      // ~6.5 sn sonra çevreleme / kurtarma anonsu
+      setTimeout(() => {
+        addMsg("bot", "🛡️ Otomatik müdahale devrede: sızıntı çevrelendi, oturum sonlandırıldı, kaynak izole edildi. Kalkan yeniden şarj oluyor. (Tatbikat tamamlandı.)");
+        dock.classList.add("speaking");
+        speak("Otomatik müdahale devrede. Sızıntı çevrelendi ve kaynak izole edildi. Kalkan yeniden şarj oluyor. Tatbikat tamamlandı.");
+        setTimeout(() => dock.classList.remove("speaking"), 4200);
+      }, 6800);
+    }
+    window.addEventListener("arachne:breach", onBreach);
+    // Shift+B: İhlal Tatbikatını başlat
+    document.addEventListener("keydown", (e) => {
+      if (e.shiftKey && (e.key === "B" || e.key === "b")) {
+        e.preventDefault();
+        window.dispatchEvent(new CustomEvent("arachne:breach", { detail: { drill: true } }));
+      }
+    });
+    // "İhlal Tatbikatı" düğmesi (chip) — data-drill="breach"
+    document.querySelectorAll('[data-drill="breach"]').forEach((b) =>
+      b.addEventListener("click", () => window.dispatchEvent(new CustomEvent("arachne:breach", { detail: { drill: true } }))));
+    // programatik tetik (demo_breach.py bunu önerir)
+    window.ArachneBreachDrill = () => window.dispatchEvent(new CustomEvent("arachne:breach", { detail: { drill: true } }));
+  })();
 })();

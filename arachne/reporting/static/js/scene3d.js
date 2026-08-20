@@ -153,6 +153,16 @@
       alarmTarget = 0; document.body.classList.remove("attack-alarm");
     }, 2600);
   });
+  // İHLAL TATBİKATI: uzun süreli tam kırmızı kriz + ekran kırmızı vinyeti
+  window.addEventListener("arachne:breach", () => {
+    alarmTarget = 1;
+    document.body.classList.add("attack-alarm", "breach-crisis");
+    clearTimeout(window.__scene3dBreachT);
+    window.__scene3dBreachT = setTimeout(() => {
+      alarmTarget = 0;
+      document.body.classList.remove("attack-alarm", "breach-crisis");
+    }, 9000);
+  });
   window.ArachneScene3D = { alarm(on){ alarmTarget = on ? 1 : 0; } };
 
   function resize() {

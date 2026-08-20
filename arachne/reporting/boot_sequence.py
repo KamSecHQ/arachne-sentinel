@@ -30,7 +30,7 @@ _LOGO = r"""
      / /\ \  | '__/ _` |/ __| '_ \| '_ \ / _ \
     / ____ \ | | | (_| | (__| | | | | | |  __/
    /_/    \_\|_|  \__,_|\___|_| |_|_| |_|\___|
-        S E N T I N E L   ·   70   F A Z
+        S E N T I N E L   ·   80   F A Z
 """
 
 _STEPS = [
@@ -38,7 +38,7 @@ _STEPS = [
     ("MEMORY", "Yerel vektor bellek veritabani senkronize ediliyor", "green"),
     ("SENSORS", "Sensor agi + saglik telemetrisi baglaniyor", "green"),
     ("SIEM", "SIEM normalizasyon hatti aciliyor", "green"),
-    ("DEFENSE", "18 savunma halkasi / 70 faz yukleniyor", "green"),
+    ("DEFENSE", "18 savunma halkasi / 80 faz yukleniyor", "green"),
     ("ADAPTIVE", "Adaptif ko-evrim motorlari kalibre ediliyor", "green"),
     ("SOAR", "SOAR playbook orkestrasyonu hazir", "green"),
     ("INTEGRITY", "Kurcalama-kaniti denetim zinciri dogrulandi", "green"),
@@ -47,7 +47,7 @@ _STEPS = [
 ]
 
 # Hem terminal hem native pencere hem asistan AYNI Turkce sesi kullanir (uyumlu).
-_VOICE_LINE = ("Komuta merkezi devrede. Yetmiş faz aktif. "
+_VOICE_LINE = ("Komuta merkezi devrede. Seksen faz aktif. "
                "Tüm savunma katmanları çevrimiçi. Sistem hazır.")
 
 # Sentetik/otoriter ton icin inline say komutlari (pbas dusuk = derin).

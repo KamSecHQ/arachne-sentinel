@@ -114,6 +114,11 @@ _INTENTS = [
              "hangi bolge", "hangi ulke"]),
     ("fusion", ["fuzyon", "bayes", "birlesik risk", "olasilik", "sonsal",
                 "posterior"]),
+    # --- Faz 74-75 ko-evrim niyetleri (ozel; scan/attack'tan ONCE eslesmeli) ---
+    ("spray", ["sprey", "parola sprey", "kimlik doldur", "credential spray",
+               "cok kullanici", "kullanici sprey"]),
+    ("session_risk", ["oturum riski", "etkilesim", "ne kadar derine", "engagement",
+                      "en derin saldirgan", "etkilesim derinlik", "oturum derinlik"]),
     ("scan", ["tarama", "port tarama", "kaba kuvvet", "kaba-kuvvet", "brute",
               "deneme", "kimlik doldur", "credential"]),
     ("health", ["saglik", "sistem sagligi", "calisiyor mu", "durum raporu tam",
@@ -272,6 +277,62 @@ def answer(question: str, db_path=None) -> dict:
                     "belirgin bir yükseltme üretmedi.")
             spoken = "Birleşik tehdit olasılığını yükselten çoklu kanıt yok."
         return Answer("fusion", text, spoken, {"fusion": f}).__dict__
+
+    if intent == "spray":
+        try:
+            sv = aggregator.credential_spray_view(db_path=db_path)
+        except Exception:
+            sv = {"spray_ips": [], "top_sprayer": None,
+                  "distinct_user_total": 0, "count": 0}
+        cnt = sv.get("count", 0)
+        top = sv.get("top_sprayer")
+        total_users = sv.get("distinct_user_total", 0)
+        if cnt:
+            top_txt = ""
+            if top:
+                top_txt = (f" En yoğun sprayci {top['ip']} — "
+                           f"{top['distinct_users']} farklı kullanıcı adına deneme yaptı.")
+            text = (f"Parola spreyi tespiti: {cnt} kaynak, çok sayıda farklı kullanıcıya "
+                    f"az parola deneyerek (kimlik-doldurma) hesap kilitleme eşiğinin altında "
+                    f"kalmaya çalışıyor; toplam {total_users} farklı kullanıcı hedeflendi."
+                    f"{top_txt} Bu davranışsal bir göstergedir — insan incelemesine "
+                    f"yükseltilir, otomatik blok değil.")
+            spoken = f"{cnt} kaynakta parola spreyi tespit edildi."
+            if top:
+                spoken += (f" En yoğun spreyci {top['ip']}, "
+                           f"{top['distinct_users']} farklı kullanıcı hedefledi.")
+        else:
+            text = ("Şu an parola spreyi veya kimlik-doldurma davranışı gösteren kaynak yok — "
+                    "hedeflenen farklı kullanıcı çeşitliliği eşik altında.")
+            spoken = "Parola spreyi davranışı tespit edilmedi."
+        return Answer("spray", text, spoken, {"spray": sv}).__dict__
+
+    if intent == "session_risk":
+        try:
+            rv = aggregator.session_risk_view(db_path=db_path)
+        except Exception:
+            rv = {"ranked": [], "top_ip": None, "high_count": 0, "count": 0}
+        cnt = rv.get("count", 0)
+        top = rv.get("top_ip")
+        high = rv.get("high_count", 0)
+        if cnt and top:
+            # En derin saldirganin ulastigi asamalari ranked kaydindan al.
+            ranked = rv.get("ranked", [])
+            depth = ranked[0].get("depth", 0) if ranked else 0
+            band_spoken = _say_posture(top.get("band_tr"))
+            text = (f"Oturum riski / etkileşim derinliği: {cnt} kaynak skorlandı, "
+                    f"{high} tanesi yüksek veya kritik bantta. En derine inen saldırgan "
+                    f"{top['ip']} — etkileşim skoru {top['score']}/100 ({top.get('band_tr','-')}), "
+                    f"kill-chain'de {depth} farklı aşamaya ulaştı. Skor ne kadar yüksekse "
+                    f"saldırgan honeypot'ta o kadar derine inmiştir; bu bir önceliklendirme "
+                    f"göstergesidir, otomatik blok değil.")
+            spoken = (f"En derin saldırgan {top['ip']}, etkileşim skoru {top['score']}, "
+                      f"bant {band_spoken}. {depth} aşamaya ulaştı.")
+        else:
+            text = ("Şu an ölçülebilir etkileşim derinliği gösteren saldırgan yok — "
+                    "gelen olaylar sınıflandırılabilir bir kill-chain aşamasına oturmadı.")
+            spoken = "Ölçülebilir oturum etkileşim derinliği yok."
+        return Answer("session_risk", text, spoken, {"session_risk": rv}).__dict__
 
     if intent == "scan":
         from ..adaptive import scan_bruteforce

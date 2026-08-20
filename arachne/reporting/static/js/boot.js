@@ -14,6 +14,26 @@
   "use strict";
   const boot = document.getElementById("boot");
   if (!boot) return;
+
+  /* ---------- Faz 71: sinematik 3B çekirdek motorunu yükle ----------
+     boot3d.js kendi saydam WebGL canvas'ını #boot içine enjekte eder ve
+     window.ArachneBoot3D API'sini yayar. HTML'de script etiketi zaten
+     varsa çift yükleme yapmayız; yoksa boot.js'nin kendi <script src>
+     yolundan türeterek dinamik ekleriz (offline, ekstra istek yok). */
+  (function loadBoot3D() {
+    try {
+      if (window.ArachneBoot3D) return;
+      if (document.querySelector('script[src*="boot3d.js"]')) return;
+      const self = document.querySelector('script[src*="boot.js"]');
+      if (!self || !self.src) return;
+      const url = self.src.replace(/boot\.js(\?|$)/, "boot3d.js$1");
+      const s = document.createElement("script");
+      s.src = url;
+      s.async = false;
+      (document.head || document.body || document.documentElement).appendChild(s);
+    } catch (e) {}
+  })();
+
   const canvas = document.getElementById("boot-canvas");
   const ctx = canvas.getContext("2d");
   const TAU = Math.PI * 2;
@@ -217,25 +237,25 @@
     ctx.arc(cx, cy, base * 2.4, -Math.PI / 2, -Math.PI / 2 + TAU * (progress / 100));
     ctx.strokeStyle = "rgba(34,211,238,0.9)"; ctx.lineWidth = 3; ctx.stroke();
 
-    // çekirdek (arc reactor) — güç açılınca ısınır (coreLevel)
+    // çekirdek — Faz 71: merkez arc-reactor artık 3B (boot3d.js).
+    // 2B tarafta yalnızca çok hafif bir hâle + ince çentikler bırakıyoruz ki
+    // 3B çekirdekle çakışmasın; HUD (ızgara/halkalar/scanline) aynen kalır.
     coreLevel += (coreTarget - coreLevel) * 0.06;
     const L = coreLevel;
     const cr = base * (0.4 + pulse * 0.06) * (0.7 + L * 0.3);
     const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, cr * 2.2);
-    g.addColorStop(0, `rgba(120,240,255,${0.95 * L})`);
-    g.addColorStop(0.35, `rgba(34,211,238,${0.55 * L})`);
+    g.addColorStop(0, `rgba(120,240,255,${0.10 * L})`);
+    g.addColorStop(0.4, `rgba(34,211,238,${0.06 * L})`);
     g.addColorStop(1, "rgba(34,211,238,0)");
     ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, cr * 2.2, 0, TAU); ctx.fill();
-    ctx.beginPath(); ctx.arc(cx, cy, cr * 0.5 * (0.6 + L * 0.4), 0, TAU);
-    ctx.fillStyle = `rgba(220,250,255,${0.55 + 0.4 * L})`; ctx.fill();
 
-    // çekirdek etrafı üçgen çentikler
+    // çekirdek etrafı üçgen çentikler (soluk — 3B çekirdeğe çerçeve)
     ctx.save(); ctx.translate(cx, cy);
     ctx.rotate((Date.now() - t0) / 2400);
     for (let i = 0; i < 12; i++) {
       ctx.rotate(TAU / 12);
       ctx.beginPath(); ctx.moveTo(cr * 0.72, 0); ctx.lineTo(cr * 0.92, 5); ctx.lineTo(cr * 0.92, -5);
-      ctx.closePath(); ctx.fillStyle = `rgba(34,211,238,${0.4 + pulse * 0.3})`; ctx.fill();
+      ctx.closePath(); ctx.fillStyle = `rgba(34,211,238,${0.12 + pulse * 0.10})`; ctx.fill();
     }
     ctx.restore();
 
@@ -263,7 +283,7 @@
     ["BELLEK", "Yerel vektör bellek senkronize", 16],
     ["SENSÖR", "Sensör ağı + sağlık telemetrisi bağlandı", 26],
     ["SIEM", "Normalizasyon hattı açık", 36],
-    ["SAVUNMA", "18 savunma halkası / 70 faz yüklendi", 52],
+    ["SAVUNMA", "18 savunma halkası / 80 faz yüklendi", 52],
     ["ADAPTİF", "Ko-evrim motorları kalibre", 64],
     ["SOAR", "Otonom müdahale hazır", 74],
     ["BÜTÜNLÜK", "Kurcalama-kanıtı zincir doğrulandı", 84],
@@ -271,7 +291,7 @@
     ["ÇEVRİMİÇİ", "Tüm savunma katmanları nominal", 100],
   ];
   // Terminal + native pencere + asistan ile BİREBİR aynı ses (Türkçe, uyumlu).
-  const VOICE_LINE = "Komuta merkezi devrede. Yetmiş faz aktif. " +
+  const VOICE_LINE = "Komuta merkezi devrede. Seksen faz aktif. " +
     "Tüm savunma katmanları çevrimiçi. Sistem hazır.";
   const logEl = document.getElementById("boot-log");
   const barEl = document.getElementById("boot-bar-fill");
@@ -289,6 +309,8 @@
     if (booting) return;
     booting = true;
     coreTarget = 1.0;   // çekirdek ateşlenir
+    // Faz 71: 3B reaktör çekirdeğini ateşle (maviden beyaz-sıcağa, dalga yay)
+    if (window.ArachneBoot3D) window.ArachneBoot3D.ignite();
     document.getElementById("boot-power").classList.add("hidden");
     document.getElementById("boot-console").classList.add("show");
     Audio.resume();
@@ -306,6 +328,8 @@
       const [tag, desc, pct] = LINES[i];
       addLog(tag, desc);
       targetProgress = pct;
+      // Faz 71: 3B çekirdek yoğunluğunu boot ilerlemesiyle artır
+      if (window.ArachneBoot3D) window.ArachneBoot3D.setLevel(pct / 100);
       barEl.style.width = pct + "%";
       statusEl.textContent = `${tag} · %${pct}`;
       Audio.beep(440 + i * 55, 0.08, "square", 0.06);
@@ -328,6 +352,8 @@
   function dismiss() {
     if (done) return; done = true;
     Audio.stopDrone();
+    // Faz 71: 3B sahneyi durdur (rAF iptal + renderer temizle)
+    if (window.ArachneBoot3D && window.ArachneBoot3D.stop) window.ArachneBoot3D.stop();
     boot.classList.add("boot-out");
     setTimeout(() => {
       running = false; cancelAnimationFrame(raf);

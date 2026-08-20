@@ -287,6 +287,57 @@
     m.rotation.x = -Math.PI/2; m.position.copy(pos); scene.add(m); bursts.push({ m, t: 0 });
   }
 
+  /* ---------- İHLAL TATBİKATI (kalkanı delen sızıntı senaryosu) ----------
+     NOT: Bu bir SİMÜLASYON / TATBİKAT'tır. Savunmanın tespit/skorlama/SOAR
+     motorlarına DOKUNMAZ; yalnızca komuta merkezinin ihlal TEPKİSİNİ görsel
+     olarak test eder: koordineli bir saldırı kalkanı deler, çekirdeğe sızıntı
+     olur (kırmızı kriz + kalkan çatlaması + sarsıntı), sonra çevrelenir. */
+  let breachT = 0;                 // 0..1 kriz yoğunluğu (yavaşça söner)
+  const breachRings = [];          // çekirdekten yayılan şok dalgaları
+  function coreShock() {
+    breachT = 1;
+    for (let k = 0; k < 3; k++) {
+      const m = new THREE.Mesh(new THREE.RingGeometry(0.3, 0.7, 40),
+        new THREE.MeshBasicMaterial({ color: C_RED.clone(), transparent: true, opacity: 0.9,
+          side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false }));
+      m.rotation.x = -Math.PI/2; m.position.set(0, 0.1, 0);
+      scene.add(m); breachRings.push({ m, t: -k*0.2 });
+    }
+    // çekirdekten yükselen kırmızı enerji sütunu (sızıntı hüzmesi)
+    const col = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 1.6, R*1.25, 18, 1, true),
+      new THREE.MeshBasicMaterial({ color: 0xff5a4a, transparent: true, opacity: 0.5,
+        side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false }));
+    col.position.set(0, R*0.55, 0); scene.add(col); breachRings.push({ m: col, t: 0, pillar: true });
+  }
+  function fireBreach(angle, delay) {
+    setTimeout(() => {
+      const start = surfacePos(angle, Math.PI*0.40, R*1.03);
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.62, 12, 12),
+        new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, blending: THREE.AdditiveBlending }));
+      const headGlow = new THREE.Mesh(new THREE.SphereGeometry(1.5, 14, 14),
+        new THREE.MeshBasicMaterial({ color: C_RED.clone(), transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false }));
+      scene.add(head); scene.add(headGlow);
+      const tPos = new Float32Array(TRAIL_N*3), tCol = new Float32Array(TRAIL_N*3);
+      for (let k = 0; k < TRAIL_N; k++) { const f = 1 - k/(TRAIL_N-1); tCol[k*3]=1*f; tCol[k*3+1]=0.24*f; tCol[k*3+2]=0.18*f; }
+      const tGeo = new THREE.BufferGeometry();
+      tGeo.setAttribute("position", new THREE.BufferAttribute(tPos,3));
+      tGeo.setAttribute("color", new THREE.BufferAttribute(tCol,3));
+      const trail = new THREE.Line(tGeo, new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 1, blending: THREE.AdditiveBlending }));
+      scene.add(trail);
+      shots.push({ head, headGlow, trail, tPos, tLen: 0, angle, start, u: 0, targetR: 0.25, color: C_RED.clone(), spd: 0.03, breach: true });
+      shieldHit(angle, C_RED.clone());
+      shieldFracture(angle, C_RED.clone());
+    }, delay);
+  }
+  function triggerBreach() {
+    alarmTarget = 1;
+    clearTimeout(window.__dome3dBreachT);
+    window.__dome3dBreachT = setTimeout(() => { alarmTarget = 0; }, 9000);
+    const N = 9;                             // 9 vektörlü eş zamanlı barajı
+    for (let k = 0; k < N; k++) fireBreach((k / N) * Math.PI*2 + 0.2, k * 110);
+  }
+  window.addEventListener("arachne:breach", triggerBreach);
+
   /* ---------- veri ---------- */
   let seen = new Set(), first = true;
   function update(dome) {
@@ -408,9 +459,10 @@
       s.tLen = Math.min(TRAIL_N, s.tLen+1); s.trail.geometry.setDrawRange(0, s.tLen);
       s.trail.geometry.attributes.position.needsUpdate = true;
       if (s.u >= 1) {
-        const impCol = s.color.clone().lerp(C_RED, alarm*0.6);
+        const impCol = s.breach ? C_RED.clone() : s.color.clone().lerp(C_RED, alarm*0.6);
+        if (s.breach) { coreShock(); burst(new THREE.Vector3(0,0.1,0), C_RED.clone()); }  // çekirdeğe sızıntı!
         burst(end, impCol);                                  // mevcut patlama dalgası
-        shieldFracture(s.angle, C_BLUE.clone().lerp(C_RED, 0.35 + alarm*0.5)); // hex kalkan çatlağı + yerel flaş
+        shieldFracture(s.angle, s.breach ? C_RED.clone() : C_BLUE.clone().lerp(C_RED, 0.35 + alarm*0.5)); // hex kalkan çatlağı + yerel flaş
         reticle(end, impCol);                                // hedef kilidi retikülü
         impactBearings.push({ angle: s.angle, radius: s.targetR, life: 1, cool: 0 }); // kontak izi
         if (impactBearings.length > 24) impactBearings.shift();
@@ -445,12 +497,36 @@
       if (rt.t >= 1) { scene.remove(rt.grp); disposeObj(rt.grp); reticles.splice(i,1); }
     }
 
+    // ---- İHLAL kriz durumu: çekirdek kızarır, kamera sarsılır, kalkan delinir ----
+    if (breachT > 0.001) {
+      breachT = Math.max(0, breachT - 0.006);
+      const shake = breachT * 0.9;
+      camera.position.x += Math.sin(t*47) * shake;
+      camera.position.y += Math.cos(t*41) * shake;
+      coreGlow.material.color.copy(new THREE.Color(0xff3020));
+      coreGlow.material.opacity = 0.6 + Math.abs(Math.sin(t*20))*0.4*breachT + breachT*0.3;
+      core.material.color.copy(C_RED.clone());
+      coreG.scale.setScalar((1 + Math.sin(t*3)*0.14) * (1 + breachT*0.8));
+      shieldWire.material.color.copy(C_RED.clone());
+      shieldWire.material.opacity = 0.10 + Math.abs(Math.sin(t*9))*0.28*breachT;  // "delik" titreşimi
+    } else {
+      core.material.color.copy(C_GREEN.clone());
+      coreGlow.material.color.copy(new THREE.Color(0xbdffce));
+    }
+    for (let i = breachRings.length-1; i >= 0; i--) {
+      const br = breachRings[i]; br.t += 0.02;
+      if (br.t < 0) continue;
+      if (br.pillar) { br.m.material.opacity = Math.max(0, 0.5 - br.t*0.9); br.m.scale.y = 1 + br.t*0.35; }
+      else { const s = 1 + br.t*38; br.m.scale.set(s,1,s); br.m.material.opacity = Math.max(0, 1-br.t)*0.9; }
+      if (br.t >= 1) { scene.remove(br.m); if (br.m.geometry) br.m.geometry.dispose(); br.m.material.dispose(); breachRings.splice(i,1); }
+    }
+
     renderer.render(scene, camera);
     requestAnimationFrame(frame);
   }
 
   window.__DOME3D = true;
-  window.ArachneDome3D = { update, fire, alarm(on){ alarmTarget = on ? 1 : 0; } };
+  window.ArachneDome3D = { update, fire, alarm(on){ alarmTarget = on ? 1 : 0; }, breach: triggerBreach };
   resize();
   requestAnimationFrame(frame);
 })();

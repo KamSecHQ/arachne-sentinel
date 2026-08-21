@@ -13,15 +13,25 @@ _PATTERNS = [
     ("SQL Injection", re.compile(
         r"(\bunion\b[\s\S]{1,80}\bselect\b)|('\s*or\s*'?\d+'?\s*=\s*'?\d+)|"
         r"(;\s*drop\s+table)|(\bxp_cmdshell\b)|(\bsleep\s*\(\s*\d+\s*\))|"
-        r"(\bor\s+1\s*=\s*1\b)", re.IGNORECASE), 60),
+        r"(\bor\s+1\s*=\s*1\b)|"
+        # tirnakli tautoloji (rakamsiz): ' or 'a'='a , \" or \"x\"=\"x  vb.
+        r"(['\"]\s*or\s+['\"]?\w+['\"]?\s*=\s*['\"]?\w+)", re.IGNORECASE), 60),
     ("XSS", re.compile(
         r"(<script[\s>])|(javascript\s*:)|(on(error|load|click)\s*=)|"
         r"(<img[^>]+onerror)", re.IGNORECASE), 55),
     ("Command Injection", re.compile(
+        # kabuk meta-karakteri + yaygin komut, ya da $() / backtick / boru+nc
+        r"([;&|]\s*(cat|whoami|id|uname|hostname|ls|nc|bash|sh|curl|wget|python)\b)|"
         r"(;\s*cat\s+/etc/passwd)|(&&\s*whoami)|(\|\s*nc\s+)|(\$\()|(`[^`]+`)",
         re.IGNORECASE), 60),
     ("Path Traversal", re.compile(
-        r"(\.\./){2,}|(\.\.\\){2,}|(/etc/passwd\b)", re.IGNORECASE), 50),
+        r"(\.\./){2,}|(\.\.\\){2,}|(/etc/(passwd|shadow)\b)|(\.\.%2f)", re.IGNORECASE), 50),
+    ("SSTI", re.compile(
+        # sunucu-tarafi sablon enjeksiyonu: {{...}}, {%...%}, ${...} + tipik
+        # probe/exploit isaretleri (config, __class__, __globals__, self)
+        r"(\{\{[\s\S]{0,120}\}\})|(\{%[\s\S]{0,120}%\})|(\$\{[\s\S]{0,80}\})|"
+        r"(__class__|__globals__|__mro__|__subclasses__)",
+        re.IGNORECASE), 55),
 ]
 
 # Cok kisa surede ayni IP'den gelen istek sayisi bu esigi asarsa

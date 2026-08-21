@@ -37,7 +37,8 @@ def main():
     parser = argparse.ArgumentParser(description="Arachne Sentinel")
     parser.add_argument(
         "command",
-        choices=["run", "dashboard", "app", "report", "waf-demo", "scan", "train-ml", "mtd-demo",
+        choices=["run", "dashboard", "app", "report", "waf-demo", "waf-live",
+                 "waf-benchmark", "waf-report", "scan", "train-ml", "mtd-demo",
                  "soar-demo", "mesh-demo", "analyze", "ai-report", "stix-export",
                  "full-demo"],
     )
@@ -99,6 +100,29 @@ def main():
     elif args.command == "waf-demo":
         from arachne.waf.demo_app import run as run_waf_demo
         run_waf_demo(protected=not args.unprotected, port=args.port or 8090)
+
+    elif args.command == "waf-live":
+        # Genisletilmis lab hedefi (5 zafiyet sinifi) — canli koruyan proxy
+        from arachne.waf.labtarget import run as run_labtarget
+        run_labtarget(protected=not args.unprotected, host=args.host, port=args.port or 8090)
+
+    elif args.command == "waf-benchmark":
+        # WAF etkinligini olcer, ozeti yazar
+        from arachne.waf import benchmark
+        res = benchmark.run()
+        print("=== ARACHNE WAF ETKINLIK OLCUMU ===")
+        for line in benchmark.summary_lines(res):
+            print("  " + line)
+
+    elif args.command == "waf-report":
+        # Olcum + tek-dosya HTML rapor
+        from datetime import datetime
+        from arachne.waf import report
+        ts = datetime.now().strftime("%Y-%m-%d %H:%M")
+        path, res = report.generate("waf_effectiveness_report.html", generated_at=ts + " (lab)")
+        print(f"WAF etkinlik raporu olusturuldu: {path}")
+        print(f"  recall={res['metrics']['recall_detection_rate']*100:.1f}%  "
+              f"yanlis-pozitif={res['metrics']['false_positive_rate']*100:.1f}%")
 
     elif args.command == "scan":
         from arachne.scanner.vuln_scanner import scan_and_report

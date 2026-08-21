@@ -787,6 +787,36 @@ GARANTI degil, olculebilir bir MODEL + gercek kripto uygulamalaridir. Hicbir
 katman disari paket gondermez; hack-back yoktur.
 
 
+## Faz 101 — GERÇEK koruma + ÖLÇÜLEBİLİR WAF etkinliği (tamamlandi)
+
+"Gerçek bir saldırıya karşı seviyemiz ne?" sorusunu slogandan çıkarıp **sayıya**
+dönüştürür. Gerçek WAF, bilinçli-zafiyetli bir hedefin önüne konur ve etiketli
+saldırı korpusuyla ölçülür. Tamamen izole/hafızada; dış sisteme dokunmaz.
+
+- [x] **`arachne/waf/labtarget.py`** — 5 gerçek zafiyet sınıfı barındıran lab
+  hedefi: SQLi, yansıtılmış XSS, path traversal, komut enjeksiyonu (GÜVENLİ
+  taklit kabuk — keyfi komut asla çalışmaz), SSTI (Jinja). Her sınıf korumasızda
+  GERÇEKTEN çalışır (zemin-doğru); `attack_succeeded()` bunu doğrular.
+- [x] **`arachne/waf/rules.py` genişletildi** — SSTI imzası + tırnaklı tautoloji
+  (rakamsız `' OR 'a'='a`) + komut/path regex genişletmeleri.
+- [x] **`arachne/waf/benchmark.py`** — etiketli korpus (temel + kaçınma/evasion
+  yükleri + zararsız trafik); korumalı/korumasız üzerinden geçirip ölçer:
+  yakalama (recall), yanlış pozitif, precision/F1, GERÇEK-saldırı önleme oranı,
+  gecikme yükü. Her istek ayrı kaynak IP'sinden (imza tespiti rate-limit'ten
+  yalıtık ölçülür).
+- [x] **`arachne/waf/report.py`** — tek-dosya, kendinden-yeterli HTML rapor;
+  kaçan (bypass) yükleri **açıkça listeler** (dürüstlük).
+- [x] **`scripts/waf_live.py`** + `main.py waf-live/waf-benchmark/waf-report` —
+  canlı koruyan proxy + CLI.
+- [x] **Ölçülen sonuç (lab):** temel yükler **%100**, kaçınma yükleri **~%57**
+  (gerçek tavan), genel yakalama **~%90**, **%0 yanlış pozitif**, gerçek-saldırı
+  önleme **~%95**, gecikme **~+1 ms/istek**. +15 test (toplam **663**).
+
+**Dürüstlük notu:** İmza tabanlı bir WAF her evasion varyantını yakalayamaz;
+kaçan yükler raporda gizlenmez, listelenir. Bir sonraki adım: normalizasyon
+(kanonik hale getirme) + davranışsal tespit ile kaçınma direncini artırmak.
+
+
 ## Sıradaki hedefler (stretch-goal, isteğe bağlı)
 
 - İkinci bilgisayar (Windows/x86-64) edinildiğinde Faz 3'ün assembly

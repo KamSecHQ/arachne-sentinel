@@ -9,12 +9,25 @@ Sadece izole/lab ortaminda calistirin (bkz. docs/ETHICS_AND_LEGAL.md).
 """
 import asyncio
 import logging
+import random
 
 from .. import config
 from .. import storage
 from ..detection import scorer
 
 logger = logging.getLogger("arachne.honeypot")
+
+# Faz 108 - anti-parmak-izi: yanit gecikmesi.
+# Deterministik/sabit bir gecikme (ya da hic gecikme olmamasi) zamanlama
+# analiziyle "bu bir honeypot" tespitine acik kapi birakir - gercek bir
+# sunucu yuke gore DEGISKEN gecikir. Bilincli olarak GERCEK rastgelelik
+# kullanilir (guvenlik-kritik bir baglam degil, sadece gerceklik hissi).
+_JITTER_MIN_SECONDS = 0.02
+_JITTER_MAX_SECONDS = 0.15
+
+
+async def _response_jitter():
+    await asyncio.sleep(random.uniform(_JITTER_MIN_SECONDS, _JITTER_MAX_SECONDS))
 
 
 def _peer_info(writer):
@@ -139,6 +152,7 @@ async def _handle_generic(service_name: str, dest_port: int, reader, writer,
         or config.FAKE_SERVICES[service_name].get("banner")
     try:
         if banner:
+            await _response_jitter()
             writer.write(banner.encode(errors="ignore"))
             await writer.drain()
 
@@ -198,6 +212,7 @@ async def _handle_http_admin(dest_port: int, reader, writer, soar_enabled=False)
             "Content-Type: text/html; charset=utf-8\r\n"
             "Connection: close\r\n\r\n" + body
         )
+        await _response_jitter()
         writer.write(response.encode())
         await writer.drain()
     finally:
@@ -308,6 +323,7 @@ async def _handle_bespoke_service(service_name: str, dest_port: int, reader, wri
             _check_honeytokens(source_ip, payload)
         response = build_response(payload or "")
         if response:
+            await _response_jitter()
             writer.write(response)
             await writer.drain()
     finally:

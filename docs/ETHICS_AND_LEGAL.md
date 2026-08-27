@@ -255,3 +255,30 @@ açıklayıcı bir gösterge olarak sunulmalıdır, kesin bir olasılık olarak 
 **anahtar kelime** (banner'dan türetilmiş ürün/sürüm ismi, örn. "vsftpd")
 gönderir — IP adresiniz, ağ topolojiniz ya da tarama sonuçlarınızın geri
 kalanı gönderilmez. Varsayılan olarak kapalıdır.
+
+### Faz 108 — Çekirdek yemi ve anti-parmak-izi: neden ve nasıl
+
+**Saldırgan psikolojisi tasarım ilkesi:** Bu fazda bilinçli bir karar verildi
+— sızdırılan sahte veri (`db-internal.local`, `svc_user`) **dramatik veya
+"değerli" görünmeyecek şekilde** isimlendirildi. Nedeni: deneyimli bir
+saldırgan, "vault-core" ya da "TOP-SECRET" gibi bariz bir isim gördüğünde
+bunun bir tuzak olduğunu anlar ve geri çekilir — tam da yakalamak
+istediğimiz sofistike aktörü kaçırmış oluruz. Sıradan görünen bir yem,
+hem düşük seviye botları hem de deneyimli saldırganları aynı şekilde
+yakalayabilir. Bu, "aldatma ne kadar gerçekçiyse o kadar etkilidir"
+ilkesinin doğrudan uygulamasıdır — pazarlama abartısı değil, ölçülebilir
+bir tasarım tercihi.
+
+**Anti-parmak-izi sertleştirmesi ne yapar, ne yapmaz:**
+- Yeni `rule_honeypot_awareness_probe` kuralı, saldırganın ortamı bir
+  honeypot/sandbox olarak tespit etmeye çalıştığına dair **bilinen, iyi
+  belgeli** işaretleri arar (bilinen honeypot yazılım adları, sanallaştırma
+  tespiti komutları, VM MAC önekleri). Bu bir **heuristiktir, kesin kanıt
+  değildir** — bazı güvenlik araştırmacıları bu komutları zararsız amaçla
+  da çalıştırabilir; bu yüzden kural motorunun DİĞER sinyalleriyle
+  birlikte değerlendirilir, tek başına otomatik engellemeye yol açmaz.
+- Yanıt gecikmesi (jitter) **güvenlik-kritik bir rastgelelik değildir** —
+  sadece zamanlama analiziyle honeypot tespitini zorlaştıran kozmetik bir
+  gerçekçilik katmanıdır. `random` modülü (kriptografik olmayan) bilinçli
+  olarak yeterlidir; burada tahmin edilemezlik değil, doğal değişkenlik
+  hedeflenir.

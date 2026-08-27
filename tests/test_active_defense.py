@@ -123,6 +123,73 @@ def test_deception_engine_normal_not_logged():
     assert storage.get_active_defense(db_path=db) == []
 
 
+# --- Faz 108: Cekirdek Yemi (Core Bait) -------------------------------------
+
+def test_fake_success_marks_core_vault_touched():
+    db = _tmp_db()
+    engine = deception.DeceptionEngine(db_path=db)
+    result = engine.apply("203.0.113.9", threat_score=70,
+                          attack_classes=["Brute Force"])
+    assert result["decision"]["action"] == "fake-success"
+    assert result["core_vault_touched"] is True
+
+
+def test_fake_success_logs_core_vault_breach_illusion_technique():
+    db = _tmp_db()
+    engine = deception.DeceptionEngine(db_path=db)
+    engine.apply("203.0.113.9", threat_score=70, attack_classes=["Brute Force"])
+    logged = storage.get_active_defense(db_path=db)
+    techniques = {row["technique"] for row in logged}
+    assert "core_vault_breach_illusion" in techniques
+    assert "fake-success" in techniques
+
+
+def test_fake_success_plants_mundane_looking_db_honeytoken():
+    """Durustluk/gerceklik notu: sizdirilan honeytoken SIRADAN gorunmeli
+    ('db-internal.local' gibi) - dramatik bir isim ('vault-core' vb.)
+    deneyimli bir saldirgani aninda supheye dusurur."""
+    db = _tmp_db()
+    engine = deception.DeceptionEngine(db_path=db)
+    engine.apply("203.0.113.9", threat_score=70, attack_classes=["Brute Force"])
+    tokens = storage.get_honeytokens(db_path=db)
+    db_tokens = [t for t in tokens if t["token_type"] == "db_uri"]
+    assert len(db_tokens) == 1
+    assert "db-internal.local" in db_tokens[0]["value"]
+    assert "core-vault-illusion" in db_tokens[0]["context"]
+
+
+def test_non_brute_force_fake_data_does_not_touch_core_vault():
+    """Sadece fake-success (Brute Force) cekirdek yemini tetikler -
+    fake-data (Path Traversal/SQLi) ayri bir aldatma stratejisidir."""
+    db = _tmp_db()
+    engine = deception.DeceptionEngine(db_path=db)
+    result = engine.apply("203.0.113.9", threat_score=70,
+                          attack_classes=["Path Traversal"])
+    assert result["core_vault_touched"] is False
+    techniques = {row["technique"] for row in storage.get_active_defense(db_path=db)}
+    assert "core_vault_breach_illusion" not in techniques
+
+
+def test_core_vault_recently_touched_reflects_storage_state():
+    db = _tmp_db()
+    assert storage.core_vault_recently_touched(db_path=db) is False
+    deception.DeceptionEngine(db_path=db).apply(
+        "203.0.113.9", threat_score=70, attack_classes=["Brute Force"])
+    assert storage.core_vault_recently_touched(db_path=db) is True
+
+
+def test_core_vault_recently_touched_respects_time_window():
+    db = _tmp_db()
+    deception.DeceptionEngine(db_path=db).apply(
+        "203.0.113.9", threat_score=70, attack_classes=["Brute Force"])
+    # Cok kisa bir pencerede bile (henuz gecmeyen zaman) gorulmeli
+    assert storage.core_vault_recently_touched(since_seconds=300, db_path=db) is True
+    # Negatif/sifir genislikte pencere gecmiste kalmis olmali (deger 0 saniye
+    # once ile simdi arasinda gerceklesti, bu yuzden hala 'simdi' sayilir -
+    # datetime('now', '-0 seconds') = simdi, bu yuzden burada True beklenir).
+    assert storage.core_vault_recently_touched(since_seconds=0, db_path=db) is True
+
+
 # --- Faz 12: Honeytokens ----------------------------------------------------
 
 def test_generate_honeytoken_has_unique_id():

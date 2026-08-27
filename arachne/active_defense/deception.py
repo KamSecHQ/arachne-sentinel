@@ -139,7 +139,23 @@ def generate_fake_passwd(source_ip: str, lines: int = 8) -> str:
 
 
 class DeceptionEngine:
-    """Aldatma eylemlerini uygulayan ve kaydeden motor."""
+    """Aldatma eylemlerini uygulayan ve kaydeden motor.
+
+    --- Faz 108: Cekirdek Yemi (Core Bait) ---
+    "fake-success" karari, saldirganin gozunde tam olarak "kubbeyi astim,
+    icerideyim" anidir - kaba-kuvvet/kimlik denemesi (gorunuse gore)
+    basarili oldu. Bu, projenin tasarim ilkesiyle birebir orutuyor: saldirgan
+    ne kadar "basardim" hissederse, Son Hat'in devreye girmesi o kadar
+    dogal/beklenmedik olur. Bu yuzden fake-success anini ayri, yuksek-
+    guvenli bir teknik ("core_vault_breach_illusion") olarak da kaydediyoruz
+    - `arachne.lastline.fortress.context_from_live()` bunu okuyup Son Hat'in
+    ihlal kararina (`should_engage`) DOGRUDAN, esik beklemeden besler.
+
+    DURUSTLUK/GERCEKCILIK NOTU (saldirgan psikolojisi): sahte veri BILEREK
+    sIradan/donuk isimlendirilir (db-internal.local, svc_user, backup...) -
+    "vault-core" ya da "TOP-SECRET" gibi dramatik bir isim, deneyimli bir
+    saldirgani ANINDA tuzaktan supheye dusurur. En inandirici tuzak,
+    tuzak gibi GORUNMEYENDIR."""
 
     def __init__(self, db_path=None):
         self.db_path = db_path
@@ -151,6 +167,7 @@ class DeceptionEngine:
         decision = decide_response(threat_score, attack_classes)
 
         fake_data = None
+        core_vault_touched = False
         if decision.action == "fake-data":
             if "Path Traversal" in (attack_classes or []):
                 fake_data = generate_fake_passwd(source_ip)
@@ -158,16 +175,46 @@ class DeceptionEngine:
                 fake_data = str(generate_fake_credentials(source_ip))
         elif decision.action == "fake-success":
             fake_data = str(generate_fake_credentials(source_ip, count=1))
+            # Faz 108: saldirgan "icerideyim" saniyor - bu, cekirdek yeminin
+            # tetiklenme anidir. Sessizce, sIradan gorunen bir DB baglanti
+            # dizesi de "sizdirilir" (mundane honeytoken - bkz. modul dogstring'i).
+            core_vault_touched = True
+            self._plant_core_vault_token(source_ip)
 
         if decision.action != "normal":
             self.deception_count += 1
             self._log(source_ip, decision)
+        if core_vault_touched:
+            self._log_core_vault_touch(source_ip)
 
         return {
             "decision": decision.to_dict(),
             "fake_data_preview": (fake_data or "")[:300],
             "deception_applied": decision.action != "normal",
+            "core_vault_touched": core_vault_touched,
         }
+
+    def _plant_core_vault_token(self, source_ip: str):
+        """Sahte-basari aninda sIradan gorunen bir DB honeytoken'i 'sizdirir' -
+        saldirgan bunu baska yerde kullanmaya kalkarsa Faz 12 onu yakalar."""
+        try:
+            from .honeytokens import HoneytokenVault
+            HoneytokenVault(db_path=self.db_path).mint(
+                "db_uri", context=f"core-vault-illusion:{source_ip}")
+        except Exception:
+            pass
+
+    def _log_core_vault_touch(self, source_ip: str):
+        try:
+            from .. import storage
+            storage.log_active_defense(
+                source_ip=source_ip, technique="core_vault_breach_illusion",
+                detail=("Saldirgan sahte 'giris basarili' yanitini gercek "
+                        "sandi - Son Hat'e bildirildi"),
+                db_path=self.db_path,
+            )
+        except Exception:
+            pass
 
     def _log(self, source_ip: str, decision: DeceptionDecision):
         try:

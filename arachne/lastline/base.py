@@ -26,6 +26,7 @@ class DefenseContext:
     attempts: int = 0                   # bu oturumdaki deneme sayisi
     services_touched: int = 1           # kac farkli servis
     novelty: float = 0.0                # Faz 42 yenilik skoru (0..1)
+    core_vault_touched: bool = False    # Faz 108 - saldirgan sahte cekirdege dokundu mu
     now_ms: int = 0                     # deterministik saat (ms) — testlerde enjekte edilir
     seed: str = "arachne"               # deterministik cekirdek (kimlik/karar uretimi)
     extra: Dict[str, Any] = field(default_factory=dict)

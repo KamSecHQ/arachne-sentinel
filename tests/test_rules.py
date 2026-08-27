@@ -54,3 +54,39 @@ def test_rule_repeated_offender_reflects_prior_alert_flag():
     assert weight == 20
     triggered, _, _ = rules.rule_repeated_offender([], has_prior_alert=False)
     assert triggered is False
+
+
+# --- Faz 108: honeypot/sandbox-farkindaligi taramasi ------------------------
+
+def test_rule_honeypot_awareness_detects_known_honeypot_name():
+    events = [_event("ssh", event_type="data",
+                     payload="ps aux | grep -i cowrie")]
+    triggered, reason, weight = rules.rule_honeypot_awareness_probe(events)
+    assert triggered is True
+    assert weight == 35
+    assert "cowrie" in reason
+
+
+def test_rule_honeypot_awareness_detects_virt_detection_command():
+    events = [_event("ssh", event_type="data", payload="systemd-detect-virt")]
+    triggered, _, _ = rules.rule_honeypot_awareness_probe(events)
+    assert triggered is True
+
+
+def test_rule_honeypot_awareness_detects_vm_mac_oui():
+    events = [_event("ssh", event_type="data",
+                     payload="arp -a | grep 08:00:27:aa:bb:cc")]
+    triggered, _, _ = rules.rule_honeypot_awareness_probe(events)
+    assert triggered is True
+
+
+def test_rule_honeypot_awareness_ignores_ordinary_recon():
+    """Siradan kesif komutlari (whoami, ls, id) yanlis-pozitif URETMEMELI -
+    bunlar cok yaygin, ayirt edici degil."""
+    events = [_event("ssh", event_type="data", payload="whoami; ls -la; id")]
+    triggered, _, _ = rules.rule_honeypot_awareness_probe(events)
+    assert triggered is False
+
+
+def test_rule_honeypot_awareness_registered_in_all_rules():
+    assert rules.rule_honeypot_awareness_probe in rules.ALL_RULES

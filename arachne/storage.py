@@ -546,6 +546,22 @@ def get_active_defense(limit=100, db_path=None):
         return [dict(row) for row in rows]
 
 
+def core_vault_recently_touched(since_seconds=300, db_path=None):
+    """Faz 108: son `since_seconds` icinde 'core_vault_breach_illusion'
+    teknigi kaydedildi mi (saldirgan sahte cekirdege dokundu mu).
+
+    Bu, DeceptionEngine'in sahte-basari yanitiyla Son Hat'in ihlal karari
+    arasindaki koprudur - ayri bir tablo degil, mevcut active_defense
+    denetim kaydi uzerinden sorgulanir (Faz 11 ile ayni disiplin)."""
+    with get_conn(db_path) as conn:
+        row = conn.execute(
+            "SELECT 1 FROM active_defense WHERE technique = 'core_vault_breach_illusion' "
+            "AND timestamp >= datetime('now', ?) LIMIT 1",
+            (f"-{int(since_seconds)} seconds",),
+        ).fetchone()
+        return row is not None
+
+
 def active_defense_stats(db_path=None):
     with get_conn(db_path) as conn:
         total = conn.execute("SELECT COUNT(*) c FROM active_defense").fetchone()["c"]

@@ -1,6 +1,6 @@
 # 🕸 Arachne Sentinel
 
-Honeypot tabanlı, **107 fazlı** bir **erken uyarı, saldırı tespit, otonom
+Honeypot tabanlı, **108 fazlı** bir **erken uyarı, saldırı tespit, otonom
 müdahale, aktif savunma, adaptif (ko-evrim) savunma ve ölçülebilir SOC
 platformu**. Faz 1-100 tam — motor + test + sinematik komuta merkezi + AI
 komuta asistanı. **18 halkalı** Çelik Kubbe + **50 katmanlı Son Hat yer altı
@@ -275,11 +275,18 @@ uygulama (SPA), iki hızlı poll döngüsü, birleşik toplayıcı
 - **Faz 107 — Gerçek CVE/NVD zenginleştirmesi** (`arachne/scanner/nvd_lookup.py`):
   statik `known_vulnerabilities` listesinin yanına NVD REST API'sinden canlı
   CVE eşleştirmesi; kapalı/başarısız olduğunda sessizce statik listeye düşer.
+- **Faz 108 — Çekirdek yemi + anti-parmak-izi sertleştirmesi**: Çelik Kubbe
+  delindiğinde saldırganın "başardım" sandığı an (sahte "giriş başarılı")
+  artık Son Hat'i eşik beklemeden **anında** tetikliyor; sızdırılan yem
+  bilinçli olarak sıradan isimlendirildi (deneyimli saldırganı ürkütmemek
+  için). Ayrıca bilinen honeypot-tespit taktiklerine (sanallaştırma kontrolü,
+  bilinen honeypot yazılım adları, VM MAC önekleri) karşı yeni bir tespit
+  kuralı ve tüm honeypot yanıtlarına gerçekçi/değişken gecikme eklendi.
 
 **Ortak:**
 - **Otomatik HTML raporu**, **AI Markdown raporu**, **STIX 2.1 bundle** ve
   **sinematik canlı komuta merkezi** (gerçek performans metrikleriyle)
-- **749 birim testi** (`tests/`) ve kendi kendini test eden demo saldırı scriptleri
+- **763 birim testi** (`tests/`) ve kendi kendini test eden demo saldırı scriptleri
 
 ## Kurulum
 
@@ -405,7 +412,7 @@ export ARACHNE_NVD_API_KEY="anahtarınız"         # opsiyonel, sadece kota yük
 
 ```bash
 pip install pytest
-pytest tests/ -v      # 749 test
+pytest tests/ -v      # 763 test
 ```
 
 ## Mimari ve yol haritası

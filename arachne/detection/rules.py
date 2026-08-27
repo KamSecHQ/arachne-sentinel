@@ -99,6 +99,51 @@ def rule_known_signature(events):
     return False, None, 0
 
 
+# Faz 108 - bilinen "honeypot/sandbox farkindaligi" (anti-honeypot) komutlari
+# ve isaretleri. Bunlar SIRADAN kesif komutlarindan (whoami, ls, ...) BILINCLI
+# olarak ayri tutulur - o kadar yaygin komutlari isaretlemek yanlis-pozitif
+# uretir. Burada SADECE deneyimli bir saldirganin/otomasyonun "bu ortam
+# gercek mi yoksa bir tuzak/sandbox mi?" sorusuna cevap aramak icin
+# CALISTIRACAGI, gercek dunyada iyi bilinen (malware/sandbox-kacinma ve
+# honeypot-tespit literaturunde belgeli) komut/dize kaliplaridir. Bu
+# davranisin kendisi, sIradan bir saldirgandan cok daha "farkinda" bir
+# aktore isaret eder - bu yuzden ayri ve nispeten yuksek agirlikli bir kural.
+_HONEYPOT_AWARENESS_PATTERNS = [
+    # Sanallastirma/konteyner tespiti (malware sandbox-kacinma literaturu)
+    "systemd-detect-virt", "virt-what", "dmidecode -s system-product-name",
+    "/sys/class/dmi/id/product_name", "/sys/class/dmi/id/sys_vendor",
+    "lscpu | grep -i hypervisor", "cat /proc/scsi/scsi",
+    # Bilinen honeypot yazilimlarinin adlari (saldirgan bunlari arastiriyor demektir)
+    "cowrie", "kippo", "honeyd", "dionaea", "conpot", "t-pot", "glutton",
+    "honeytrap", "opencanary",
+    # Analiz/hipervizor arac imzalari (VirtualBox/VMware/QEMU MAC OUI'leri dahil)
+    "vboxguest", "vboxservice", "vmware-toolbox", "qemu-ga",
+    "08:00:27:", "00:0c:29:", "00:1c:14:", "00:50:56:",
+]
+
+
+def rule_honeypot_awareness_probe(events):
+    """Saldirganin/otomasyonun ortami bir honeypot/sandbox olarak tespit
+    etmeye calistigina dair bilinen isaretleri arar (bkz. modul basi liste).
+
+    DURUSTLUK: bu heuristik bir isarettir, kesin kanit degil - meso bazi
+    guvenlik arastirmacilari da bu komutlari zararsiz amacla calistirabilir.
+    Bu yuzden agirligi tek basina alarm esigini (ALERT_MIN_SCORE=30) gececek
+    kadar yuksek ama tek kanit olarak ASIRI iddiali degildir."""
+    for e in events:
+        payload = (e.get("payload") or "").lower()
+        if not payload:
+            continue
+        for pattern in _HONEYPOT_AWARENESS_PATTERNS:
+            if pattern in payload:
+                return True, (
+                    f"Olasi honeypot/sandbox-farkindaligi taramasi tespit edildi "
+                    f"(isaret: '{pattern}') - siradan bir saldirgandan daha "
+                    f"bilincli bir aktore isaret ediyor"
+                ), 35
+    return False, None, 0
+
+
 def rule_multi_service_probe(events):
     """Ayni IP, birden fazla farkli sahte serviste deneme yapti mi (kesif davranisi)?"""
     services = {e["service"] for e in events if e["event_type"] == "connect"}
@@ -138,4 +183,5 @@ def rule_ml_classifier(events):
 # scorer.py, IP'ye ozel gecmisi bilmesi gereken rule_repeated_offender haric
 # tum kurallari otomatik olarak calistirir.
 ALL_RULES = [rule_port_scan, rule_brute_force, rule_known_signature,
-             rule_multi_service_probe, rule_ml_classifier]
+             rule_multi_service_probe, rule_ml_classifier,
+             rule_honeypot_awareness_probe]

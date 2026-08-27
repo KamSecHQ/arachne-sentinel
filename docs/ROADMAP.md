@@ -948,6 +948,51 @@ kaçan yükler raporda gizlenmez, listelenir. Bir sonraki adım: normalizasyon
 663 → **749**.
 
 
+## Faz 108 — Çekirdek Yemi (Core Bait) + Anti-Parmak-İzi Sertleştirmesi (tamamlandı)
+
+> Motivasyon: Çelik Kubbe delindiğinde saldırgan "gerçek varlığa ulaştım"
+> hissetmeli — ama ulaştığı şey aslında Son Hat'i **anında** tetikleyen bir
+> yem olsun. Ayrıca deneyimli/bilinçli saldırganların honeypot'u tespit etmek
+> için kullandığı bilinen taktiklere karşı somut önlemler eklendi.
+
+- [x] **Çekirdek yemi tetikleyicisi** (`arachne/active_defense/deception.py`):
+  `DeceptionEngine`'in mevcut "fake-success" kararı (Faz 11, kaba-kuvvet
+  denemesine sahte "giriş başarılı" dönüşü) artık aynı zamanda
+  `core_vault_breach_illusion` tekniğini kaydediyor ve sıradan görünen bir
+  DB honeytoken'ı (Faz 12, `db-internal.local` gibi) "sızdırıyor".
+- [x] **`arachne/lastline/fortress.py`**: `DefenseContext`'e yeni
+  `core_vault_touched` alanı eklendi; `should_engage()` bu sinyali TEK
+  BAŞINA yeterli sayıyor (honeytoken ile aynı "yanlış-pozitif ~sıfır"
+  mantığı — eşik/derinlik beklemeden Son Hat'in kanıtlanmış <100ms tepki
+  hattını tetikler). `context_from_live()` bunu `storage.core_vault_recently_touched()`
+  ile okuyor.
+- [x] **DÜRÜSTLÜK/GERÇEKÇİLİK İLKESİ (saldırgan psikolojisi)**: sızdırılan
+  yem BİLEREK sıradan isimlendirildi (`db-internal.local`, `svc_user`) —
+  "vault-core" ya da "TOP-SECRET" gibi dramatik bir isim, deneyimli bir
+  saldırganı anında şüphelendirir. En inandırıcı tuzak, tuzak gibi
+  GÖRÜNMEYENDİR (bkz. docs/ETHICS_AND_LEGAL.md Faz 108 notu).
+- [x] **Anti-parmak-izi sertleştirmesi**:
+  - `arachne/detection/rules.py`: yeni `rule_honeypot_awareness_probe` —
+    bilinen honeypot yazılım adları (cowrie/kippo/dionaea/...), sanallaştırma
+    tespiti komutları (`systemd-detect-virt`, `dmidecode`...) ve bilinen
+    VM MAC OUI önekleri (VirtualBox/VMware) gibi **spesifik, iyi belgeli**
+    anti-honeypot/anti-sandbox işaretlerini arar. Sıradan kesif komutları
+    (whoami/ls/id) bilinçli olarak DIŞARIDA bırakıldı (yanlış-pozitif riski).
+  - `arachne/honeypot/listeners.py`: tüm honeypot yanıtlarına (generic +
+    http-admin + bespoke servisler) gerçek, DEĞİŞKEN bir gecikme (20-150ms,
+    stdlib `random`) eklendi — sabit/anında yanıt, zamanlama analiziyle
+    honeypot tespitine açık kapı bırakır; gerçek bir sunucu yüke göre
+    değişken gecikir.
+- [x] 14 yeni birim testi (core-vault tetikleme zinciri uçtan uca, mundane
+  isimlendirme doğrulaması, honeypot-awareness kuralı + yanlış-pozitif
+  regresyon testi). Toplam test sayısı 749 → **763**.
+
+**Sıradaki adım (isteğe bağlı, ayrı bir pass gerektirir):** Komuta merkezi
+arayüzünün görsel/UX profesyonelliğini araştırılan referanslara (Wazuh/
+OpenCTI/augmented-ui tasarım dili — bkz. sohbet geçmişi) göre yükseltmek;
+bu, tarayıcıda gerçek doğrulama gerektiren ayrı bir frontend çalışmasıdır.
+
+
 ## Sıradaki hedefler (stretch-goal, isteğe bağlı)
 
 - İkinci bilgisayar (Windows/x86-64) edinildiğinde Faz 3'ün assembly

@@ -61,6 +61,12 @@ class LastLineFortress:
             return True, f"Yuksek fuzyon ({ctx.fused_posterior:.2f}) + derin sizma"
         if ctx.honeytoken_tripped and ctx.bypassed_layers >= 16:
             return True, "Honeytoken + cok derin sizma"
+        if ctx.core_vault_touched:
+            # Faz 108: saldirgan sahte-basari yanitini gercek sandi - bu
+            # esik BEKLEMEDEN devreye giren, tek basina yeterli bir sinyaldir
+            # (honeytoken ile ayni "yanlis-pozitif ~sifir" mantigi - mesru
+            # hicbir kullanici bu sahte 'giris basarili' anina ulasamaz).
+            return True, "Cekirdek yemi tetiklendi - saldirgan sahte basariyi gercek sandi"
         return False, "Esik altinda — son hat beklemede"
 
     # ---- devreye girme ----
@@ -186,6 +192,11 @@ def context_from_live(db_path=None, drill: bool = False) -> DefenseContext:
         from ..reporting import command_center
         dome = command_center.build_dome_state(db_path=db_path)
         ctx.bypassed_layers = sum(1 for l in dome.get("layers", []) if l.get("active"))
+    except Exception:
+        pass
+    try:
+        from .. import storage
+        ctx.core_vault_touched = storage.core_vault_recently_touched(db_path=db_path)
     except Exception:
         pass
     return ctx

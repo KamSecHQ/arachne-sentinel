@@ -138,6 +138,43 @@ def test_should_engage_yuksek_fuzyon_ama_sig_yok():
     assert not ok
 
 
+# --- Faz 108: Cekirdek Yemi (Core Bait) tetikleyicisi -----------------------
+
+def test_should_engage_core_vault_touched_alone_is_sufficient():
+    """Honeytoken ile ayni mantik: cekirdek yemi tetiklenmesi TEK BASINA
+    yeterlidir, esik/derinlik beklenmez (yanlis-pozitif ~sifir sinyal)."""
+    ctx = DefenseContext(core_vault_touched=True, bypassed_layers=0,
+                         fused_posterior=0.0, honeytoken_tripped=False)
+    ok, reason = LastLineFortress.should_engage(ctx)
+    assert ok
+    assert "cekirdek yemi" in reason.lower() or "çekirdek yemi" in reason.lower()
+
+
+def test_should_engage_no_core_vault_no_other_signal_stays_standby():
+    ctx = DefenseContext(core_vault_touched=False)
+    ok, _ = LastLineFortress.should_engage(ctx)
+    assert not ok
+
+
+def test_context_from_live_picks_up_core_vault_touch(tmp_path):
+    import time
+    from arachne import storage
+    from arachne.active_defense.deception import DeceptionEngine
+    from arachne.lastline.fortress import context_from_live
+
+    db = str(tmp_path / "t.db")
+    storage.init_db(db_path=db)
+
+    ctx_before = context_from_live(db_path=db)
+    assert ctx_before.core_vault_touched is False
+
+    DeceptionEngine(db_path=db).apply("203.0.113.9", threat_score=70,
+                                      attack_classes=["Brute Force"])
+
+    ctx_after = context_from_live(db_path=db)
+    assert ctx_after.core_vault_touched is True
+
+
 # ========================= fortress.engage() ==============================
 def _fortress():
     now = [1_000_000]

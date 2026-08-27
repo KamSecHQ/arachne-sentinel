@@ -1,6 +1,6 @@
 # 🕸 Arachne Sentinel
 
-Honeypot tabanlı, **100 fazlı** bir **erken uyarı, saldırı tespit, otonom
+Honeypot tabanlı, **107 fazlı** bir **erken uyarı, saldırı tespit, otonom
 müdahale, aktif savunma, adaptif (ko-evrim) savunma ve ölçülebilir SOC
 platformu**. Faz 1-100 tam — motor + test + sinematik komuta merkezi + AI
 komuta asistanı. **18 halkalı** Çelik Kubbe + **50 katmanlı Son Hat yer altı
@@ -248,10 +248,38 @@ uygulama (SPA), iki hızlı poll döngüsü, birleşik toplayıcı
   devreye girer. **Dürüstlük:** `reached_real_asset` daima False — bu ölçülebilir
   bir MODEL + gerçek kripto uygulamalarıdır, mutlak garanti değil.
 
+### Faz 102-107 — Yeni nesil savunma + işlev genişletmesi
+
+> Sıfır yeni pip bağımlılığı — hepsi stdlib ya da zaten kurulu
+> scikit-learn/joblib ile. Her dış-kaynak özelliği Faz 8'in "karantina" LLM
+> mimarisini birebir tekrar kullanır: varsayılan KAPALI, ortam değişkeniyle
+> açılır, asla istisna fırlatmaz, kapalıyken sistem hiçbir şey kaybetmez.
+
+- **Faz 102 — Gerçek tehdit istihbaratı** (`arachne/intel/threat_intel.py`):
+  AbuseIPDB/OTX ile opsiyonel IP itibar sorgusu; sadece **public** IP'ler
+  sorgulanır (lab/private trafiği asla dışarı gönderilmez), risk motoruna
+  açıklanabilir küçük bir ek faktör olarak beslenir.
+- **Faz 103 — Genişletilmiş honeypot yüzeyi**: Redis, Docker API,
+  Elasticsearch (gerçekçi protokol yanıtları), Telnet, RDP, SMB (minimal —
+  bağlantı/ham bayt loglanır, dürüstlük notuyla sınırlı kapsam).
+- **Faz 104 — Gerçek SIEM uyumluluğu** (`arachne/siem/exporter.py`): ECS
+  normalize kaydını gerçek **ArcSight CEF + RFC 3164 syslog** formatına
+  çevirir (Wazuh/QRadar/Splunk'ın fiilen beklediği tel formatı); CEF
+  enjeksiyonuna karşı spec'e uygun kaçış.
+- **Faz 105 — Container dağıtımı**: `Dockerfile` + `docker-compose.yml` +
+  [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) — tek komutla tüm platform.
+- **Faz 106 — Davranışsal anomali** (`arachne/detection/anomaly_ml.py`):
+  Isolation Forest tabanlı, IP'nin davranışsal özellik vektörüne (olay
+  hızı, servis/port çeşitliliği, entropi) bakan ikinci bir ML sinyali; Bayes
+  füzyonuna (Faz 43) bağımsız kanıt olarak beslenir.
+- **Faz 107 — Gerçek CVE/NVD zenginleştirmesi** (`arachne/scanner/nvd_lookup.py`):
+  statik `known_vulnerabilities` listesinin yanına NVD REST API'sinden canlı
+  CVE eşleştirmesi; kapalı/başarısız olduğunda sessizce statik listeye düşer.
+
 **Ortak:**
 - **Otomatik HTML raporu**, **AI Markdown raporu**, **STIX 2.1 bundle** ve
   **sinematik canlı komuta merkezi** (gerçek performans metrikleriyle)
-- **648 birim testi** (`tests/`) ve kendi kendini test eden demo saldırı scriptleri
+- **749 birim testi** (`tests/`) ve kendi kendini test eden demo saldırı scriptleri
 
 ## Kurulum
 
@@ -324,6 +352,16 @@ python main.py mesh-demo               # (panel çalışırken)
 # --- Faz 10: tam sistem ---
 python main.py full-demo
 python scripts/demo_global_attack.py
+
+# --- Faz 102-107: yeni nesil savunma + işlev genişletmesi ---
+python main.py threat-intel --ip 8.8.8.8       # dış tehdit istihbaratı (opsiyonel)
+python main.py siem-export --output data/siem_export.log   # CEF/syslog dışa aktarım
+python main.py siem-export --syslog-host 127.0.0.1 --syslog-port 514  # canlı iletim
+python main.py train-anomaly-ml                # davranışsal anomali modelini eğit
+python main.py scan --host 127.0.0.1 --nvd     # NVD CVE zenginleştirmeli tarama (opsiyonel)
+
+# Container ile tek komutla tüm platform (bkz. docs/DEPLOYMENT.md):
+docker compose up -d
 ```
 
 ## Yapay zeka katmanını yapılandırma (opsiyonel)
@@ -344,11 +382,30 @@ Sensör ağı için paylaşılan sırrı değiştirin (üretimde zorunlu):
 export ARACHNE_MESH_SECRET="uzun-rastgele-bir-sir"
 ```
 
+## Opsiyonel dış kaynakları yapılandırma (Faz 102/107)
+
+Sistem bunlar **olmadan da tam çalışır** — varsayılan olarak KAPALIDIR.
+
+```bash
+# Faz 102 — gerçek tehdit istihbaratı (AbuseIPDB ve/veya OTX)
+export ARACHNE_THREAT_INTEL_ENABLED=1
+export ARACHNE_ABUSEIPDB_API_KEY="anahtarınız"   # opsiyonel
+export ARACHNE_OTX_API_KEY="anahtarınız"         # opsiyonel
+
+# Faz 104 — canlı SIEM/syslog iletimi (verilmezse sadece dosyaya yazılır)
+export ARACHNE_SIEM_HOST="siem.lab.internal"
+export ARACHNE_SIEM_PORT=514
+
+# Faz 107 — gerçek NVD CVE zenginleştirmesi
+export ARACHNE_NVD_ENABLED=1
+export ARACHNE_NVD_API_KEY="anahtarınız"         # opsiyonel, sadece kota yükseltir
+```
+
 ## Testler
 
 ```bash
 pip install pytest
-pytest tests/ -v      # 648 test
+pytest tests/ -v      # 749 test
 ```
 
 ## Mimari ve yol haritası
@@ -356,6 +413,7 @@ pytest tests/ -v      # 648 test
 - Mimari detayları ve tasarım kararları: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 - Faz faz gelişim planı: [docs/ROADMAP.md](docs/ROADMAP.md)
 - Etik/yasal kullanım notu: [docs/ETHICS_AND_LEGAL.md](docs/ETHICS_AND_LEGAL.md)
+- Container dağıtımı (Faz 105): [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
 
 ## Proje ekibi
 

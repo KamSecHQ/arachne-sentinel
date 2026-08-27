@@ -141,8 +141,12 @@ def test_snapshot_marks_active_levels():
 # --- Faz 28: Kapsam haritasi ----------------------------------------------
 
 def test_coverage_maps_all_30_phases():
-    assert len(coverage.PHASE_MAP) == 30
-    assert [e["faz"] for e in coverage.PHASE_MAP] == list(range(1, 31))
+    # Faz 102-107 (bkz. docs/ETHICS_AND_LEGAL.md "Faz 102-107 icin ek
+    # notlar") bilincli/durustce belgelenmis bir bosluktan (Faz 31-101)
+    # sonra eklendi - toplam 36 giris, ardisik degil.
+    assert len(coverage.PHASE_MAP) == 36
+    assert [e["faz"] for e in coverage.PHASE_MAP] == \
+        list(range(1, 31)) + list(range(102, 108))
 
 
 def test_coverage_report_has_all_d3fend_tactics_scored():
@@ -165,7 +169,7 @@ def test_coverage_csf_includes_govern():
 
 def test_coverage_matrix_four_columns():
     rows = coverage.coverage_matrix()
-    assert len(rows) == 30
+    assert len(rows) == 36
     r = rows[0]
     assert {"faz", "ad", "d3fend", "csf", "attack_counters"} <= set(r.keys())
 

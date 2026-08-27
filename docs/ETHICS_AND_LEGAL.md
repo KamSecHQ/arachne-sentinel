@@ -170,3 +170,88 @@ Bu, bilinçli bir güvenlik kararıdır.
 Denetim zincirimize "hafif blockchain" benzetmesi yapılabilir ama bu gerçek
 bir dağıtık blockchain değildir. Sunumda "kurcalama-kanıtı hash zinciri"
 demek, "blockchain" demekten hem daha doğru hem daha dürüsttür.
+
+## Faz 102-107 için ek notlar
+
+> Bu bölüm, Faz 18-101 arasındaki fazlar için bu belgeye ayrı bir not
+> eklenmediğini **açıkça** belirtir (proje bu belgeyi Faz 17'den sonra
+> güncellemeye ara vermiş) — burada sadece en son eklenen Faz 102-107'nin
+> ETİK/GİZLİLİK açısından yeni getirdiği noktalar ele alınıyor. Faz 18-101
+> için etik çerçeve [ROADMAP.md](ROADMAP.md)'deki ilgili fazların
+> "dürüstlük notu" bölümlerinde dağınık olarak mevcuttur; ayrı bir bölüm
+> olarak buraya taşınmamıştır (bilinen, kabul edilmiş bir belgeleme borcu).
+
+### Faz 102 — Dış tehdit istihbaratı: hangi veri nereye gidiyor
+
+`python main.py threat-intel` ve arka plandaki `arachne/intel/threat_intel.py`,
+etkinleştirildiğinde bir **saldırgan IP adresini** AbuseIPDB ve/veya
+AlienVault OTX'e (üçüncü taraf servisler) gönderir.
+
+- **Varsayılan olarak KAPALIdır** — `ARACHNE_THREAT_INTEL_ENABLED=1` ve en az
+  bir API anahtarı olmadan hiçbir veri dışarı gitmez.
+- **Sadece public (genel) IP'ler gönderilir.** Loopback/özel ağ/RFC 5737
+  dokümantasyon adresleri (yani lab trafiğinizin tamamı) `geo.classify_ip_scope`
+  ile filtrelenir ve **asla** dış API'ye gönderilmez.
+- Gönderilen tek veri, sorgulanan IP adresidir — payload, kullanıcı verisi,
+  veritabanı içeriği ya da sistem yapılandırması **gönderilmez**.
+- AbuseIPDB/OTX'in kendi kullanım şartlarını ve gizlilik politikalarını
+  kabul etmiş olmanız sizin sorumluluğunuzdadır — bu proje o şartları temsil
+  etmez.
+
+### Faz 103 — Genişletilmiş honeypot yüzeyi: gerçekçilik sınırı
+
+Redis/Docker API/Elasticsearch sahte servisleri **gerçekçi görünen** ama
+işlevsiz yanıtlar üretir (bkz. `arachne/honeypot/listeners.py`). Bunu
+yanlış anlamamak önemli:
+
+- Hiçbiri **gerçek** bir Redis/Docker/Elasticsearch kurulumu değildir; hiçbir
+  komut gerçekten çalıştırılmaz, hiçbir konteyner gerçekten başlatılmaz,
+  hiçbir arama sorgusu gerçekten işlenmez. Tamamı sabit/şablonlu yanıttır.
+- RDP ve SMB servisleri **kasıtlı olarak minimaldir** — gerçek protokol
+  müzakeresi yapılmaz, sadece bağlantı/ham bayt loglanır (bkz.
+  ROADMAP Faz 103 dürüstlük notu). Bunları "tam RDP/SMB honeypot'u" olarak
+  sunmak yanıltıcı olur.
+- **Daha fazla port = daha geniş yüzey.** Bu faz, dinlenen port sayısını
+  4'ten 10'a çıkarır. "Sadece izole/lab ortamında çalıştırın" ilkesi burada
+  daha da kritik hâle gelir — özellikle Docker API portu (2375), gerçek
+  hayatta açık bırakıldığında container kaçışına yol açabilen bilinen bir
+  saldırı yüzeyini **taklit eder**; bu portu gerçek/güvenilmeyen bir ağa
+  açmak, sahte de olsa, port tarayıcıları ve otomatik saldırı botlarını
+  makinenize çekebilir.
+
+### Faz 104 — SIEM dışa aktarımı: veri makineden çıkabilir
+
+`python main.py siem-export --syslog-host ...` kullanıldığında, yakalanan
+saldırgan olayları (IP, payload metni dahil) **gerçekten** belirttiğiniz
+syslog sunucusuna gönderilir.
+
+- **Varsayılan olarak ağ çağrısı YOKTUR** — `--syslog-host` (veya
+  `ARACHNE_SIEM_HOST`) verilmedikçe çıktı sadece yerel bir dosyaya yazılır.
+- Payload alanı **saldırganın gönderdiği ham metni** içerebilir (SQLi/XSS
+  denemeleri, olası kişisel/hassas görünen içerik dahil) — hedef SIEM'in
+  bu veriyi nasıl sakladığından/kime gösterdiğinden siz sorumlusunuz.
+- CEF alanları enjeksiyona karşı kaçırılır (bkz. `arachne/siem/exporter.py`)
+  ama bu bir **format bütünlüğü** önlemidir, veri gizliliği önlemi değildir.
+
+### Faz 105 — Container dağıtımı: aynı kurallar, daha kolay açığa çıkma riski
+
+`docker-compose.yml`, honeypot portlarını host makineye **eşler** (`ports:`).
+Bunu bir bulut sunucusunda veya paylaşılan bir ağda çalıştırmak, bu belgenin
+en başındaki "yalnızca izole lab" ilkesini ihlal eder — Docker kullanmak bu
+ilkeyi gevşetmez, sadece kurulumu kolaylaştırır. `docs/DEPLOYMENT.md`'nin en
+üstünde aynı uyarı tekrarlanır.
+
+### Faz 106 — Davranışsal anomali: sentetik taban çizgisi
+
+`arachne/detection/anomaly_ml.py`'nin "normal davranış" taban çizgisi gerçek
+kullanıcı/ağ trafiğinden **öğrenilmemiştir** — elle yazılmış, küçük,
+illüstratif bir veri kümesidir (bkz. `behavioral_training_data.py`). Bunu
+kalibre edilmiş bir üretim modeli gibi sunmak yanıltıcı olur; `anomaly_score`
+açıklayıcı bir gösterge olarak sunulmalıdır, kesin bir olasılık olarak değil.
+
+### Faz 107 — NVD CVE zenginleştirmesi: veri minimizasyonu
+
+`arachne/scanner/nvd_lookup.py` NVD'ye (NIST, ABD hükümeti) yalnızca bir
+**anahtar kelime** (banner'dan türetilmiş ürün/sürüm ismi, örn. "vsftpd")
+gönderir — IP adresiniz, ağ topolojiniz ya da tarama sonuçlarınızın geri
+kalanı gönderilmez. Varsayılan olarak kapalıdır.

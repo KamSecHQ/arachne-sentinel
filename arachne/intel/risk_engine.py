@@ -76,7 +76,8 @@ def _band(score: int) -> tuple:
 def compute_risk(*, attack_classes=None, kill_chain_phase="reconnaissance",
                  automated=False, repeat_offender=False, in_campaign=False,
                  has_reverse_shell=False, obfuscation_layers=0,
-                 tool_confidence=0, event_count=0, entropy=0.0) -> dict:
+                 tool_confidence=0, event_count=0, entropy=0.0,
+                 threat_intel_abuse_score=0) -> dict:
     """Cok faktorlu risk skoru hesaplar; her faktorun katkisini gosterir."""
     attack_classes = attack_classes or []
     factors = []
@@ -130,6 +131,21 @@ def compute_risk(*, attack_classes=None, kill_chain_phase="reconnaissance",
         factors.append({"factor": "Cok yuksek entropi (sikistirilmis/sifreli)",
                         "contribution": 5, "axis": "olasilik"})
 
+    # Faz 102: opsiyonel dis tehdit istihbarati (AbuseIPDB/OTX) - KUCUK ve
+    # ACIKLANABILIR bir ek faktor. Karar mekanizmasini DEGISTIRMEZ, sadece
+    # bilinen kotu bir IP'nin olasilik eksenine kucuk bir katki yapmasini
+    # saglar. Dis kaynak kapaliysa/veri yoksa bu deger her zaman 0'dir.
+    if threat_intel_abuse_score >= 75:
+        likelihood += 12
+        factors.append({"factor": f"Dis tehdit istihbaratinda yuksek kotuluk "
+                        f"puani ({threat_intel_abuse_score}/100)",
+                        "contribution": 12, "axis": "olasilik"})
+    elif threat_intel_abuse_score >= 50:
+        likelihood += 6
+        factors.append({"factor": f"Dis tehdit istihbaratinda orta kotuluk "
+                        f"puani ({threat_intel_abuse_score}/100)",
+                        "contribution": 6, "axis": "olasilik"})
+
     impact = max(0, min(100, impact))
     likelihood = max(0, min(100, likelihood))
 
@@ -158,7 +174,7 @@ def compute_risk(*, attack_classes=None, kill_chain_phase="reconnaissance",
 
 
 def risk_from_analysis(analysis: dict, *, repeat_offender=False,
-                       in_campaign=False) -> dict:
+                       in_campaign=False, threat_intel_abuse_score=0) -> dict:
     """reverse.attack_analyzer ciktisindan dogrudan risk hesaplar."""
     iocs = analysis.get("iocs", {})
     return compute_risk(
@@ -173,4 +189,5 @@ def risk_from_analysis(analysis: dict, *, repeat_offender=False,
         if analysis.get("tools") else 0,
         event_count=analysis.get("event_count", 0),
         entropy=analysis.get("entropy", 0.0),
+        threat_intel_abuse_score=threat_intel_abuse_score,
     )

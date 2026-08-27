@@ -817,6 +817,137 @@ kaçan yükler raporda gizlenmez, listelenir. Bir sonraki adım: normalizasyon
 (kanonik hale getirme) + davranışsal tespit ile kaçınma direncini artırmak.
 
 
+## Faz 102-107 — Yeni nesil savunma + işlev genişletmesi (tamamlandı)
+
+> Kullanıcı talebi: mevcut 101 fazlık sistemi hem savunma hem işlev tarafında
+> yeni özelliklerle genişletmek — "popüler repoları kullanabilirsin" ama
+> projenin baştan beri takip ettiği **minimum harici bağımlılık** ilkesini
+> koru. Sonuç: 6 yeni faz, **sıfır yeni pip bağımlılığı** (`requirements.txt`
+> değişmedi) — hepsi stdlib (`urllib`, `socket`, `ssl`, `ipaddress`) ya da
+> zaten kurulu `scikit-learn`/`joblib` ile yazıldı. Her yeni dış-kaynak
+> özelliği `arachne/ai/llm_backend.py`'nin (Faz 8) "karantina" mimarisini
+> birebir tekrar kullanır: ortam değişkeniyle açılan, varsayılan KAPALI,
+> asla istisna fırlatmayan, kapalıyken sistemin hiçbir şey kaybetmediği
+> opsiyonel katmanlar. Etik ilke değişmez: tamamen savunma, hack-back yok.
+
+## Faz 102 — Gerçek Tehdit İstihbaratı Entegrasyonu (Karantina) (tamamlandı)
+
+- [x] `arachne/intel/threat_intel.py`: AbuseIPDB ve/veya AlienVault OTX'ten
+  IP itibar sorgusu — `llm_backend.py` ile birebir aynı kalıp (env değişkeni
+  ile açılır, anahtar sadece ortam değişkeninden okunur, asla istisna
+  fırlatmaz, saatlik kota + önbellek).
+- [x] **Lab güvenliği**: sadece **public** IP'ler sorgulanır — loopback/
+  private/RFC 5737 dokümantasyon adresleri hiçbir zaman dış bir API'ye
+  gönderilmez (`geo.classify_ip_scope` kontrolü).
+- [x] `storage.threat_intel_cache` tablosu (TTL'li önbellek, süreçler arası).
+- [x] `risk_engine.compute_risk`'e opsiyonel `threat_intel_abuse_score`
+  faktörü eklendi — karar mekanizmasını DEĞİŞTİRMEZ, sadece açıklanabilir
+  küçük bir olasılık-ekseni bonusu ("AI zenginleştirir, KARAR VERMEZ"
+  ilkesinin dış istihbarat için birebir karşılığı).
+- [x] `python main.py threat-intel --ip X.X.X.X`; panelde `/api/deep` →
+  `threat_intel_enrichment` (kapalıyken `enabled: false`, dürüst 0-durum).
+- [x] 14 birim testi (gerçek ağ çağrısı yok — urllib monkeypatch edilir).
+
+## Faz 103 — Genişletilmiş Honeypot Yüzeyi (6 yeni sahte servis) (tamamlandı)
+
+- [x] **Redis** (6380): RESP protokolünün küçük bir alt kümesi — `PING`→
+  `+PONG`, `INFO`→sahte sürüm bilgisi. Yanlışlıkla açık bırakılmış Redis'ler
+  gerçek dünyada yaygın bir saldırı yüzeyidir.
+- [x] **Docker API** (2375): sahte `/version` ve `/containers/json` JSON
+  yanıtları — açık Docker daemon'larının klasik saldırı yüzeyini simüle eder.
+- [x] **Elasticsearch** (9200): kök isteğine sahte cluster/version bilgisi;
+  sorgu gövdesi (query DSL enjeksiyonu denemeleri dahil) loglanır.
+- [x] **Telnet** (2323): mevcut generic handler'a config girişi yeterli.
+- [x] **RDP** (3389) ve **SMB** (4450, gerçek 445 kök yetkisi ister):
+  **dürüstlük sınırı** — tam protokol müzakeresi (TPKT/X.224, SMB negotiate)
+  kapsam dışı (DNS ghost'un "minimal alt küme" kararıyla aynı ilke); sadece
+  bağlantı/ham bayt loglanır.
+- [x] Tüm yeni servisler kök yetkisi gerektirmeyen portlarda (mevcut
+  ssh→2222/ftp→2121 deseniyle tutarlı).
+- [x] 13 birim testi (saf yanıt-üretim fonksiyonları + gerçek asyncio
+  sunucularıyla uçtan uca bağlantı testleri, izole geçici veritabanıyla).
+
+## Faz 104 — Gerçek SIEM Uyumluluğu: CEF + Syslog Dışa Aktarım (tamamlandı)
+
+- [x] `arachne/siem/exporter.py`: Faz 32'nin ECS-benzeri normalize kaydını
+  gerçek **ArcSight CEF** formatına ve **RFC 3164 syslog** zarfına çevirir
+  ("CEF-over-syslog" — Wazuh/QRadar/Splunk'ın fiilen beklediği tel formatı).
+- [x] **CEF enjeksiyonu savunması**: saldırgan-kontrollü payload'daki `|`,
+  `=`, satır sonu karakterleri spec'in kuralına göre kaçırılır — aksi halde
+  yük içeriği sahte CEF alanı enjekte edebilirdi (log injection).
+- [x] `SyslogSender`: stdlib `socket` (UDP/TCP), varsayılan
+  **yapılandırılmamış** — `ARACHNE_SIEM_HOST` verilmedikçe hiçbir ağ çağrısı
+  yapılmaz.
+- [x] `python main.py siem-export --output data/siem_export.log` (varsayılan,
+  ağsız, dosyaya yazar) + `--syslog-host/--syslog-port` (canlı iletim).
+- [x] 13 birim testi (CEF kaçış kuralı uç durumları, PRI hesaplama, gerçek
+  ama **yerel** UDP round-trip — internet çağrısı yok).
+
+## Faz 105 — Container/Deployment Altyapısı (tamamlandı)
+
+- [x] `Dockerfile` (python:3.12-slim, root olmayan kullanıcı,
+  `requirements.txt` **değişmeden**), `docker-compose.yml` (honeypot +
+  dashboard servisi, paylaşılan `arachne_data` named volume — mevcut
+  çok-süreçli SQLite mimarisinin doğal uzantısı).
+- [x] `docs/DEPLOYMENT.md`: port haritası, opsiyonel dış-kaynak env
+  değişkenleri (`.env` ile doldurulur, doldurulmazsa hiçbir dış çağrı
+  yapılmaz), `docker compose up` akışı.
+- [x] `.dockerignore`; kod tabanına **hiçbir yeni pip bağımlılığı yok**.
+- [x] **Uçtan uca doğrulandı** (Colima ile gerçek Docker Engine 29.7.2 +
+  Compose 5.5.0): `docker compose build && up -d`, dashboard `/api/state`
+  gerçekten `curl` ile erişildi, Redis/Docker-API/Elasticsearch
+  honeypot'larına gerçek TCP/HTTP istekleri gönderildi ve panelde canlı
+  olarak göründü. Bu süreçte gerçek bir hata bulundu ve düzeltildi:
+  `run_dashboard()` varsayılan olarak `127.0.0.1`'e bağlanıyordu — container
+  içinde bu, host'tan erişilemez anlamına gelir. `main.py`'ye `--host` artık
+  dashboard'a da geçiriliyor; `docker-compose.yml` `--host 0.0.0.0` kullanır.
+- [x] **Bilinen sınırlama**: Faz 3'ün ARM64 assembly çekirdeği bu imajda
+  derlenmez, sessizce Python yedeğine düşer (davranış değişmez).
+
+## Faz 106 — Gelişmiş ML: Davranışsal Anomali (Isolation Forest) (tamamlandı)
+
+- [x] `arachne/detection/anomaly_ml.py`: `ml_classifier.py`'nin (Faz 2)
+  metin-tabanlı sınıflandırıcısından **tamamen farklı bir sinyal** — tek bir
+  payload'a değil, bir IP'nin **davranışsal özellik vektörüne** bakar (olay
+  hızı, farklı servis/port sayısı, yük uzunluk/entropi istatistikleri).
+  `sklearn.ensemble.IsolationForest` ile.
+- [x] **Kendini onarma kalıbı `ml_classifier.py`'den birebir alındı**:
+  bozuk/sürümler-arası uyumsuz model dosyası tespit edilip sessizce
+  bellekte yeniden eğitilir (best-effort diske kaydetme).
+- [x] **Entegrasyon**: temel kural motoruna DOĞRUDAN eklenmez — Faz 43'ün
+  Bayes log-odds füzyonuna `"behavioral_anomaly"` adıyla bağımsız bir kanıt
+  olarak beslenir (`aggregator.coevolution_advanced`).
+- [x] `python main.py train-anomaly-ml`.
+- [x] **DÜRÜSTLÜK NOTU**: "normal" taban çizgisi gerçek üretim trafiğinden
+  öğrenilmemiştir — Faz 2'nin eğitim verisiyle aynı ölçekte, elle yazılmış,
+  illüstratif bir sentetik veri kümesidir (`behavioral_training_data.py`).
+  `anomaly_score` kesin kalibre bir olasılık değildir.
+- [x] 13 birim testi (normal/anormal profil ayrımı, kendini onarma dahil).
+
+## Faz 107 — Gerçek CVE/NVD Zenginleştirmesi (tamamlandı)
+
+- [x] `arachne/scanner/nvd_lookup.py`: `known_vulnerabilities.py`'nin (Faz 2)
+  kendi docstring'inde önerdiği "gerçek bir üründe NVD API gibi güncel bir
+  kaynakla değiştirilmesi gerekir" notunu karşılar — statik listeyi
+  DEĞİŞTİRMEZ, yanına ek bir katman ekler.
+- [x] NVD CVE 2.0 REST API'si, `llm_backend.py` şablonuyla: varsayılan
+  KAPALI (`ARACHNE_NVD_ENABLED`), opsiyonel anahtar sadece kota yükseltir,
+  istemci taraflı kayan-pencere hız sınırlayıcı (NVD'nin 5 istek/30sn genel
+  kotasına saygı — "iyi internet vatandaşı" ilkesi), 24 saat TTL'li
+  `storage.nvd_cache` önbelleği.
+- [x] `vuln_scanner.py`: NVD sonuçları statik listeyle CVE ID'ye göre
+  birleştirilip tekilleştirilir; NVD kapalı/başarısız olduğunda sistem
+  SESSİZCE sadece statik listeyle çalışmaya devam eder (regresyon yok).
+- [x] `python main.py scan --host X --nvd` (bayrak + env değişkeni birlikte
+  gerekir — kazara dışa ağ çağrısına karşı çift kilit).
+- [x] 12 birim testi (yakalanmış örnek NVD JSON fixture'ı ile parse, cache,
+  rate-limiter, NVD-kapalıyken regresyon testi — gerçek ağ çağrısı yok).
+
+**Faz 102-107 toplamı:** +65 yeni birim testi, **0 yeni pip bağımlılığı**,
+6 yeni modül + 2 yeni SQLite tablosu + Docker dağıtımı. Toplam test sayısı
+663 → **749**.
+
+
 ## Sıradaki hedefler (stretch-goal, isteğe bağlı)
 
 - İkinci bilgisayar (Windows/x86-64) edinildiğinde Faz 3'ün assembly

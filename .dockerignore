@@ -1,0 +1,21 @@
+.venv
+__pycache__
+**/__pycache__
+*.pyc
+.git
+.gitignore
+.pytest_cache
+.DS_Store
+data/
+*.db
+*.joblib
+
+# Yarisma/portfoy dokumanlari - imaja gerek yok
+*.pdf
+*.docx
+*.pptx
+arch_diagram.png
+graphify-out/
+adversary_report.html
+waf_effectiveness_report.html
+LinkedIn_Gonderi_Metni.md

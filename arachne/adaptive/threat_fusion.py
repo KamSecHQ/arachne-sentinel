@@ -198,6 +198,7 @@ DEFAULT_DETECTORS = {
     "slow_burn": 5.0,        # yavas-ve-alcak (low-and-slow) kampanya
     "sybil": 6.0,            # sahte coklu kimlik / Sybil davranisi
     "deception_touch": 50.0,  # aldatma tuzagina dokunus - neredeyse kesin dusman
+    "behavioral_anomaly": 5.0,  # Faz 106: Isolation Forest davranissal anomali
 }
 
 

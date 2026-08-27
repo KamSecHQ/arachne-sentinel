@@ -1,0 +1,57 @@
+# Faz 105 - Arachne Sentinel container dagitimi.
+#
+# ONEMLI: Bu compose dosyasi honeypot portlarini HOST'a acar. Sadece izole
+# bir ag/lab ortaminda calistirin - bkz. docs/ETHICS_AND_LEGAL.md ve
+# docs/DEPLOYMENT.md. Butun opsiyonel dis-kaynak ozellikleri (tehdit
+# istihbarati, NVD, LLM) varsayilan olarak KAPALIDIR; asagidaki ortam
+# degiskenlerini .env dosyasi ile doldurmadikca hicbir dis API cagrisi
+# yapilmaz.
+
+services:
+  # Faz 1-102: honeypot servisleri + MTD + SOAR (python main.py full-demo)
+  honeypot:
+    build: .
+    command: ["full-demo"]
+    ports:
+      - "2222:2222"   # sahte SSH
+      - "2121:2121"   # sahte FTP
+      - "3307:3307"   # sahte MySQL
+      - "8081:8081"   # sahte HTTP admin panel
+      - "2323:2323"   # sahte Telnet (Faz 103)
+      - "6380:6380"   # sahte Redis (Faz 103)
+      - "2375:2375"   # sahte Docker API (Faz 103)
+      - "9200:9200"   # sahte Elasticsearch (Faz 103)
+      - "3389:3389"   # sahte RDP - minimal (Faz 103, bkz. ROADMAP)
+      - "4450:4450"   # sahte SMB - minimal (Faz 103, bkz. ROADMAP)
+      - "5300:5300/udp"  # hayalet DNS (GERCEK sistem DNS'i DEGIL)
+    volumes:
+      - arachne_data:/app/data
+    environment: &arachne_env
+      ARACHNE_THREAT_INTEL_ENABLED: ${ARACHNE_THREAT_INTEL_ENABLED:-}
+      ARACHNE_ABUSEIPDB_API_KEY: ${ARACHNE_ABUSEIPDB_API_KEY:-}
+      ARACHNE_OTX_API_KEY: ${ARACHNE_OTX_API_KEY:-}
+      ARACHNE_NVD_ENABLED: ${ARACHNE_NVD_ENABLED:-}
+      ARACHNE_NVD_API_KEY: ${ARACHNE_NVD_API_KEY:-}
+      ARACHNE_LLM_ENABLED: ${ARACHNE_LLM_ENABLED:-}
+      ARACHNE_LLM_API_KEY: ${ARACHNE_LLM_API_KEY:-}
+      ARACHNE_MESH_SECRET: ${ARACHNE_MESH_SECRET:-}
+      ARACHNE_SIEM_HOST: ${ARACHNE_SIEM_HOST:-}
+      ARACHNE_SIEM_PORT: ${ARACHNE_SIEM_PORT:-}
+    restart: unless-stopped
+
+  # Canli komuta merkezi - honeypot ile AYNI SQLite veritabanini paylasir
+  # (mevcut cok-surecli mimarinin dogal uzantisi, bkz. README "iki terminal").
+  dashboard:
+    build: .
+    command: ["dashboard", "--host", "0.0.0.0", "--port", "5001", "--no-open"]
+    ports:
+      - "5001:5001"
+    volumes:
+      - arachne_data:/app/data
+    environment: *arachne_env
+    depends_on:
+      - honeypot
+    restart: unless-stopped
+
+volumes:
+  arachne_data:

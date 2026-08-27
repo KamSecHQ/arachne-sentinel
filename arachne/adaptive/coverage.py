@@ -97,6 +97,24 @@ PHASE_MAP: List[dict] = [
      "csf": ["Detect", "Govern"], "engage": None, "attack_counters": "-"},
     {"faz": 30, "ad": "Genisletilmis Cok-Katmanli Kubbe", "d3fend": [("Model", "Operational Dependency Mapping")],
      "csf": ["Govern"], "engage": None, "attack_counters": "-"},
+    # --- BILINEN BOSLUK (durustluk notu): Faz 31-101 bu haritaya hic
+    # eklenmedi - proje bu tabloyu Faz 30'dan sonra genisletmeye ara verdi.
+    # Bu, toplam faz/kapsam yuzdesinin GERCEK deger oldugunu ama TUM
+    # fazlari temsil ETMEDIGINI acikca isaretler (bkz. docs/ETHICS_AND_LEGAL.md
+    # "Faz 102-107 icin ek notlar" bolumu). Asagida sadece en son eklenen
+    # Faz 102-107 haritalanmistir.
+    {"faz": 102, "ad": "Dis Tehdit Istihbarati (AbuseIPDB/OTX)", "d3fend": [("Detect", "Network Traffic Analysis")],
+     "csf": ["Identify", "Detect"], "engage": None, "attack_counters": "-"},
+    {"faz": 103, "ad": "Genisletilmis Honeypot Yuzeyi", "d3fend": [("Deceive", "Decoy Environment")],
+     "csf": ["Detect"], "engage": "Decoy System", "attack_counters": "T1595 Active Scanning"},
+    {"faz": 104, "ad": "SIEM CEF/Syslog Disa Aktarim", "d3fend": [("Model", "Operational Dependency Mapping")],
+     "csf": ["Govern", "Respond"], "engage": None, "attack_counters": "-"},
+    {"faz": 105, "ad": "Container Dagitimi", "d3fend": [("Harden", "Platform Hardening")],
+     "csf": ["Protect"], "engage": None, "attack_counters": "-"},
+    {"faz": 106, "ad": "Davranissal Anomali (Isolation Forest)", "d3fend": [("Detect", "User Behavior Analysis")],
+     "csf": ["Detect"], "engage": None, "attack_counters": "-"},
+    {"faz": 107, "ad": "NVD CVE Zenginlestirmesi", "d3fend": [("Model", "Asset Inventory")],
+     "csf": ["Identify"], "engage": None, "attack_counters": "T1595.002 Vulnerability Scanning"},
 ]
 
 

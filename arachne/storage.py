@@ -118,6 +118,23 @@ CREATE TABLE IF NOT EXISTS honeytokens (
     trigger_context TEXT
 );
 
+-- Faz 102: dis tehdit istihbarati onbellegi (AbuseIPDB/OTX) -----------------
+CREATE TABLE IF NOT EXISTS threat_intel_cache (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ip TEXT NOT NULL,
+    source TEXT NOT NULL,
+    result_json TEXT NOT NULL,
+    fetched_at TEXT NOT NULL
+);
+
+-- Faz 107: NVD CVE sorgu onbellegi -------------------------------------------
+CREATE TABLE IF NOT EXISTS nvd_cache (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    query TEXT NOT NULL,
+    response_json TEXT NOT NULL,
+    fetched_at TEXT NOT NULL
+);
+
 CREATE INDEX IF NOT EXISTS idx_events_ip_time ON events(source_ip, timestamp);
 CREATE INDEX IF NOT EXISTS idx_alerts_ip_time ON alerts(source_ip, timestamp);
 CREATE INDEX IF NOT EXISTS idx_waf_ip_time ON waf_events(source_ip, timestamp);
@@ -126,6 +143,8 @@ CREATE INDEX IF NOT EXISTS idx_mtd_component_time ON mtd_rotations(component, ti
 CREATE INDEX IF NOT EXISTS idx_soar_target_time ON soar_actions(target, timestamp);
 CREATE INDEX IF NOT EXISTS idx_mesh_sensor_time ON mesh_log(sensor_id, timestamp);
 CREATE INDEX IF NOT EXISTS idx_ad_ip_time ON active_defense(source_ip, timestamp);
+CREATE INDEX IF NOT EXISTS idx_threat_intel_ip ON threat_intel_cache(ip, source);
+CREATE INDEX IF NOT EXISTS idx_nvd_cache_query ON nvd_cache(query);
 """
 
 # Sonradan eklenen sutunlar: mevcut veritabanlarini bozmadan yukseltmek icin.
@@ -595,6 +614,68 @@ def alerts_timeline(buckets=12, bucket_minutes=5, db_path=None):
             ).fetchone()
             counts.append(row["c"])
         return counts
+
+
+# --- Faz 102: dis tehdit istihbarati onbellegi ------------------------------
+
+def cache_threat_intel(ip, source, result: dict, db_path=None):
+    """Bir dis kaynaktan (AbuseIPDB/OTX) gelen sonucu IP+kaynak basina onbellekler.
+
+    Ayni IP+kaynak icin onceki kayit silinir - tek satir/IP/kaynak tutulur,
+    boylece onbellek zamanla sismez."""
+    with get_conn(db_path) as conn:
+        conn.execute("DELETE FROM threat_intel_cache WHERE ip = ? AND source = ?",
+                     (ip, source))
+        conn.execute(
+            "INSERT INTO threat_intel_cache (ip, source, result_json, fetched_at) "
+            "VALUES (?, ?, ?, ?)",
+            (ip, source, json.dumps(result, ensure_ascii=False), _now()),
+        )
+
+
+def get_cached_threat_intel(ip, source, max_age_seconds, db_path=None):
+    """max_age_seconds icinde tazelenmis bir onbellek kaydi varsa dondurur,
+    yoksa None - cagiran taraf o zaman gercek API'yi cagirir."""
+    with get_conn(db_path) as conn:
+        row = conn.execute(
+            "SELECT result_json FROM threat_intel_cache WHERE ip = ? AND source = ? "
+            "AND fetched_at >= datetime('now', ?)",
+            (ip, source, f"-{int(max_age_seconds)} seconds"),
+        ).fetchone()
+        return json.loads(row["result_json"]) if row else None
+
+
+def threat_intel_cache_stats(db_path=None):
+    with get_conn(db_path) as conn:
+        total = conn.execute("SELECT COUNT(*) c FROM threat_intel_cache").fetchone()["c"]
+        by_source = conn.execute(
+            "SELECT source, COUNT(*) c FROM threat_intel_cache GROUP BY source"
+        ).fetchall()
+        return {
+            "total_cached": total,
+            "by_source": {r["source"]: r["c"] for r in by_source},
+        }
+
+
+# --- Faz 107: NVD CVE sorgu onbellegi ---------------------------------------
+
+def cache_nvd_query(query, response: dict, db_path=None):
+    with get_conn(db_path) as conn:
+        conn.execute("DELETE FROM nvd_cache WHERE query = ?", (query,))
+        conn.execute(
+            "INSERT INTO nvd_cache (query, response_json, fetched_at) VALUES (?, ?, ?)",
+            (query, json.dumps(response, ensure_ascii=False), _now()),
+        )
+
+
+def get_cached_nvd_query(query, max_age_seconds, db_path=None):
+    with get_conn(db_path) as conn:
+        row = conn.execute(
+            "SELECT response_json FROM nvd_cache WHERE query = ? "
+            "AND fetched_at >= datetime('now', ?)",
+            (query, f"-{int(max_age_seconds)} seconds"),
+        ).fetchone()
+        return json.loads(row["response_json"]) if row else None
 
 
 def summary_stats(db_path=None):

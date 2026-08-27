@@ -208,6 +208,124 @@ async def _handle_http_admin(dest_port: int, reader, writer, soar_enabled=False)
     _evaluate_and_log_alarm(source_ip, soar_enabled=soar_enabled)
 
 
+def _fake_http_response(body: str, status: str = "200 OK") -> str:
+    """http-admin (Faz 1) ile ayni sekilde el ile kurulmus bir HTTP yaniti."""
+    return (
+        f"HTTP/1.1 {status}\r\n"
+        f"Content-Length: {len(body)}\r\n"
+        "Content-Type: application/json\r\n"
+        "Connection: close\r\n\r\n" + body
+    )
+
+
+def _redis_response(payload: str):
+    """Faz 103: Redis RESP protokolunun kucuk, gerceci bir alt kumesi.
+
+    Gercek Redis baglanti aninda banner GONDERMEZ (bu yuzden config.py'de
+    banner=None) - sadece PING/INFO gibi taniyici komutlara gercekci yanit
+    verir. Yanlislikla acik birakilmis Redis'ler gercek dunyada yaygin bir
+    saldiri yuzeyidir (kimlik dogrulamasiz erisim, CONFIG SET ile RCE)."""
+    text = (payload or "").upper()
+    if not text:
+        return None
+    if "PING" in text:
+        return b"+PONG\r\n"
+    if "INFO" in text:
+        info = ("# Server\r\nredis_version:7.2.4\r\nredis_mode:standalone\r\n"
+                "os:Linux 5.15.0\r\narch_bits:64\r\nprocess_id:1\r\n")
+        return f"${len(info)}\r\n{info}\r\n".encode()
+    return b"-ERR unknown command\r\n"
+
+
+def _docker_api_response(payload: str):
+    """Faz 103: Gercek Docker Remote API formatinda ama tamamen uydurma veri.
+
+    Yanlislikla disariya acik birakilmis Docker daemon'lari (klasik ornek:
+    2375/tcp kimlik dogrulamasiz), konteyner kacisi/host ele gecirme icin
+    bilinen bir saldiri yuzeyidir - bu tuzak o senaryoyu simule eder."""
+    request_line = (payload or "").splitlines()[0] if payload else ""
+    if "/version" in request_line:
+        body = ('{"Version":"24.0.7","ApiVersion":"1.43","Os":"linux",'
+                '"Arch":"amd64","KernelVersion":"5.15.0-generic"}')
+        return _fake_http_response(body).encode()
+    if "/containers/json" in request_line:
+        return _fake_http_response("[]").encode()
+    return _fake_http_response('{"message":"page not found"}', status="404 Not Found").encode()
+
+
+def _elasticsearch_response(payload: str):
+    """Faz 103: Kok isteğine sahte cluster/version bilgisi; digerlerine 404.
+
+    Gelen sorgu govdesi (query DSL enjeksiyonu denemeleri dahil) her zaman
+    payload olarak loglanir - yaniti bu fonksiyon uretse de veri kaybı yok."""
+    request_line = (payload or "").splitlines()[0] if payload else ""
+    if not request_line or request_line.startswith("GET / "):
+        body = ('{"name":"arachne-node-1","cluster_name":"docker-cluster",'
+                '"version":{"number":"8.11.3","lucene_version":"9.8.0"},'
+                '"tagline":"You Know, for Search"}')
+        return _fake_http_response(body).encode()
+    body = ('{"error":{"root_cause":[{"type":"index_not_found_exception",'
+           '"reason":"no such index"}]},"status":404}')
+    return _fake_http_response(body, status="404 Not Found").encode()
+
+
+# Bu servisler HTTP/RESP tabanli, isteğe gore gercekci bir yanit uretir -
+# generic handler'in "sabit banner + tek okuma" kalibina uymazlar.
+_BESPOKE_RESPONSE_BUILDERS = {
+    "redis": _redis_response,
+    "docker-api": _docker_api_response,
+    "elasticsearch": _elasticsearch_response,
+}
+
+
+async def _handle_bespoke_service(service_name: str, dest_port: int, reader, writer,
+                                  soar_enabled: bool, build_response):
+    """Faz 103: banner göndermeyen, isteğe göre gerçekçi bir yanıt üreten
+    servisler (Redis/Docker API/Elasticsearch) için ortak akış.
+
+    `build_response(payload)` ham baytları (ya da hiç yanıt yoksa None)
+    döner - protokole özgü mantık tamamen saf, bağımsız test edilebilir
+    fonksiyonlarda kalır; bu fonksiyon sadece I/O ve loglama akışını
+    (`_handle_generic` ile aynı disiplin) sağlar."""
+    source_ip, source_port = _peer_info(writer)
+
+    if soar_enabled and _is_blocked(source_ip):
+        storage.log_event(source_ip, service_name, "blocked", source_port=source_port,
+                           dest_port=dest_port)
+        logger.info("ENGELLENDI: %s -> %s (SOAR kisitlamasi aktif)", source_ip, service_name)
+        await _close(writer)
+        return
+
+    storage.log_event(source_ip, service_name, "connect", source_port=source_port,
+                       dest_port=dest_port)
+    logger.info("baglanti: %s -> %s (port %s)", source_ip, service_name, dest_port)
+
+    try:
+        payload = await _read_payload(reader)
+        if payload:
+            storage.log_event(source_ip, service_name, "data", source_port=source_port,
+                               dest_port=dest_port, payload=payload)
+            _check_honeytokens(source_ip, payload)
+        response = build_response(payload or "")
+        if response:
+            writer.write(response)
+            await writer.drain()
+    finally:
+        storage.log_event(source_ip, service_name, "disconnect", source_port=source_port,
+                           dest_port=dest_port)
+        await _close(writer)
+
+    _evaluate_and_log_alarm(source_ip, soar_enabled=soar_enabled)
+
+
+def _make_bespoke_handler(service_name: str, dest_port: int, build_response,
+                          soar_enabled: bool = False):
+    async def handler(reader, writer):
+        await _handle_bespoke_service(service_name, dest_port, reader, writer,
+                                      soar_enabled, build_response)
+    return handler
+
+
 async def start_all_services(rotator=None, soar_enabled=False):
     """Config.FAKE_SERVICES icinde tanimli tum sahte servisleri baslatir ve
     sonsuza kadar (Ctrl+C ile durdurulana dek) calistirir.
@@ -227,6 +345,10 @@ async def start_all_services(rotator=None, soar_enabled=False):
         if service_name == "http-admin":
             handler = lambda r, w, p=port: _handle_http_admin(p, r, w,
                                                               soar_enabled=soar_enabled)
+        elif service_name in _BESPOKE_RESPONSE_BUILDERS:
+            handler = _make_bespoke_handler(service_name, port,
+                                            _BESPOKE_RESPONSE_BUILDERS[service_name],
+                                            soar_enabled=soar_enabled)
         else:
             handler = _make_generic_handler(service_name, port, rotator=rotator,
                                             soar_enabled=soar_enabled)

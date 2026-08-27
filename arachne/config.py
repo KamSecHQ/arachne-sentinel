@@ -34,6 +34,37 @@ FAKE_SERVICES = {
         "port": 8081,
         "banner": None,  # HTTP kendi response'unu listeners.py icinde uretir
     },
+    # --- Faz 103: genisletilmis honeypot yuzeyi -----------------------------
+    "telnet": {
+        "port": 2323,  # gercek telnet 23, kok yetkisi gerektirmeyen lab portu
+        "banner": "Ubuntu 22.04.3 LTS\r\nlogin: ",
+    },
+    "redis": {
+        "port": 6380,  # gercek redis 6379'a yakin, kok yetkisi gerektirmez
+        "banner": None,  # gercek Redis baglanti aninda banner göndermez
+    },
+    "docker-api": {
+        "port": 2375,  # gercek Docker Remote API portu (zaten kok gerektirmez)
+        "banner": None,  # HTTP tabanli - yanit listeners.py icinde uretilir
+    },
+    "elasticsearch": {
+        "port": 9200,  # gercek Elasticsearch REST portu (zaten kok gerektirmez)
+        "banner": None,  # HTTP tabanli - yanit listeners.py icinde uretilir
+    },
+    "rdp": {
+        "port": 3389,  # gercek RDP portu (zaten kok gerektirmez)
+        # DURUSTLUK: tam TPKT/X.224 muzakeresi bu fazin kapsami DISINDA
+        # tutuldu (DNS ghost'un "minimal alt kume" karariyla ayni ilke) -
+        # sadece baglanti/ham bayt loglanir, gercek RDP protokolu
+        # simule edilmez. Bkz. docs/ROADMAP.md Faz 103.
+        "banner": None,
+    },
+    "smb": {
+        "port": 4450,  # gercek SMB 445 kok yetkisi ister; lab-guvenli alternatif
+        # DURUSTLUK: tam SMB negotiate/session-setup kapsam DISINDA - sadece
+        # baglanti/ham bayt loglanir. Bkz. docs/ROADMAP.md Faz 103.
+        "banner": None,
+    },
 }
 
 # Baglanti basina en fazla ne kadar veri okunacak (byte) - kaynak tuketimini sinirlar

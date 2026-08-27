@@ -40,7 +40,7 @@ def main():
         choices=["run", "dashboard", "app", "report", "waf-demo", "waf-live",
                  "waf-benchmark", "waf-report", "scan", "train-ml", "mtd-demo",
                  "soar-demo", "mesh-demo", "analyze", "ai-report", "stix-export",
-                 "full-demo"],
+                 "full-demo", "threat-intel", "siem-export", "train-anomaly-ml"],
     )
     parser.add_argument("--unprotected", action="store_true",
                          help="waf-demo icin: WAF'siz calistir (karsilastirma)")
@@ -48,7 +48,10 @@ def main():
                          help="dashboard icin: sinematik acilis dizisini atla")
     parser.add_argument("--no-open", action="store_true",
                          help="dashboard icin: tarayiciyi otomatik acma")
-    parser.add_argument("--host", default="127.0.0.1", help="scan icin: hedef host")
+    parser.add_argument("--host", default="127.0.0.1",
+                         help="scan icin: hedef host; dashboard icin: dinlenecek arayuz "
+                              "(varsayilan 127.0.0.1 - sadece yerel makine; container "
+                              "icinde disaridan erisim icin --host 0.0.0.0 gerekir)")
     parser.add_argument("--port", type=int, default=None,
                          help="dinlenecek port. waf-demo icin varsayilan 8090, "
                               "dashboard icin 5000. macOS'ta port 5000 AirPlay "
@@ -69,6 +72,17 @@ def main():
     parser.add_argument("--sensors", type=int, default=3,
                          help="mesh-demo icin: simule edilecek sensor sayisi")
     parser.add_argument("--output", default=None, help="cikti dosyasi yolu")
+    parser.add_argument("--ip", default=None,
+                         help="threat-intel icin: sorgulanacak public IP adresi")
+    parser.add_argument("--format", default="cef", choices=["cef"],
+                         help="siem-export icin: disa aktarim formati (varsayilan: cef)")
+    parser.add_argument("--syslog-host", default=None,
+                         help="siem-export icin: canli syslog hedefi (opsiyonel)")
+    parser.add_argument("--syslog-port", type=int, default=514,
+                         help="siem-export icin: syslog hedef portu (varsayilan 514)")
+    parser.add_argument("--nvd", action="store_true",
+                         help="scan icin: NVD CVE veritabaniyla ek zenginlestirme "
+                              "(ayrica ARACHNE_NVD_ENABLED=1 gerekir)")
     args = parser.parse_args()
 
     storage.init_db()
@@ -84,7 +98,7 @@ def main():
         # kullanilir. Panel calismadiginda o servis isteklere 403 Forbidden
         # doner - bu, "sunucu kapali" hatasi gibi gorunmedigi icin kafa
         # karistiricidir. Cakisma yasarsaniz: --port 5001
-        run_dashboard(port=args.port or 5000,
+        run_dashboard(host=args.host, port=args.port or 5000,
                       cinematic=not args.no_intro,
                       open_browser=not args.no_open)
 
@@ -126,7 +140,16 @@ def main():
 
     elif args.command == "scan":
         from arachne.scanner.vuln_scanner import scan_and_report
-        findings = scan_and_report(args.host)
+
+        if args.nvd:
+            from arachne.scanner import nvd_lookup
+            if not nvd_lookup.is_enabled():
+                print(
+                    "UYARI: --nvd verildi ama ARACHNE_NVD_ENABLED=1 ayarlanmamis - "
+                    "NVD sorgusu atlanacak, sadece statik liste kullanilacak.\n"
+                    "  export ARACHNE_NVD_ENABLED=1\n"
+                )
+        findings = scan_and_report(args.host, use_nvd=args.nvd)
         if not findings:
             print(f"{args.host} uzerinde acik port bulunamadi.")
         else:
@@ -141,6 +164,11 @@ def main():
         from arachne.detection.ml_classifier import train_and_save
         train_and_save()
         print(f"ML modeli egitildi: {config.ML_MODEL_PATH}")
+
+    elif args.command == "train-anomaly-ml":
+        from arachne.detection import anomaly_ml
+        anomaly_ml.train_and_save()
+        print(f"Davranissal anomali modeli (Faz 106) egitildi: {anomaly_ml.MODEL_PATH}")
 
     elif args.command == "mtd-demo":
         from arachne.mtd import dns_ghost
@@ -279,6 +307,55 @@ def main():
               f"({stats['indicators']} indicator, {stats['groupings']} grouping)")
         print("  Bu dosya MISP/OpenCTI gibi tehdit istihbarati platformlarina "
               "dogrudan aktarilabilir.")
+
+    elif args.command == "threat-intel":
+        from arachne.intel import threat_intel
+
+        if not args.ip:
+            print("Kullanim: python main.py threat-intel --ip 8.8.8.8")
+            return
+        if not threat_intel.is_enabled():
+            print(
+                "Dis tehdit istihbarati KAPALI (varsayilan). Etkinlestirmek icin:\n"
+                "  export ARACHNE_THREAT_INTEL_ENABLED=1\n"
+                "  export ARACHNE_ABUSEIPDB_API_KEY=\"anahtariniz\"  # ve/veya\n"
+                "  export ARACHNE_OTX_API_KEY=\"anahtariniz\"\n"
+                "Sistem bu kaynaklar olmadan da tam calisir - bu tamamen opsiyoneldir."
+            )
+            return
+        result = threat_intel.lookup_ip(args.ip)
+        if result is None:
+            print(f"{args.ip} icin sonuc yok (lab/private IP olabilir, kota "
+                  "dolmus olabilir, ya da dis kaynaklar yanit vermedi).")
+        else:
+            print(f"\nTehdit istihbarati - {args.ip}")
+            print(f"  AbuseIPDB kotuluk puani : {result['abuse_confidence_score']}/100")
+            print(f"  OTX pulse sayisi        : {result['otx_pulse_count']}")
+            for source, data in result["sources"].items():
+                print(f"  [{source}] {data}")
+
+    elif args.command == "siem-export":
+        from arachne.siem import exporter
+
+        sink = None
+        if args.syslog_host:
+            sink = exporter.SyslogSender(host=args.syslog_host, port=args.syslog_port)
+
+        result = exporter.export_recent(sink=sink)
+        out_path = args.output or "data/siem_export.log"
+        with open(out_path, "w", encoding="utf-8") as f:
+            f.write("\n".join(result["lines"]))
+            if result["lines"]:
+                f.write("\n")
+
+        print(f"SIEM disa aktarim tamamlandi ({args.format.upper()}-over-syslog): {out_path}")
+        print(f"  {result['count']} olay disa aktarildi")
+        if sink is not None:
+            print(f"  {result['sent']}/{result['count']} olay canli olarak "
+                  f"{args.syslog_host}:{args.syslog_port} ({sink.protocol}) adresine gonderildi")
+        else:
+            print("  Canli iletim yapilmadi (--syslog-host verilmedi) - "
+                  "sadece dosyaya yazildi.")
 
     elif args.command == "full-demo":
         # Tum katmanlari tek komutta ayaga kaldirir - juri sunumu icin

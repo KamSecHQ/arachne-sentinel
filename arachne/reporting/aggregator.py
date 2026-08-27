@@ -428,6 +428,8 @@ def coevolution_advanced(db_path=None) -> dict:
         "novelty": {"count": 0, "flagged_ips": []},
         "geo_velocity": {"violations": 0, "identities": [], "top_regions": []},
         "fusion": {"top_posterior": 0.0, "top_ip": None, "top_factors": []},
+        "behavioral_anomaly": {"count": 0, "flagged_ips": [], "top_ip": None,
+                              "top_contributing_feature": None},
         "scan_bruteforce": {
             "scanner_count": 0, "bruteforce_count": 0,
             "top_scanner": None, "top_bruteforcer": None,
@@ -527,6 +529,27 @@ def coevolution_advanced(db_path=None) -> dict:
     except Exception:
         pass
 
+    # --- Davranissal anomali (Faz 106): IP basi Isolation Forest puani -----
+    anomalous_ips = set()
+    anomaly_top = None  # (score, ip, contributing_feature)
+    try:
+        from ..detection import anomaly_ml as _anomaly_ml
+        for ip, evs in by_ip.items():
+            features = _anomaly_ml.extract_features(evs)
+            res = _anomaly_ml.score_features(features)
+            if res.get("is_anomalous"):
+                anomalous_ips.add(ip)
+                score = res.get("anomaly_score", 0)
+                if anomaly_top is None or score > anomaly_top[0]:
+                    anomaly_top = (score, ip, res.get("contributing_feature"))
+        out["behavioral_anomaly"]["count"] = len(anomalous_ips)
+        out["behavioral_anomaly"]["flagged_ips"] = sorted(anomalous_ips)
+        if anomaly_top:
+            out["behavioral_anomaly"]["top_ip"] = anomaly_top[1]
+            out["behavioral_anomaly"]["top_contributing_feature"] = anomaly_top[2]
+    except Exception:
+        pass
+
     # --- Bayes fuzyon: IP basi atesleyen dedektorleri birlestir ------------
     try:
         from ..adaptive import threat_fusion as _fusion
@@ -540,6 +563,8 @@ def coevolution_advanced(db_path=None) -> dict:
                 fired.append("beacon")
             if ip in novel_ips:
                 fired.append("novelty")
+            if ip in anomalous_ips:
+                fired.append("behavioral_anomaly")
             if not fired:
                 continue
             res = engine.assess(fired)
@@ -630,6 +655,43 @@ def session_risk_view(db_path=None) -> dict:
             "top_ip": r.get("top_ip"),
             "high_count": r.get("high_count", 0),
             "count": r.get("count", 0),
+            "note_tr": empty["note_tr"],
+        }
+    except Exception:
+        return dict(empty)
+
+
+def threat_intel_enrichment_view(db_path=None) -> dict:
+    """Faz 102: Opsiyonel dis tehdit istihbarati (AbuseIPDB/OTX) ozetini
+    panel icin sarar.
+
+    `threat_intel.analyze_recent`'i cagirir - bu fonksiyon YENI dis API
+    cagrisi yapmaz, sadece onbellegi okur (panel poll dongusu kotayi
+    tuketmesin diye). Dis kaynak kapaliysa `enabled: false` ve bos liste
+    doner - bu bir hata degil, varsayilan/guvenli durumdur.
+
+    Donus dict:
+      enabled            : bool - dis kaynak(lar) etkin mi
+      enriched_ip_count  : int - onbellekte zenginlestirilmis IP sayisi
+      high_risk_ips      : [{ip, abuse_confidence_score}] - kotuluk >= 50
+      by_source          : {"abuseipdb": N, "otx": N}
+      note_tr            : str
+    """
+    empty = {
+        "enabled": False, "enriched_ip_count": 0, "high_risk_ips": [],
+        "by_source": {},
+        "note_tr": ("Dis tehdit istihbarati opsiyoneldir ve varsayilan "
+                    "olarak KAPALIDIR; acilmadiginda sistem hicbir sey "
+                    "kaybetmez (bkz. ARACHNE_THREAT_INTEL_ENABLED)."),
+    }
+    try:
+        from ..intel import threat_intel
+        r = threat_intel.analyze_recent(db_path=db_path)
+        return {
+            "enabled": r.get("enabled", False),
+            "enriched_ip_count": r.get("enriched_ip_count", 0),
+            "high_risk_ips": r.get("high_risk_ips", []),
+            "by_source": r.get("by_source", {}),
             "note_tr": empty["note_tr"],
         }
     except Exception:

@@ -269,9 +269,16 @@ def api_deep():
     except Exception:
         logger.exception("Replay verisi uretilemedi")
         replay = {}
+    try:
+        threat_intel_enrichment = aggregator.threat_intel_enrichment_view()
+    except Exception:
+        logger.exception("Dis tehdit istihbarati verisi uretilemedi")
+        threat_intel_enrichment = {"enabled": False, "enriched_ip_count": 0,
+                                   "high_risk_ips": [], "by_source": {}}
 
     return jsonify({"threats": threats, "rules_integrity": rules, "adaptive": adaptive,
-                    "metrics": metrics, "correlation": correlation, "replay": replay})
+                    "metrics": metrics, "correlation": correlation, "replay": replay,
+                    "threat_intel_enrichment": threat_intel_enrichment})
 
 
 @app.route("/api/intel")

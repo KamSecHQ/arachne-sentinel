@@ -16,6 +16,7 @@
 </head>
 <body>
 
+<div class="atmosphere" aria-hidden="true"></div>
 <div class="spine" aria-hidden="true"></div>
 
 <header class="nav">
@@ -50,10 +51,22 @@
       </div>
 
       <div class="proof-row">
-        <div class="proof"><span class="num"><span>0.976</span></span><span class="label">Ölçülen F1 skoru (tam katmanlı sistem)</span></div>
-        <div class="proof"><span class="num">110</span><span class="label">Tamamlanmış faz, her biri test edilmiş</span></div>
-        <div class="proof"><span class="num">779</span><span class="label">Birim testi, her commit'te çalışır</span></div>
-        <div class="proof"><span class="num">%0</span><span class="label">Ölçülen yanlış pozitif (etiketli set)</span></div>
+        <div class="proof">
+          <svg class="proof-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3l7 3v5c0 4.6-3 8.4-7 10-4-1.6-7-5.4-7-10V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg>
+          <span class="num"><span>0.976</span></span><span class="label">Ölçülen F1 skoru (tam katmanlı sistem)</span>
+        </div>
+        <div class="proof">
+          <svg class="proof-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 3v9l6 3"/></svg>
+          <span class="num">110</span><span class="label">Tamamlanmış faz, her biri test edilmiş</span>
+        </div>
+        <div class="proof">
+          <svg class="proof-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 19V5M4 19h16M8 15l3-4 3 3 4-6"/></svg>
+          <span class="num">802</span><span class="label">Birim testi, her commit'te çalışır</span>
+        </div>
+        <div class="proof">
+          <svg class="proof-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M8 12h8M8 9h5M8 15h5"/></svg>
+          <span class="num">%0</span><span class="label">Ölçülen yanlış pozitif (etiketli set)</span>
+        </div>
       </div>
     </div>
   </section>
@@ -79,22 +92,76 @@
       </div>
       <div class="depth-rows">
         <div class="depth-row">
-          <div class="depth-tier"><b>01</b>YÜZEY</div>
+          <div class="depth-tier">
+            <svg class="tier-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5" stroke-dasharray="2.5 3"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/></svg>
+            <b>01</b>YÜZEY
+          </div>
           <div class="depth-body"><h3>Çelik Kubbe — 18 halka</h3><p>Honeypot servisleri (SSH, FTP, Redis, Docker API, Elasticsearch...), WAF imza motoru, davranışsal anomali tespiti. Her mermi gerçek bir olaydır; çarptığı halka onu gerçekten durduran katmandır.</p></div>
         </div>
         <div class="depth-row">
-          <div class="depth-tier"><b>02</b>ADAPTİF</div>
+          <div class="depth-tier">
+            <svg class="tier-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 12a8 8 0 0 1 14-5.3M20 12a8 8 0 0 1-14 5.3"/><path d="M17.7 5.7V9h-3.3M6.3 18.3V15h3.3"/></svg>
+            <b>02</b>ADAPTİF
+          </div>
           <div class="depth-body"><h3>Ko-evrim katmanı</h3><p>Saldırgan taktik değiştirdikçe savunma duruşu da değişir: Bayes tehdit füzyonu, oyun-teorik yeniden-rastgeleleştirme, sıfır güven politika motoru.</p></div>
         </div>
         <div class="depth-row">
-          <div class="depth-tier"><b>03</b>ÇEKİRDEK YEMİ</div>
+          <div class="depth-tier">
+            <svg class="tier-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5v3M12 17.5v3M3.5 12h3M17.5 12h3"/><circle cx="12" cy="12" r="2" fill="currentColor" stroke="none"/></svg>
+            <b>03</b>ÇEKİRDEK YEMİ
+          </div>
           <div class="depth-body"><h3>Sahte başarı tuzağı</h3><p>Saldırgan "içeri girdim" sanır — aslında sıradan görünen bir tuzağa dokunmuştur. Bu an, hiçbir eşik beklemeden Son Hat'i anında tetikler.</p></div>
         </div>
         <div class="depth-row">
-          <div class="depth-tier"><b>04</b>SON HAT</div>
+          <div class="depth-tier">
+            <svg class="tier-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3l7 3v5c0 4.6-3 8.4-7 10-4-1.6-7-5.4-7-10V6l7-3z"/><path d="M12 8v4.5l3 2"/></svg>
+            <b>04</b>SON HAT
+          </div>
           <div class="depth-body"><h3>50 katmanlı yer altı kalesi</h3><p>Kimliği her 100 milisaniyede deterministik olarak dönen bir korunan varlık modeli. Devreye giriş süresi ölçülür: &lt;100ms.</p></div>
         </div>
       </div>
+    </div>
+  </section>
+
+  <section id="panel-preview">
+    <div class="wrap">
+      <div class="ring-junction" aria-hidden="true"></div>
+      <div class="section-head" style="margin-left:auto;margin-right:auto;text-align:center;">
+        <span class="eyebrow" style="justify-content:center;">Komuta merkezi</span>
+        <h2>Her olay, gerekçesiyle birlikte tek ekranda.</h2>
+        <p style="margin-left:auto;margin-right:auto;">Kendi sunucunuza kurduğunuzda göreceğiniz panelin sadeleştirilmiş bir örneği — canlıya aldığınızda kendi trafiğinizle dolar.</p>
+      </div>
+
+      <div class="console panel">
+        <div class="console-head">
+          <div class="console-dots"><span></span><span></span><span></span></div>
+          <span class="console-title mono">arachne · komuta-merkezi · örnek görünüm</span>
+        </div>
+        <div class="console-body">
+          <div class="console-feed" aria-hidden="true">
+            <div class="feed-line"><span class="feed-tag ok">YAKALANDI</span><span class="feed-ip mono">185.220.101.7</span><span class="feed-desc">SSH brute-force → Halka 3'te durduruldu</span></div>
+            <div class="feed-line"><span class="feed-tag warn">İZLENİYOR</span><span class="feed-ip mono">45.146.164.22</span><span class="feed-desc">Redis INFO taraması → davranışsal anomali</span></div>
+            <div class="feed-line"><span class="feed-tag ok">YAKALANDI</span><span class="feed-ip mono">193.106.31.98</span><span class="feed-desc">SQLi denemesi → WAF imza eşleşmesi</span></div>
+            <div class="feed-line"><span class="feed-tag crit">SON HAT</span><span class="feed-ip mono">91.240.118.5</span><span class="feed-desc">Çekirdek yemi tetiklendi → kimlik rotasyonu &lt;100ms</span></div>
+            <div class="feed-line"><span class="feed-tag ok">YAKALANDI</span><span class="feed-ip mono">154.213.9.44</span><span class="feed-desc">Docker API taraması → sahte konteyner listesi döndü</span></div>
+          </div>
+          <div class="console-gauges">
+            <div class="gauge">
+              <div class="gauge-ring" style="--pct:97.6"><span>0.976</span></div>
+              <span class="gauge-label">Ölçülen F1 skoru</span>
+            </div>
+            <div class="gauge">
+              <div class="gauge-ring" style="--pct:100"><span>18/18</span></div>
+              <span class="gauge-label">Aktif halka</span>
+            </div>
+            <div class="gauge">
+              <div class="gauge-ring" style="--pct:88"><span>&lt;100ms</span></div>
+              <span class="gauge-label">Son Hat devreye giriş</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="console-caption">Yukarıdaki IP/olay satırları örnek amaçlıdır — F1 skoru ve devreye giriş süresi bu depodaki gerçek ölçüm sonuçlarıdır.</p>
     </div>
   </section>
 
@@ -137,11 +204,11 @@
         <h2>Yakalarız, saldırmayız.</h2>
       </div>
       <div class="ethics" style="justify-content:center;">
-        <div class="chip">Hack-back yok — tüm eylemler kendi yüzeyimizde kalır</div>
-        <div class="chip">MITRE ATT&amp;CK / D3FEND / NIST CSF 2.0 ile eşlenmiş</div>
-        <div class="chip">Kurcalama-kanıtı hash-zinciri denetim kaydı</div>
-        <div class="chip">Yapay zekâ zenginleştirir, karar vermez</div>
-        <div class="chip">Sadece izole/kendi altyapınızda çalışır</div>
+        <div class="chip"><svg class="chip-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4.93 4.93l14.14 14.14M12 3l7 3v5c0 4.6-3 8.4-7 10"/></svg>Hack-back yok — tüm eylemler kendi yüzeyimizde kalır</div>
+        <div class="chip"><svg class="chip-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3.5" y="3.5" width="7" height="7"/><rect x="13.5" y="3.5" width="7" height="7"/><rect x="3.5" y="13.5" width="7" height="7"/><rect x="13.5" y="13.5" width="7" height="7"/></svg>MITRE ATT&amp;CK / D3FEND / NIST CSF 2.0 ile eşlenmiş</div>
+        <div class="chip"><svg class="chip-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="10" width="16" height="10" rx="1"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>Kurcalama-kanıtı hash-zinciri denetim kaydı</div>
+        <div class="chip"><svg class="chip-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg>Yapay zekâ zenginleştirir, karar vermez</div>
+        <div class="chip"><svg class="chip-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3.5" y="7.5" width="17" height="12" rx="1"/><path d="M7.5 7.5V6a4.5 4.5 0 0 1 9 0v1.5"/></svg>Sadece izole/kendi altyapınızda çalışır</div>
       </div>
     </div>
   </section>
@@ -157,7 +224,7 @@
 
       <div class="pricing-grid">
         <div class="panel price-card">
-          <h3>Topluluk</h3>
+          <div class="price-icon-row"><svg class="price-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="9" cy="8" r="3"/><path d="M3.5 19c0-3 2.5-5 5.5-5s5.5 2 5.5 5"/><circle cx="17" cy="9" r="2.2"/><path d="M15.5 19c.2-2.2 1.6-3.8 3.5-3.8 1.9 0 3.3 1.6 3.5 3.8"/></svg><h3>Topluluk</h3></div>
           <div class="price-value"><span class="amt">$10</span><span class="per">/ay</span></div>
           <p class="price-desc">Kendi sunucunuzda, sınırsız süre kullanın. Değerlendirme, akademik kullanım ve tek geliştiriciler için.</p>
           <ul class="price-features">
@@ -171,7 +238,7 @@
 
         <div class="panel price-card featured">
           <span class="price-tag">En çok tercih edilen</span>
-          <h3>Profesyonel</h3>
+          <div class="price-icon-row"><svg class="price-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2.5l2.6 5.6 6 .7-4.4 4.2 1.1 6-5.3-3-5.3 3 1.1-6-4.4-4.2 6-.7z"/></svg><h3>Profesyonel</h3></div>
           <div class="price-value"><span class="amt">$49</span><span class="per">/ay</span></div>
           <div class="price-annual">Yıllık faturalandırmada $39/ay</div>
           <p class="price-desc">Tek bir gerçek sitesi/uygulaması olan işletmeler için — kurulumdan sonra arkanızda biri olsun istiyorsanız.</p>
@@ -186,7 +253,7 @@
         </div>
 
         <div class="panel price-card">
-          <h3>Kurumsal</h3>
+          <div class="price-icon-row"><svg class="price-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="3" width="10" height="18"/><rect x="14" y="9" width="6" height="12"/><path d="M7 7h1M10 7h1M7 11h1M10 11h1M7 15h1M10 15h1"/></svg><h3>Kurumsal</h3></div>
           <div class="price-value"><span class="amt">Özel teklif</span></div>
           <p class="price-desc">Birden fazla varlığı/siteyi koruyan şirketler ve ajanslar için — kapsama göre fiyatlandırılır.</p>
           <ul class="price-features">
@@ -212,7 +279,7 @@
       </div>
       <div class="foot-meta">
         <span>ARACHNE SENTINEL</span>
-        <span>110 FAZ · 779 TEST · SADECE SAVUNMA</span>
+        <span>113 FAZ · 802 TEST · SADECE SAVUNMA</span>
       </div>
     </div>
   </footer>

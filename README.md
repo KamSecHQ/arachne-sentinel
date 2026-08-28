@@ -432,6 +432,7 @@ pytest tests/ -v      # 779 test
 - Etik/yasal kullanım notu: [docs/ETHICS_AND_LEGAL.md](docs/ETHICS_AND_LEGAL.md)
 - Container dağıtımı (Faz 105): [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
 - Müşteri entegrasyonu (Faz 110): [docs/INTEGRATION.md](docs/INTEGRATION.md)
+- Fiyatlandırma paketleri (Faz 111): [docs/PRICING.md](docs/PRICING.md)
 
 ## Proje ekibi
 

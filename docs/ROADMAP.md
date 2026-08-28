@@ -1043,6 +1043,33 @@ bu, tarayıcıda gerçek doğrulama gerektiren ayrı bir frontend çalışmasıd
   test sayısı 763 → **779**.
 
 
+## Faz 111 — Ürün Tanıtım Sayfası + Fiyatlandırma Paketleri (tamamlandı)
+
+> Motivasyon: Faz 110 teknik entegrasyonu tamamlayan iş — projeyi
+> gerçekten "satış noktasına" getirmek için müşteriye gösterilebilecek bir
+> tanıtım sayfası ve gerçek piyasa verisine dayanan paket yapısı.
+
+- [x] **Piyasa araştırması** (gerçek, güncel kaynaklardan — bkz.
+  `docs/PRICING.md`): Thinkst Canary (deception) $7.500-10.000/yıl'dan,
+  Wazuh Cloud (yönetilen SIEM) ~$5.71/ajan/ay, Cloudflare Business (WAF)
+  $200-250/ay, SOC-as-a-Service (KOBİ) $1.500-5.000/ay, MDR $8-35/uç
+  nokta/ay. Arachne Sentinel bu kategorilerin dördünü birden self-hosted
+  tek pakette sağladığı için piyasa ortalamasının çok altında
+  konumlandırılabiliyor.
+- [x] **3 paket** (`docs/PRICING.md`): Topluluk ($0, self-hosted, tüm 110
+  faz), Profesyonel ($49/ay, $39/ay yıllık — kurulum yardımı + öncelikli
+  destek + webhook entegrasyon desteği), Kurumsal (özel teklif — çoklu
+  varlık + özel SLA).
+- [x] **Tanıtım sayfası** (private Artifact): "Arachne Sentinel" — ürünün
+  kendi Çelik Kubbe/Son Hat görsel diline dayanan, canlı canvas
+  animasyonlu bir hero, ölçülen gerçek metriklerle (F1 0.976, 779 test,
+  %0 yanlış pozitif) kurulu "ölçülebilir dürüstlük" mesajı, 3 adımlık
+  entegrasyon akışı ve fiyatlandırma bölümü içerir. DOM-seviyesinde
+  doğrulandı (etiket dengesi, hesaplanan stiller, tüm bölüm yükseklikleri).
+- [x] **DÜRÜSTLÜK NOTU**: fiyatlar öneri niteliğindedir, nihai ticari karar
+  kullanıcıya/ekibe aittir — kaynak linkleri `docs/PRICING.md`'de.
+
+
 ## Sıradaki hedefler (stretch-goal, isteğe bağlı)
 
 - İkinci bilgisayar (Windows/x86-64) edinildiğinde Faz 3'ün assembly

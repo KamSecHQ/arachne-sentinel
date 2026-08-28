@@ -48,8 +48,12 @@
       <svg class="logo" viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="1.5">
         <circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4M5 5l3 3M16 16l3 3M19 5l-3 3M8 16l-3 3"/>
       </svg>
-      <div>ARACHNE<br><small>SENTINEL · 100 FAZ</small></div>
+      <div id="brand-text">ARACHNE<br><small id="brand-sub">SENTINEL · 108 FAZ</small></div>
     </div>
+    <!-- Faz 110: musteri profili yapilandirilmissa (bkz. arachne/customer/profile.py)
+         buraya "X icin korunuyor" satiri eklenir; yapilandirilmamissa bu
+         hicbir zaman gorunmez - varsayilan marka aynen kalir. -->
+    <div id="brand-customer" class="brand-customer" style="display:none;"></div>
 
     <nav class="nav" id="nav">
       <div class="nav-group-label">İzleme</div>

@@ -52,6 +52,16 @@ a{color:var(--accent-2);text-decoration:none;}
   border-bottom:1px solid var(--border-soft);
 }
 .brand .logo{width:26px;height:26px;flex-shrink:0;}
+/* Faz 110: musteri profili yapilandirilmissa gorunen "X icin korunuyor"
+   satiri (bkz. app.js renderCustomerBrand). Yapilandirilmamissa app.html'de
+   display:none kalir - varsayilan marka gorunumu hic degismez. */
+.brand-customer{
+  padding:.55rem 1.2rem .7rem; margin-top:-1px; border-bottom:1px solid var(--border-soft);
+  font-family:var(--font-mono); font-size:.62rem; color:var(--accent-2);
+  letter-spacing:.03em; line-height:1.5; overflow:hidden; text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.brand-customer b{color:var(--text); font-weight:600;}
 .brand small{display:block;font-family:var(--font-mono);font-size:.58rem;color:var(--muted);letter-spacing:.12em;font-weight:400;margin-top:2px;}
 
 .nav{padding:.7rem .6rem; flex:1;}

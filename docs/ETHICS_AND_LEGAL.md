@@ -282,3 +282,20 @@ bir tasarım tercihi.
   gerçekçilik katmanıdır. `random` modülü (kriptografik olmayan) bilinçli
   olarak yeterlidir; burada tahmin edilemezlik değil, doğal değişkenlik
   hedeflenir.
+
+### Faz 110 — Müşteri entegrasyonu: gerçek sır saklama YASAK
+
+`arachne/customer/profile.py`, bir müşterinin Arachne Sentinel'i kendi
+altyapısına entegre ederken kimlik/iletişim bilgisi girdiği yerdir. **Bu
+alan gerçek şifre, API anahtarı ya da veritabanı bağlantı dizesi için
+DEĞİLDİR** — sistem bunu tespit edip kaydetmeyi reddeder (`save_profile`
+içindeki korkuluk), ama bu tam bir tarama değildir; nihai sorumluluk
+entegre eden tarafa aittir.
+
+Çıkan tek dış ağ çağrısı (varsa) müşterinin kendi yapılandırdığı alarm
+webhook'udur (`arachne/soar/notifications.py`). Bu çağrı **sadece tehdit
+metadatası** (IP, skor, şiddet, kısa açıklama) taşır — honeypot'a gelen ham
+saldırı yükü, veritabanı içeriği ya da müşterinin kendi iletişim bilgileri
+(e-posta adresi, webhook URL'sinin kendisi) asla webhook gövdesine
+yazılmaz. Webhook yapılandırılmadıkça (varsayılan) hiçbir ağ çağrısı
+yapılmaz — aynı karantina ilkesi (bkz. Faz 8, Faz 102, Faz 107).

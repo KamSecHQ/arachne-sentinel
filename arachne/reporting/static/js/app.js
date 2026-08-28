@@ -1230,6 +1230,18 @@
   }
   let firstFeedDef = true;
 
+  // Faz 110: musteri varlik profili (bkz. arachne/customer/profile.py).
+  // Yapilandirilmamissa hicbir sey degismez - varsayilan marka aynen kalir.
+  let brandRendered = false;
+  function renderCustomerBrand(customer) {
+    if (brandRendered || !customer || !customer.configured) return;
+    brandRendered = true;
+    const bar = $("#brand-customer");
+    if (!bar) return;
+    bar.innerHTML = `<b>${esc(customer.asset_name)}</b> için korunuyor · ${esc(customer.company_name)}`;
+    bar.style.display = "block";
+  }
+
   async function fetchState() {
     let d; try { d = await (await fetch("/api/state", { cache: "no-store" })).json(); } catch (e) { return; }
     // Topbar
@@ -1240,6 +1252,8 @@
     // Badges
     updateBadge("badge-threats", (ov.kpis || {}).unique_attackers || 0);
     updateBadge("badge-soar", (ov.kpis || {}).awaiting_approval || 0);
+    // Faz 110: musteri profili yapilandirilmissa marka satirini guncelle
+    renderCustomerBrand(d.customer);
     // Overview
     renderOverview(ov);
     // Command view (dome + map via command_center.js, layers here)

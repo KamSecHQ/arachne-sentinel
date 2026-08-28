@@ -40,7 +40,8 @@ def main():
         choices=["run", "dashboard", "app", "report", "waf-demo", "waf-live",
                  "waf-benchmark", "waf-report", "scan", "train-ml", "mtd-demo",
                  "soar-demo", "mesh-demo", "analyze", "ai-report", "stix-export",
-                 "full-demo", "threat-intel", "siem-export", "train-anomaly-ml"],
+                 "full-demo", "threat-intel", "siem-export", "train-anomaly-ml",
+                 "onboard"],
     )
     parser.add_argument("--unprotected", action="store_true",
                          help="waf-demo icin: WAF'siz calistir (karsilastirma)")
@@ -356,6 +357,63 @@ def main():
         else:
             print("  Canli iletim yapilmadi (--syslog-host verilmedi) - "
                   "sadece dosyaya yazildi.")
+
+    elif args.command == "onboard":
+        from arachne.customer import profile as customer_profile
+
+        print(
+            "\n" + "=" * 68 + "\n"
+            "  ARACHNE SENTINEL - MUSTERI KURULUM SIHIRBAZI (Faz 110)\n"
+            + "=" * 68 + "\n"
+            "  Bu sihirbaz SADECE kimlik/iletisim bilgisi toplar.\n"
+            "  ASLA gercek sifre/API anahtari/DB baglanti dizesi girmeyin -\n"
+            "  bu bir honeypot sistemidir, gercek sir saklamak icin degildir.\n"
+            + "=" * 68 + "\n"
+        )
+        if customer_profile.is_configured():
+            print(f"Not: mevcut bir profil bulundu ({customer_profile.profile_path()}) "
+                  "- devam ederseniz uzerine yazilir.\n")
+
+        def _ask(label, required=False, default=""):
+            while True:
+                raw = input(f"{label}{f' [{default}]' if default else ''}: ").strip()
+                value = raw or default
+                if value or not required:
+                    return value
+                print("  Bu alan zorunlu, lutfen bir deger girin.")
+
+        company_name = _ask("Sirket/kurum adi", required=True)
+        asset_name = _ask("Korunan varlik/sistemin adi (ornek: 'Ana Web Sitesi')",
+                          required=True)
+        asset_description = _ask("Kisa aciklama (opsiyonel)")
+        contact_name = _ask("Iletisim kisisi (opsiyonel)")
+        alert_email = _ask("Alarm e-posta adresi (opsiyonel)")
+        alert_webhook_url = _ask(
+            "Alarm webhook URL'si - Slack/Discord/Teams/genel (opsiyonel)")
+
+        try:
+            path = customer_profile.save_profile({
+                "company_name": company_name,
+                "asset_name": asset_name,
+                "asset_description": asset_description,
+                "contact_name": contact_name,
+                "alert_email": alert_email,
+                "alert_webhook_url": alert_webhook_url,
+            })
+        except ValueError as exc:
+            print(f"\nHATA: {exc}\nProfil kaydedilmedi - lutfen tekrar deneyin.")
+            return
+
+        print(
+            f"\nProfil kaydedildi: {path}\n"
+            f"  Sirket        : {company_name}\n"
+            f"  Korunan varlik: {asset_name}\n"
+            f"  Webhook       : {'yapilandirildi' if alert_webhook_url else 'yok (opsiyonel)'}\n"
+            "\nSonraki adimlar:\n"
+            "  1. docker compose up -d          (bkz. docs/DEPLOYMENT.md)\n"
+            "  2. WAF'i kendi web app'inizin onune koyun (bkz. docs/INTEGRATION.md)\n"
+            "  3. python main.py dashboard --port 5001\n"
+        )
 
     elif args.command == "full-demo":
         # Tum katmanlari tek komutta ayaga kaldirir - juri sunumu icin

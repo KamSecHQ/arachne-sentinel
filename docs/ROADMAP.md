@@ -993,6 +993,56 @@ OpenCTI/augmented-ui tasarım dili — bkz. sohbet geçmişi) göre yükseltmek;
 bu, tarayıcıda gerçek doğrulama gerektiren ayrı bir frontend çalışmasıdır.
 
 
+## Faz 109 — Panelde Çekirdek Yemi Görünürlüğü (tamamlandı)
+
+- [x] Dashboard'da 6 görünüm tarayıcıda gerçekten test edildi — panel zaten
+  profesyonel seviyede bulundu (Orbitron/JetBrains Mono/Inter, renk-kodlu
+  şiddet rozetleri, force-directed varlık grafiği, terminal estetiği).
+  Geniş çaplı yeniden tasarım yapılMADI — gerekçesiz risk olurdu.
+- [x] Tek somut eksik kapatıldı: `arachne/reporting/static/js/app.js`'e
+  Faz 108'in "core-vault-illusion" honeytoken'larını diğerlerinden ayıran
+  **"ÇEKİRDEK YEMİ"** rozeti eklendi (mevcut `badge-medium` renk sistemi
+  kullanıldı). Tarayıcıda gerçekten tetiklenip ekran görüntüsüyle
+  doğrulandı.
+
+
+## Faz 110 — Müşteri Entegrasyon Katmanı (tamamlandı)
+
+> Motivasyon: projeyi "araştırma/yarışma demosu" olmaktan çıkarıp bir
+> müşterinin (web sitesi sahibinin) kendi altyapısına entegre edebileceği
+> bir ürüne dönüştürmek. Yön: **self-hosted** (müşteri kendi sunucusuna
+> kurar, hiçbir veri dışarı çıkmaz) — SaaS/merkezi hizmet modeli bu
+> projenin ölçeğinin çok üzerinde ayrı bir iş olduğu için kapsam dışı
+> bırakıldı.
+
+- [x] **`arachne/customer/profile.py`**: müşterinin kimlik/iletişim
+  metadatasını (şirket adı, korunan varlığın adı/açıklaması, alarm
+  e-posta/webhook) tuttuğu profil. **GÜVENLİK KORKULUĞU**: gerçek sır gibi
+  görünen değerler (`postgres://`, `password=` vb.) `save_profile()`
+  tarafından REDDEDİLİR — bu sistem gerçek kimlik bilgisi saklamak için
+  değildir. Yapılandırılmamışsa sistem tamamen eskisi gibi çalışır.
+- [x] **`arachne/soar/notifications.py`**: müşteri webhook'u
+  yapılandırılmışsa (Slack/Discord/Teams/genel), yüksek/kritik şiddetli
+  alarmlarda VE Son Hat devreye girdiğinde **otomatik dışa bildirim**
+  gönderilir — `llm_backend.py` ile aynı karantina ilkesi (webhook yoksa
+  hiçbir ağ çağrısı yok, asla istisna fırlatmaz, saatlik kota, sadece
+  tehdit metadatası gönderilir — ham yük/iletişim bilgisi asla gitmez).
+  `soar/engine.py` (`respond_to_alert`) ve `lastline/fortress.py`
+  (`engage`) bu modülü çağıracak şekilde genişletildi.
+- [x] **`python main.py onboard`**: interaktif kurulum sihirbazı — şirket/
+  varlık/iletişim bilgisi sorar, gerçek sır girişini reddeder, sonraki
+  adımları (Docker Compose, WAF entegrasyonu) özetler.
+- [x] **`docs/INTEGRATION.md`**: müşteriye yönelik adım-adım entegrasyon
+  kılavuzu — Flask/Django için tek satırlık `WAFMiddleware` kod örneği,
+  honeypot yerleştirme, webhook kurulumu (Slack dahil), doğrulama adımı,
+  SSS (gerçek sır konulabilir mi, internet gerekir mi, çoklu varlık).
+  Dashboard sidebar'ında müşteri yapılandırılmışsa "X için korunuyor · Y"
+  satırı otomatik görünür (yapılandırılmamışsa hiçbir şey değişmez).
+- [x] 16 yeni birim testi (profil güvenlik korkuluğu, webhook karantina
+  davranışı, SOAR/Son Hat entegrasyonu — gerçek ağ çağrısı yok). Toplam
+  test sayısı 763 → **779**.
+
+
 ## Sıradaki hedefler (stretch-goal, isteğe bağlı)
 
 - İkinci bilgisayar (Windows/x86-64) edinildiğinde Faz 3'ün assembly

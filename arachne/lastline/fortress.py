@@ -94,7 +94,22 @@ class LastLineFortress:
         self.last_results = results
         # butunluk: sonuclarin hash-zinciri koku (kurcalama-kaniti)
         self.integrity_root = self._integrity_root(results)
+        # Faz 110: musteri webhook'u yapilandirilmissa, Son Hat'in devreye
+        # girmesi projenin en kritik olayidir - musteriye ANINDA bildirilir.
+        # Webhook yoksa hicbir ag cagrisi yapilmaz (bkz. soar/notifications.py).
+        self._notify_engagement(ctx)
         return self.status()
+
+    def _notify_engagement(self, ctx: DefenseContext):
+        try:
+            from ..soar import notifications
+            reason = self.should_engage(ctx)[1]
+            notifications.notify_critical_event(
+                event_type="son_hat_devrede", source_ip=ctx.attacker_ip,
+                severity="critical", score=None,
+                detail=f"Son Hat devreye girdi: {reason}")
+        except Exception:
+            pass
 
     def standby(self) -> None:
         self.engaged = False

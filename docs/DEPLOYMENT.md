@@ -34,6 +34,12 @@ Durdurmak için: `colima stop` (veriler `docker volume` içinde kalıcı kalır)
 
 ```bash
 docker compose build
+
+# (Opsiyonel ama önerilir) Müşteri kimlik/iletişim profilinizi girin -
+# bkz. docs/INTEGRATION.md. Konteynerler henüz ayakta olmasa da çalışır,
+# çünkü profil paylaşılan `arachne_data` volume'una yazılır.
+docker compose run --rm dashboard onboard
+
 docker compose up -d
 ```
 

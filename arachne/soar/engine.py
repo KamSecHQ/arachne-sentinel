@@ -27,6 +27,20 @@ from . import actions, playbooks
 logger = logging.getLogger(__name__)
 
 
+def _notify_customer(event_type: str, source_ip: str, severity: str,
+                     score, detail: str):
+    """Faz 110: musteri webhook bildirimi - tembel import (yalnizca
+    yapilandirildiginda kullanilir), asla istisna sizdirmez."""
+    try:
+        from . import notifications
+        notifications.notify_critical_event(
+            event_type=event_type, source_ip=source_ip, severity=severity,
+            score=score, detail=detail)
+    except Exception:
+        logger.debug("Musteri bildirimi basarisiz (SOAR akisi etkilenmedi)",
+                     exc_info=True)
+
+
 def _evaluate_condition(condition: dict, context: dict) -> bool:
     """Bir karar kuralinin kosullarini baglama karsi degerlendirir.
 
@@ -190,6 +204,15 @@ def respond_to_alert(source_ip: str, score: int, severity: str,
     alarmlar icin otomatik mudahale gerekmeyebilir)."""
     attack_classes = attack_classes or []
     matched = playbooks.find_matching_playbooks(score, severity, attack_classes)
+
+    # Faz 110: musteri webhook'u yapilandirilmissa, yuksek/kritik siddetli
+    # her alarm (playbook eslessin eslesmesin) musteriye DISARI bildirilir -
+    # panel artik tek haber kaynagi degil. Webhook yoksa hicbir ag cagrisi
+    # yapilmaz (bkz. notifications.py karantina ilkesi).
+    if severity in ("high", "critical"):
+        _notify_customer("alert", source_ip, severity, score,
+                         f"{', '.join(attack_classes) or 'bilinmeyen siniflandirma'} "
+                         f"- skor {score}")
 
     if not matched:
         return {

@@ -222,6 +222,11 @@ def api_state():
 
     live = _gather_dashboard_data()
     live["bench_rows"] = _quick_benchmark()
+    try:
+        from ..customer import profile as customer_profile
+        customer = customer_profile.status()
+    except Exception:
+        customer = {"configured": False}
     return jsonify({
         "overview": aggregator.overview(),
         "dome": command_center.build_dome_state(),
@@ -229,6 +234,7 @@ def api_state():
         "defense_layers": aggregator.defense_layers(),
         "active_defense": aggregator.active_defense_view(),
         "live": live,
+        "customer": customer,
         "now": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC"),
     })
 

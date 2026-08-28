@@ -37,6 +37,10 @@ services:
       ARACHNE_MESH_SECRET: ${ARACHNE_MESH_SECRET:-}
       ARACHNE_SIEM_HOST: ${ARACHNE_SIEM_HOST:-}
       ARACHNE_SIEM_PORT: ${ARACHNE_SIEM_PORT:-}
+      # Faz 110: varsayilan olarak /app/data/customer_profile.json (paylasilan
+      # volume icinde, ayarlamaniz gerekmez) - sadece farkli bir yol
+      # istiyorsaniz doldurun.
+      ARACHNE_CUSTOMER_PROFILE: ${ARACHNE_CUSTOMER_PROFILE:-}
     restart: unless-stopped
 
   # Canli komuta merkezi - honeypot ile AYNI SQLite veritabanini paylasir

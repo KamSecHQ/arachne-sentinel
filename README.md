@@ -1,6 +1,6 @@
 # 🕸 Arachne Sentinel
 
-Honeypot tabanlı, **108 fazlı** bir **erken uyarı, saldırı tespit, otonom
+Honeypot tabanlı, **110 fazlı** bir **erken uyarı, saldırı tespit, otonom
 müdahale, aktif savunma, adaptif (ko-evrim) savunma ve ölçülebilir SOC
 platformu**. Faz 1-100 tam — motor + test + sinematik komuta merkezi + AI
 komuta asistanı. **18 halkalı** Çelik Kubbe + **50 katmanlı Son Hat yer altı
@@ -282,11 +282,18 @@ uygulama (SPA), iki hızlı poll döngüsü, birleşik toplayıcı
   için). Ayrıca bilinen honeypot-tespit taktiklerine (sanallaştırma kontrolü,
   bilinen honeypot yazılım adları, VM MAC önekleri) karşı yeni bir tespit
   kuralı ve tüm honeypot yanıtlarına gerçekçi/değişken gecikme eklendi.
+- **Faz 110 — Müşteri entegrasyon katmanı**: proje artık "araştırma demosu"
+  değil, kendi altyapınıza self-hosted kurabileceğiniz bir üründür.
+  `python main.py onboard` ile kimlik/iletişim profilinizi girin (gerçek
+  sır kabul edilmez — güvenlik korkuluğu), `WAFMiddleware`'i tek satırla
+  kendi Flask/Django uygulamanızın önüne koyun, kritik olaylarda
+  Slack/Discord/genel webhook'unuza otomatik bildirim alın. Detaylar:
+  [docs/INTEGRATION.md](docs/INTEGRATION.md).
 
 **Ortak:**
 - **Otomatik HTML raporu**, **AI Markdown raporu**, **STIX 2.1 bundle** ve
   **sinematik canlı komuta merkezi** (gerçek performans metrikleriyle)
-- **763 birim testi** (`tests/`) ve kendi kendini test eden demo saldırı scriptleri
+- **779 birim testi** (`tests/`) ve kendi kendini test eden demo saldırı scriptleri
 
 ## Kurulum
 
@@ -369,6 +376,9 @@ python main.py scan --host 127.0.0.1 --nvd     # NVD CVE zenginleştirmeli taram
 
 # Container ile tek komutla tüm platform (bkz. docs/DEPLOYMENT.md):
 docker compose up -d
+
+# --- Faz 110: müşteri entegrasyonu (bkz. docs/INTEGRATION.md) ---
+python main.py onboard                         # kimlik/iletişim profili kurulum sihirbazı
 ```
 
 ## Yapay zeka katmanını yapılandırma (opsiyonel)
@@ -412,7 +422,7 @@ export ARACHNE_NVD_API_KEY="anahtarınız"         # opsiyonel, sadece kota yük
 
 ```bash
 pip install pytest
-pytest tests/ -v      # 763 test
+pytest tests/ -v      # 779 test
 ```
 
 ## Mimari ve yol haritası
@@ -421,6 +431,7 @@ pytest tests/ -v      # 763 test
 - Faz faz gelişim planı: [docs/ROADMAP.md](docs/ROADMAP.md)
 - Etik/yasal kullanım notu: [docs/ETHICS_AND_LEGAL.md](docs/ETHICS_AND_LEGAL.md)
 - Container dağıtımı (Faz 105): [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
+- Müşteri entegrasyonu (Faz 110): [docs/INTEGRATION.md](docs/INTEGRATION.md)
 
 ## Proje ekibi
 

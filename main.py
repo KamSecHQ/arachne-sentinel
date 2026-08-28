@@ -41,18 +41,19 @@ def main():
                  "waf-benchmark", "waf-report", "scan", "train-ml", "mtd-demo",
                  "soar-demo", "mesh-demo", "analyze", "ai-report", "stix-export",
                  "full-demo", "threat-intel", "siem-export", "train-anomaly-ml",
-                 "onboard"],
+                 "onboard", "website"],
     )
     parser.add_argument("--unprotected", action="store_true",
-                         help="waf-demo icin: WAF'siz calistir (karsilastirma)")
+                         help="waf-demo/website icin: WAF'siz calistir (sadece karsilastirma - "
+                              "website icin gercek dagitimda KULLANMAYIN)")
     parser.add_argument("--no-intro", action="store_true",
                          help="dashboard icin: sinematik acilis dizisini atla")
     parser.add_argument("--no-open", action="store_true",
                          help="dashboard icin: tarayiciyi otomatik acma")
     parser.add_argument("--host", default="127.0.0.1",
-                         help="scan icin: hedef host; dashboard icin: dinlenecek arayuz "
-                              "(varsayilan 127.0.0.1 - sadece yerel makine; container "
-                              "icinde disaridan erisim icin --host 0.0.0.0 gerekir)")
+                         help="scan icin: hedef host; dashboard/website icin: dinlenecek "
+                              "arayuz (varsayilan 127.0.0.1 - sadece yerel makine; container "
+                              "icinde/gercek dagitimda disaridan erisim icin --host 0.0.0.0 gerekir)")
     parser.add_argument("--port", type=int, default=None,
                          help="dinlenecek port. waf-demo icin varsayilan 8090, "
                               "dashboard icin 5000. macOS'ta port 5000 AirPlay "
@@ -414,6 +415,10 @@ def main():
             "  2. WAF'i kendi web app'inizin onune koyun (bkz. docs/INTEGRATION.md)\n"
             "  3. python main.py dashboard --port 5001\n"
         )
+
+    elif args.command == "website":
+        from website.app import run as run_website
+        run_website(protected=not args.unprotected, host=args.host, port=args.port or 8088)
 
     elif args.command == "full-demo":
         # Tum katmanlari tek komutta ayaga kaldirir - juri sunumu icin

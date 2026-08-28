@@ -29,7 +29,7 @@ Nihai fiyat kararı ticari ekibe aittir; buradaki sayılar öneri niteliğindedi
 
 ## Paketler
 
-### Topluluk — $0
+### Topluluk — $10/ay
 
 Kendi sunucunuza kurun, sınırsız süre kullanın.
 
@@ -37,6 +37,10 @@ Kendi sunucunuza kurun, sınırsız süre kullanın.
 - Docker Compose ile kendi kendine kurulum (bkz. [DEPLOYMENT.md](DEPLOYMENT.md))
 - Topluluk desteği (GitHub Issues)
 - Hedef kitle: değerlendirme, akademik kullanım, tek geliştiriciler
+
+**Neden $0 değil:** Tamamen ücretsiz bir kademe, üründe gerçek bir değer
+algısı oluşturmuyor — sembolik de olsa bir fiyat, "bu ciddi bir üründür"
+mesajını verir ve destek altyapısının asgari maliyetini karşılar.
 
 ### Profesyonel — $49/ay ($39/ay yıllık faturalandırmada) — *önerilen varsayılan*
 

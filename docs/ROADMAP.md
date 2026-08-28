@@ -1070,6 +1070,33 @@ bu, tarayıcıda gerçek doğrulama gerektiren ayrı bir frontend çalışmasıd
   kullanıcıya/ekibe aittir — kaynak linkleri `docs/PRICING.md`'de.
 
 
+## Faz 112 — Kendi Tanıtım Sitesi (Dogfooding) (tamamlandı)
+
+> Motivasyon: "domain alırız aktif hale getiririz" dendiğinde elde gerçek,
+> deploy edilebilir bir kod tabanı olsun — bir Artifact değil, repoya ait,
+> `python main.py website` ile çalışan, kendi WAF'ıyla korunan bir site.
+
+- [x] **`website/`** (üst-seviye paket, `adversary/` ile aynı konvansiyon —
+  mutlak import'larla `arachne`'ye bağlanır): `app.py` (Flask), `templates/
+  index.html`, `static/css/site.css`, `static/js/site.js`.
+- [x] **Dogfooding — gerçekten doğrulandı**: `app.wsgi_app =
+  WAFMiddleware(app.wsgi_app)` (Adım 2, `docs/INTEGRATION.md`'in aynısı).
+  Gerçek Docker container'da (Colima) build edilip çalıştırıldı; siteye
+  gerçek bir SQLi denemesi (`?id=1' OR 1=1--`) gönderildi ve gerçek bir
+  HTTP 403 alındı. `tests/test_website.py` bunu regresyona karşı kilitler.
+- [x] **İletişim mekanizması**: form/e-posta altyapısı kurulmadan çalışan
+  `mailto:` CTA'ları; adres `ARACHNE_WEBSITE_CONTACT_EMAIL` ile
+  yapılandırılabilir (varsayılan bir yer tutucudur).
+- [x] **`python main.py website`** (+ `--unprotected` sadece karşılaştırma
+  için) ve `docker-compose.yml`'e `website` servisi eklendi.
+- [x] **`docs/WEBSITE.md`**: gerçek bir alan adı alındığında DNS A kaydı +
+  Caddy/Nginx ile TLS sonlandırma adımları (bu proje bir hosting/DNS
+  sağlayıcısı önermez — sunucu/kayıt sağlayıcı seçimi kullanıcıya aittir).
+- [x] 7 yeni birim testi (dogfooding WAF blok testi dahil — gerçek Flask
+  test_client isteği, sahte/varsayılan sonuç değil). Toplam test sayısı
+  779 → **786**.
+
+
 ## Sıradaki hedefler (stretch-goal, isteğe bağlı)
 
 - İkinci bilgisayar (Windows/x86-64) edinildiğinde Faz 3'ün assembly

@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Arachne Sentinel — Self-hosted katmanlı savunma</title>
+  <meta name="description" content="Honeypot, WAF, SOAR ve 50 katmanlı Son Hat'ı tek pakette birleştiren, kendi sunucunuzda çalışan katmanlı savunma platformu.">
+  <meta property="og:title" content="Arachne Sentinel">
+  <meta property="og:description" content="Saldırganı web'e düşürüyoruz, veri hâlâ size ait. Self-hosted, 110 fazlık katmanlı savunma.">
+  <meta property="og:type" content="website">
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/site.css') }}">
+</head>
+<body>
+
+<div class="spine" aria-hidden="true"></div>
+
+<header class="nav">
+  <div class="nav-inner">
+    <div class="brandmark">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#52ddc7" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="12" r="2.6"/><path d="M12 2v4.4M12 17.6V22M2 12h4.4M17.6 12H22M5.2 5.2l3.1 3.1M15.7 15.7l3.1 3.1M18.8 5.2l-3.1 3.1M8.3 15.7l-3.1 3.1"/></svg>
+      Arachne Sentinel
+    </div>
+    <a class="nav-cta" href="mailto:{{ contact_email }}?subject=Arachne%20Sentinel%20-%20Pilot%20Talebi">Pilot talep et</a>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="wrap">
+      <div class="hero-grid">
+        <div>
+          <span class="eyebrow">110 fazlık savunma motoru · self-hosted</span>
+          <h1 class="headline">Saldırganı <em>web</em>e<br>düşürüyoruz, veri<br>hâlâ size ait.</h1>
+          <p class="sub measure">Arachne Sentinel, sitenizin önüne katmanlı bir aldatma ağı örer — saldırgan gerçek bir sisteme sızdığını sanır, siz her hareketini izlersiniz. Kendi sunucunuzda çalışır; hiçbir kayıt bizim altyapımıza uğramaz.</p>
+          <div class="hero-actions">
+            <a class="btn-primary" href="{{ github_url }}/blob/master/docs/INTEGRATION.md" target="_blank" rel="noopener">Entegrasyonu incele</a>
+            <a class="btn-ghost" href="#depth">Nasıl çalışır →</a>
+          </div>
+        </div>
+        <div>
+          <div class="hero-canvas-wrap">
+            <canvas id="dome" width="420" height="420" role="img" aria-label="İç içe savunma halkalarına çarpıp tekrar deneyen saldırı animasyonu"></canvas>
+            <div class="hero-canvas-cap">18 halka · gerçek zamanlı yakalama simülasyonu</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="proof-row">
+        <div class="proof"><span class="num"><span>0.976</span></span><span class="label">Ölçülen F1 skoru (tam katmanlı sistem)</span></div>
+        <div class="proof"><span class="num">110</span><span class="label">Tamamlanmış faz, her biri test edilmiş</span></div>
+        <div class="proof"><span class="num">779</span><span class="label">Birim testi, her commit'te çalışır</span></div>
+        <div class="proof"><span class="num">%0</span><span class="label">Ölçülen yanlış pozitif (etiketli set)</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="honesty">
+    <div class="wrap honesty-grid">
+      <blockquote>Ölçmediğimiz hiçbir şeyi iddia etmeyiz. Kırılamaz değiliz — kaç saldırıyı yakaladığımızı, kaçını kaçırdığımızı gösteren gerçek bir sayımız var.</blockquote>
+      <div class="honesty-list">
+        <div class="honesty-item"><span class="mark">→</span><p><b>Gerçek kriptografi.</b> Shamir gizli paylaşımı, HOTP (RFC 4226), HKDF (RFC 5869), Bizans kuorumu — kavram gösterimi değil, uçtan uca çalışan uygulama.</p></div>
+        <div class="honesty-item"><span class="mark">→</span><p><b>Hiçbir veri dışarı çıkmaz.</b> Kendi sunucunuza kurulur; opsiyonel dış servisler (tehdit istihbaratı, uyarı webhook'u) siz açmadan hiçbir çağrı yapmaz.</p></div>
+        <div class="honesty-item"><span class="mark">→</span><p><b>Tamamen savunma.</b> Hack-back yok. Her otomatik karar, gerekçesiyle birlikte kurcalama-kanıtı bir denetim zincirine yazılır.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="depth">
+    <div class="wrap">
+      <div class="ring-junction" aria-hidden="true"></div>
+      <div class="section-head" style="margin-left:auto;margin-right:auto;text-align:center;">
+        <span class="eyebrow" style="justify-content:center;">Savunma derinliği</span>
+        <h2>Saldırgan ne kadar derine inerse,<br>o kadar yalnız kalır.</h2>
+        <p style="margin-left:auto;margin-right:auto;">Yüzeydeki bir tarama ile çekirdeğe ulaştığını sandığı an arasında, hiçbiri gerçek olmayan onlarca katman var.</p>
+      </div>
+      <div class="depth-rows">
+        <div class="depth-row">
+          <div class="depth-tier"><b>01</b>YÜZEY</div>
+          <div class="depth-body"><h3>Çelik Kubbe — 18 halka</h3><p>Honeypot servisleri (SSH, FTP, Redis, Docker API, Elasticsearch...), WAF imza motoru, davranışsal anomali tespiti. Her mermi gerçek bir olaydır; çarptığı halka onu gerçekten durduran katmandır.</p></div>
+        </div>
+        <div class="depth-row">
+          <div class="depth-tier"><b>02</b>ADAPTİF</div>
+          <div class="depth-body"><h3>Ko-evrim katmanı</h3><p>Saldırgan taktik değiştirdikçe savunma duruşu da değişir: Bayes tehdit füzyonu, oyun-teorik yeniden-rastgeleleştirme, sıfır güven politika motoru.</p></div>
+        </div>
+        <div class="depth-row">
+          <div class="depth-tier"><b>03</b>ÇEKİRDEK YEMİ</div>
+          <div class="depth-body"><h3>Sahte başarı tuzağı</h3><p>Saldırgan "içeri girdim" sanır — aslında sıradan görünen bir tuzağa dokunmuştur. Bu an, hiçbir eşik beklemeden Son Hat'i anında tetikler.</p></div>
+        </div>
+        <div class="depth-row">
+          <div class="depth-tier"><b>04</b>SON HAT</div>
+          <div class="depth-body"><h3>50 katmanlı yer altı kalesi</h3><p>Kimliği her 100 milisaniyede deterministik olarak dönen bir korunan varlık modeli. Devreye giriş süresi ölçülür: &lt;100ms.</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="integrate">
+    <div class="wrap">
+      <div class="ring-junction" aria-hidden="true"></div>
+      <div class="section-head" style="margin-left:auto;margin-right:auto;text-align:center;">
+        <span class="eyebrow" style="justify-content:center;">Entegrasyon</span>
+        <h2>Bir öğleden sonrada devrede.</h2>
+        <p style="margin-left:auto;margin-right:auto;">Kod tabanınıza dokunmadan, mevcut web uygulamanızın önüne oturur. Bu sayfanın kendisi de aynı satırla korunuyor.</p>
+      </div>
+      <div class="steps">
+        <div class="step">
+          <span class="idx">Adım 1</span>
+          <h3>Kimliğinizi tanımlayın</h3>
+          <p>Kurulum sihirbazı sadece şirket adı, korunan varlık ve alarm adresi gibi iletişim bilgisi ister — gerçek şifre asla kabul edilmez.</p>
+          <code>$ python main.py onboard</code>
+        </div>
+        <div class="step">
+          <span class="idx">Adım 2</span>
+          <h3>Tek satır middleware</h3>
+          <p>Flask, Django ya da herhangi bir WSGI uygulamasının önüne framework'ten bağımsız bir istek filtresi olarak oturur.</p>
+          <code>app.wsgi_app = WAFMiddleware(app.wsgi_app)</code>
+        </div>
+        <div class="step">
+          <span class="idx">Adım 3</span>
+          <h3>Anlık bildirim alın</h3>
+          <p>Kritik bir olay olduğunda Slack, Discord ya da Teams kanalınıza otomatik düşer — panele bakan biri gerekmez.</p>
+          <code>docker compose up -d</code>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="ethics">
+    <div class="wrap">
+      <div class="ring-junction" aria-hidden="true"></div>
+      <div class="section-head" style="margin-left:auto;margin-right:auto;text-align:center;">
+        <span class="eyebrow" style="justify-content:center;">Duruş</span>
+        <h2>Yakalarız, saldırmayız.</h2>
+      </div>
+      <div class="ethics" style="justify-content:center;">
+        <div class="chip">Hack-back yok — tüm eylemler kendi yüzeyimizde kalır</div>
+        <div class="chip">MITRE ATT&amp;CK / D3FEND / NIST CSF 2.0 ile eşlenmiş</div>
+        <div class="chip">Kurcalama-kanıtı hash-zinciri denetim kaydı</div>
+        <div class="chip">Yapay zekâ zenginleştirir, karar vermez</div>
+        <div class="chip">Sadece izole/kendi altyapınızda çalışır</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="pricing">
+    <div class="wrap">
+      <div class="ring-junction" aria-hidden="true"></div>
+      <div class="section-head" style="margin-left:auto;margin-right:auto;text-align:center;">
+        <span class="eyebrow" style="justify-content:center;">Fiyatlandırma</span>
+        <h2>Piyasanın onda birinden azına,<br>aynı katmanlı savunma.</h2>
+        <p style="margin-left:auto;margin-right:auto;">Karşılaştırma noktası: tek başına bir deception platformu yılda 7.500 $'dan, yönetilen bir SOC hizmeti ayda 1.500 $'dan başlıyor. Arachne Sentinel kendi sunucunuzda çalıştığı için bu maliyeti taşımıyoruz — farkı size yansıtıyoruz.</p>
+      </div>
+
+      <div class="pricing-grid">
+        <div class="panel price-card">
+          <h3>Topluluk</h3>
+          <div class="price-value"><span class="amt">$10</span><span class="per">/ay</span></div>
+          <p class="price-desc">Kendi sunucunuzda, sınırsız süre kullanın. Değerlendirme, akademik kullanım ve tek geliştiriciler için.</p>
+          <ul class="price-features">
+            <li>110 fazın tamamı — honeypot, WAF, SOAR, Son Hat</li>
+            <li>Docker Compose ile kendi kendine kurulum</li>
+            <li>Topluluk desteği (GitHub Issues)</li>
+            <li>Güncellemeler açık kaynak takviminde</li>
+          </ul>
+          <a class="btn-ghost" href="mailto:{{ contact_email }}?subject=Arachne%20Sentinel%20-%20Topluluk%20Paketi">Topluluk ile başla</a>
+        </div>
+
+        <div class="panel price-card featured">
+          <span class="price-tag">En çok tercih edilen</span>
+          <h3>Profesyonel</h3>
+          <div class="price-value"><span class="amt">$49</span><span class="per">/ay</span></div>
+          <div class="price-annual">Yıllık faturalandırmada $39/ay</div>
+          <p class="price-desc">Tek bir gerçek sitesi/uygulaması olan işletmeler için — kurulumdan sonra arkanızda biri olsun istiyorsanız.</p>
+          <ul class="price-features">
+            <li>Topluluk'un tüm özellikleri</li>
+            <li>Kurulum sihirbazında birebir yardım</li>
+            <li>Webhook/Slack/Discord entegrasyon desteği</li>
+            <li>Öncelikli e-posta desteği (2 iş günü SLA)</li>
+            <li>Güvenlik yaması önceliği</li>
+          </ul>
+          <a class="btn-primary" href="mailto:{{ contact_email }}?subject=Arachne%20Sentinel%20-%20Profesyonel%20Paket">Profesyonel'e geç</a>
+        </div>
+
+        <div class="panel price-card">
+          <h3>Kurumsal</h3>
+          <div class="price-value"><span class="amt">Özel teklif</span></div>
+          <p class="price-desc">Birden fazla varlığı/siteyi koruyan şirketler ve ajanslar için — kapsama göre fiyatlandırılır.</p>
+          <ul class="price-features">
+            <li>Profesyonel'in tüm özellikleri</li>
+            <li>Çoklu varlık/site profili</li>
+            <li>Özel SLA ve doğrudan destek hattı</li>
+            <li>Entegrasyon danışmanlığı (mevcut altyapınıza özel)</li>
+          </ul>
+          <a class="btn-ghost" href="mailto:{{ contact_email }}?subject=Arachne%20Sentinel%20-%20Kurumsal%20G%C3%B6r%C3%BC%C5%9Fme">Görüşme talep et</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="wrap">
+      <span class="eyebrow" style="justify-content:center;">Sıradaki adım</span>
+      <h2>Kendi sitenizde 15 dakikada<br>çalıştığını görün.</h2>
+      <p class="sub">Topkapı Üniversitesi Bilgi Güvenliği Teknolojisi ekibinin geliştirdiği, TÜBİTAK 2209 kapsamında desteklenen bir araştırma projesinden doğdu.</p>
+      <div class="hero-actions" style="justify-content:center;">
+        <a class="btn-primary" href="mailto:{{ contact_email }}?subject=Arachne%20Sentinel%20-%20Pilot%20Talebi">Pilot talep et</a>
+        <a class="btn-ghost" href="{{ github_url }}/blob/master/docs/INTEGRATION.md" target="_blank" rel="noopener">Dokümantasyona bak</a>
+      </div>
+      <div class="foot-meta">
+        <span>ARACHNE SENTINEL</span>
+        <span>110 FAZ · 779 TEST · SADECE SAVUNMA</span>
+      </div>
+    </div>
+  </footer>
+</main>
+
+<script src="{{ url_for('static', filename='js/site.js') }}"></script>
+</body>
+</html>

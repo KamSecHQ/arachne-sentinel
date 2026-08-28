@@ -1,6 +1,6 @@
 # 🕸 Arachne Sentinel
 
-Honeypot tabanlı, **110 fazlı** bir **erken uyarı, saldırı tespit, otonom
+Honeypot tabanlı, **112 fazlı** bir **erken uyarı, saldırı tespit, otonom
 müdahale, aktif savunma, adaptif (ko-evrim) savunma ve ölçülebilir SOC
 platformu**. Faz 1-100 tam — motor + test + sinematik komuta merkezi + AI
 komuta asistanı. **18 halkalı** Çelik Kubbe + **50 katmanlı Son Hat yer altı
@@ -289,11 +289,20 @@ uygulama (SPA), iki hızlı poll döngüsü, birleşik toplayıcı
   kendi Flask/Django uygulamanızın önüne koyun, kritik olaylarda
   Slack/Discord/genel webhook'unuza otomatik bildirim alın. Detaylar:
   [docs/INTEGRATION.md](docs/INTEGRATION.md).
+- **Faz 111 — Fiyatlandırma paketleri**: gerçek piyasa araştırmasına
+  (Thinkst Canary, Wazuh Cloud, Cloudflare, SOC-as-a-Service) dayanan 3
+  paket — Topluluk $10/ay, Profesyonel $49/ay ($39/ay yıllık), Kurumsal
+  özel teklif. Detaylar: [docs/PRICING.md](docs/PRICING.md).
+- **Faz 112 — Kendi tanıtım sitesi** (`website/`): gerçek, çalışan bir
+  Flask sitesi — **kendi ürünüyle korunuyor** (`WAFMiddleware` kendi
+  önüne konmuş durumda, `python main.py website` ile çalıştırılır).
+  `tests/test_website.py` bu iddiayı gerçek bir SQLi denemesiyle
+  doğruluyor. Detaylar: [docs/WEBSITE.md](docs/WEBSITE.md).
 
 **Ortak:**
 - **Otomatik HTML raporu**, **AI Markdown raporu**, **STIX 2.1 bundle** ve
   **sinematik canlı komuta merkezi** (gerçek performans metrikleriyle)
-- **779 birim testi** (`tests/`) ve kendi kendini test eden demo saldırı scriptleri
+- **786 birim testi** (`tests/`) ve kendi kendini test eden demo saldırı scriptleri
 
 ## Kurulum
 
@@ -379,6 +388,10 @@ docker compose up -d
 
 # --- Faz 110: müşteri entegrasyonu (bkz. docs/INTEGRATION.md) ---
 python main.py onboard                         # kimlik/iletişim profili kurulum sihirbazı
+
+# --- Faz 112: kendi tanıtım sitesi (bkz. docs/WEBSITE.md) ---
+python main.py website                         # WAF ile korumalı, http://127.0.0.1:8088
+docker compose up -d website                   # ya da container ile
 ```
 
 ## Yapay zeka katmanını yapılandırma (opsiyonel)
@@ -422,7 +435,7 @@ export ARACHNE_NVD_API_KEY="anahtarınız"         # opsiyonel, sadece kota yük
 
 ```bash
 pip install pytest
-pytest tests/ -v      # 779 test
+pytest tests/ -v      # 786 test
 ```
 
 ## Mimari ve yol haritası
@@ -433,6 +446,7 @@ pytest tests/ -v      # 779 test
 - Container dağıtımı (Faz 105): [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
 - Müşteri entegrasyonu (Faz 110): [docs/INTEGRATION.md](docs/INTEGRATION.md)
 - Fiyatlandırma paketleri (Faz 111): [docs/PRICING.md](docs/PRICING.md)
+- Kendi tanıtım sitesi (Faz 112): [docs/WEBSITE.md](docs/WEBSITE.md)
 
 ## Proje ekibi
 

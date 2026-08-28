@@ -57,5 +57,21 @@ services:
       - honeypot
     restart: unless-stopped
 
+  # Faz 112: Arachne Sentinel'in kendi tanitim sitesi - urunun KENDISIYLE
+  # korunuyor (dogfooding, bkz. website/app.py). Gercek bir alan adiniz
+  # oldugunda bu servisi bir reverse proxy (Caddy/Nginx, TLS terminasyonu)
+  # ile 80/443'e yonlendirin - bkz. docs/WEBSITE.md.
+  website:
+    build: .
+    command: ["website", "--host", "0.0.0.0", "--port", "8088"]
+    ports:
+      - "8088:8088"
+    volumes:
+      - arachne_data:/app/data
+    environment:
+      <<: *arachne_env
+      ARACHNE_WEBSITE_CONTACT_EMAIL: ${ARACHNE_WEBSITE_CONTACT_EMAIL:-}
+    restart: unless-stopped
+
 volumes:
   arachne_data:

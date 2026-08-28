@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ plan.name }} Paketi — Ödeme | Arachne Sentinel</title>
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/site.css') }}">
+  <style>
+    .checkout-wrap{max-width:32rem;margin:4rem auto;padding:0 1.25rem;}
+    .checkout-wrap h1{font-size:1.6rem;margin-bottom:.4rem;}
+    .checkout-wrap .lede{color:var(--dust);margin-bottom:2rem;}
+    .field{display:flex;flex-direction:column;gap:.35rem;margin-bottom:1.1rem;}
+    .field label{font-family:var(--font-mono);font-size:.72rem;color:var(--dust);letter-spacing:.04em;}
+    .field input{
+      background:var(--depth-2);border:1px solid var(--thread);color:var(--ink);
+      padding:.7rem .85rem;font-family:var(--font-body);font-size:.92rem;
+    }
+    .field input:focus-visible{outline:2px solid var(--silk);outline-offset:1px;}
+    .field-row{display:grid;grid-template-columns:1fr 1fr;gap:1rem;}
+    .checkout-note{
+      font-family:var(--font-mono);font-size:.72rem;color:var(--dust-dim);
+      margin-top:1.5rem;line-height:1.6;
+    }
+    .back-link{display:inline-block;margin-bottom:2rem;color:var(--dust);font-family:var(--font-mono);font-size:.78rem;text-decoration:none;}
+  </style>
+</head>
+<body>
+  <div class="checkout-wrap">
+    <a class="back-link" href="{{ url_for('index') }}">← Arachne Sentinel</a>
+    <h1>{{ plan.name }} Paketi</h1>
+    <p class="lede">{{ plan.price }} {{ plan.currency }}/ay — kart bilgileriniz doğrudan Iyzico'nun güvenli formuna girilir, bize hiç ulaşmaz.</p>
+
+    <form method="post">
+      <div class="field-row">
+        <div class="field">
+          <label for="name">Ad</label>
+          <input type="text" id="name" name="name" required>
+        </div>
+        <div class="field">
+          <label for="surname">Soyad</label>
+          <input type="text" id="surname" name="surname" required>
+        </div>
+      </div>
+      <div class="field">
+        <label for="email">E-posta</label>
+        <input type="email" id="email" name="email" required>
+      </div>
+      <div class="field">
+        <label for="phone">Telefon</label>
+        <input type="tel" id="phone" name="phone" placeholder="+905XXXXXXXXX" required>
+      </div>
+      <div class="field">
+        <label for="identity_number">TC Kimlik No <span style="opacity:.6;">(yabancıysanız boş bırakın)</span></label>
+        <input type="text" id="identity_number" name="identity_number" pattern="[0-9]{11}" maxlength="11">
+      </div>
+      <div class="field">
+        <label for="address">Adres</label>
+        <input type="text" id="address" name="address" required>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="city">Şehir</label>
+          <input type="text" id="city" name="city" required>
+        </div>
+        <div class="field">
+          <label for="zip_code">Posta Kodu</label>
+          <input type="text" id="zip_code" name="zip_code" required>
+        </div>
+      </div>
+      <div class="field">
+        <label for="country">Ülke</label>
+        <input type="text" id="country" name="country" value="Turkey" required>
+      </div>
+      <button class="btn-primary" type="submit" style="width:100%;">Ödeme formuna geç</button>
+    </form>
+
+    <p class="checkout-note">Ödeme Iyzico altyapısıyla işlenir. Devam ederek Iyzico'nun kendi güvenli ödeme formuna yönlendirileceksiniz — kart bilgileriniz Arachne Sentinel sunucularına hiçbir zaman ulaşmaz.</p>
+  </div>
+</body>
+</html>

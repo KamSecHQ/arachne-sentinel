@@ -298,11 +298,16 @@ uygulama (SPA), iki hızlı poll döngüsü, birleşik toplayıcı
   önüne konmuş durumda, `python main.py website` ile çalıştırılır).
   `tests/test_website.py` bu iddiayı gerçek bir SQLi denemesiyle
   doğruluyor. Detaylar: [docs/WEBSITE.md](docs/WEBSITE.md).
+- **Faz 113 — İyzico ödeme entegrasyonu**: tanıtım sitesindeki Topluluk/
+  Profesyonel paketleri için gerçek İyzico Checkout Form akışı (kart
+  bilgisi bize hiç ulaşmaz, resmi `iyzipay` SDK'sı kullanılır, varsayılan
+  sandbox modu + çift kilit ile kazara canlı ödeme alımına karşı korumalı).
+  Detaylar: [docs/PAYMENTS.md](docs/PAYMENTS.md).
 
 **Ortak:**
 - **Otomatik HTML raporu**, **AI Markdown raporu**, **STIX 2.1 bundle** ve
   **sinematik canlı komuta merkezi** (gerçek performans metrikleriyle)
-- **786 birim testi** (`tests/`) ve kendi kendini test eden demo saldırı scriptleri
+- **802 birim testi** (`tests/`) ve kendi kendini test eden demo saldırı scriptleri
 
 ## Kurulum
 
@@ -435,7 +440,7 @@ export ARACHNE_NVD_API_KEY="anahtarınız"         # opsiyonel, sadece kota yük
 
 ```bash
 pip install pytest
-pytest tests/ -v      # 786 test
+pytest tests/ -v      # 802 test
 ```
 
 ## Mimari ve yol haritası
@@ -447,6 +452,7 @@ pytest tests/ -v      # 786 test
 - Müşteri entegrasyonu (Faz 110): [docs/INTEGRATION.md](docs/INTEGRATION.md)
 - Fiyatlandırma paketleri (Faz 111): [docs/PRICING.md](docs/PRICING.md)
 - Kendi tanıtım sitesi (Faz 112): [docs/WEBSITE.md](docs/WEBSITE.md)
+- Ödeme sistemi / İyzico (Faz 113): [docs/PAYMENTS.md](docs/PAYMENTS.md)
 
 ## Proje ekibi
 

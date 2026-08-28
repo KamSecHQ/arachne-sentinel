@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ plan.name }} Paketi — Arachne Sentinel</title>
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/site.css') }}">
+  <style>
+    .result-wrap{max-width:30rem;margin:6rem auto;padding:0 1.25rem;text-align:center;}
+    .result-wrap h1{font-size:1.5rem;margin-bottom:.8rem;}
+    .result-wrap p{color:var(--dust);margin-bottom:2rem;}
+  </style>
+</head>
+<body>
+  <div class="result-wrap">
+    <h1>{{ plan.name }} paketi için ödeme henüz aktif değil</h1>
+    <p>Şu an için kaydınızı e-posta ile alıyoruz — <a href="mailto:{{ contact_email }}?subject=Arachne%20Sentinel%20-%20{{ plan.name }}%20Paketi">{{ contact_email }}</a> adresine yazın, size dönüş yapalım.</p>
+    <a class="btn-ghost" href="{{ url_for('index') }}">Ana sayfaya dön</a>
+  </div>
+</body>
+</html>

@@ -166,7 +166,7 @@
             <li>Topluluk desteği (GitHub Issues)</li>
             <li>Güncellemeler açık kaynak takviminde</li>
           </ul>
-          <a class="btn-ghost" href="mailto:{{ contact_email }}?subject=Arachne%20Sentinel%20-%20Topluluk%20Paketi">Topluluk ile başla</a>
+          <a class="btn-ghost" href="{{ url_for('checkout', plan_id='topluluk') }}">Topluluk ile başla</a>
         </div>
 
         <div class="panel price-card featured">
@@ -182,7 +182,7 @@
             <li>Öncelikli e-posta desteği (2 iş günü SLA)</li>
             <li>Güvenlik yaması önceliği</li>
           </ul>
-          <a class="btn-primary" href="mailto:{{ contact_email }}?subject=Arachne%20Sentinel%20-%20Profesyonel%20Paket">Profesyonel'e geç</a>
+          <a class="btn-primary" href="{{ url_for('checkout', plan_id='profesyonel') }}">Profesyonel'e geç</a>
         </div>
 
         <div class="panel price-card">

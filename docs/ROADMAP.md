@@ -1096,6 +1096,53 @@ bu, tarayıcıda gerçek doğrulama gerektiren ayrı bir frontend çalışmasıd
   test_client isteği, sahte/varsayılan sonuç değil). Toplam test sayısı
   779 → **786**.
 
+## Faz 113 — İyzico Ödeme Entegrasyonu
+
+- [x] **`website/payments.py`** — karantina mimarisi (`llm_backend.py`/
+  `threat_intel.py` ile aynı ilke): `ARACHNE_IYZICO_ENABLED` açıkça "1"
+  yapılmadan VE hem `ARACHNE_IYZICO_API_KEY` hem `ARACHNE_IYZICO_SECRET_KEY`
+  tanımlanmadan hiçbir ödeme çağrısı yapılmaz.
+- [x] **Sandbox çift kilidi**: `ARACHNE_IYZICO_SANDBOX` varsayılan "1" —
+  anahtarlar girilse bile sistem varsayılan olarak sandbox'a bağlanır;
+  canlıya geçmek için bu değişkenin açıkça "0" yapılması gerekir (Faz 107'nin
+  NVD `--nvd` bayrağı + ortam değişkeni çift kilit tasarımıyla aynı ilke).
+- [x] **Bilinçli bağımlılık istisnası**: proje geneli stdlib-only ilkesini
+  korur, ama ödeme imza doğrulaması (İyzico'nun HMAC tabanlı IYZWSv2 şeması)
+  için resmi `iyzipay` SDK'sı (v1.0.46) kullanıldı — gerekçe:
+  `website/payments.py` docstring'inde açıkça yazılı.
+  `requirements.txt`'ye eklendi.
+- [x] **Checkout Form akışı**: `/checkout/<plan_id>` (GET: alıcı bilgi formu,
+  kart bilgisi istemez; POST: İyzico'ya istek atıp dönen `checkoutFormContent`'i
+  gömer — kart numarası doğrudan İyzico'nun formuna girilir, bize hiç
+  ulaşmaz) ve `/checkout/callback` (POST — callback gövdesine DOĞRUDAN
+  güvenmez, gerçek durumu `verify_payment_result()` ile İyzico'ya ayrıca
+  sorarak doğrular).
+- [x] 5 yeni şablon: `checkout.html`, `checkout_form.html`,
+  `checkout_result.html`, `checkout_unavailable.html`, `checkout_error.html`
+  — hepsi yapılandırılmamış durumda `mailto:` yedeğine düşer.
+- [x] Ana sayfadaki Topluluk/Profesyonel CTA'ları yeni checkout rotalarına
+  bağlandı (Kurumsal paket özel teklif olduğu için `mailto:` olarak kaldı).
+- [x] **16 yeni test** (`tests/test_payments.py`) — gerçek Iyzico API'sine
+  hiçbir ağ çağrısı yapılmaz (`iyzipay.CheckoutFormInitialize`/
+  `iyzipay.CheckoutForm` mock'lanır); varsayılan-kapalı, çift anahtar
+  zorunluluğu, sandbox varsayılanı, anahtarların `status()`'ta asla
+  sızdırılmadığı, başarılı/başarısız/ağ-hatası senaryoları ve gerçek Flask
+  test_client ile checkout rotası entegrasyonu kapsanıyor. Toplam test
+  sayısı 786 → **802**.
+- [x] `docker-compose.yml`'nin `website` servisine `ARACHNE_IYZICO_*` ortam
+  değişkenleri eklendi (varsayılan boş/sandbox — `docker compose config`
+  ile doğrulandı).
+- [x] **`docs/PAYMENTS.md`**: sandbox hesabı açma adımları, ortam
+  değişkenleri, canlıya geçiş adımları, güvenlik notları.
+
+**Dürüstlük notu:** Bu, TEK SEFERLİK bir ödeme akışıdır (Checkout Form) —
+otomatik aylık yenileme YAPMAZ. Gerçek tekrarlayan faturalandırma için
+İyzico'nun ayrı Subscription API'si (Product/PricingPlan ön-kurulumu
+gerektirir) gerekir; bu doğal bir sonraki adımdır ve şimdiden "otomatik
+yenileme" diye sunulmadı. Ayrıca gerçek bir sandbox ödeme testi, kullanıcının
+kendi ücretsiz İyzico sandbox hesabını açıp API anahtarlarını sağlamasını
+gerektirir — herkese açık bir demo anahtarı İyzico tarafından sunulmuyor.
+
 
 ## Sıradaki hedefler (stretch-goal, isteğe bağlı)
 

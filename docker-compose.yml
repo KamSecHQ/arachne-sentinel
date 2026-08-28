@@ -71,6 +71,12 @@ services:
     environment:
       <<: *arachne_env
       ARACHNE_WEBSITE_CONTACT_EMAIL: ${ARACHNE_WEBSITE_CONTACT_EMAIL:-}
+      # Faz 113 - Iyzico odeme entegrasyonu (opsiyonel, varsayilan kapali).
+      # Detaylar icin docs/PAYMENTS.md.
+      ARACHNE_IYZICO_ENABLED: ${ARACHNE_IYZICO_ENABLED:-}
+      ARACHNE_IYZICO_API_KEY: ${ARACHNE_IYZICO_API_KEY:-}
+      ARACHNE_IYZICO_SECRET_KEY: ${ARACHNE_IYZICO_SECRET_KEY:-}
+      ARACHNE_IYZICO_SANDBOX: ${ARACHNE_IYZICO_SANDBOX:-1}
     restart: unless-stopped
 
 volumes:

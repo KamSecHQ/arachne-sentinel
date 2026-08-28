@@ -2,6 +2,14 @@ flask>=3.0
 scikit-learn>=1.4
 joblib>=1.3
 
+# Faz 113 - Iyzico odeme entegrasyonu (website/payments.py) icin resmi SDK.
+# Projenin genel "sadece stdlib" ilkesine BILINCLI bir istisna: bir odeme
+# saglayicisinin imza semasini (IYZWSv2) elle yeniden uygulamak gercek para
+# islemlerinde risklidir - burada dogruluk/guvenlik, minimum bagimlilik
+# ilkesinin onune geciyor. Kurulu degilse/yapilandirilmamissa odeme sayfasi
+# sessizce "yapilandirilmamis" uyarisi gosterir, sistem cokmez.
+iyzipay>=1.0.46
+
 # Native masaustu Komuta Merkezi penceresi (python main.py app) icin.
 # Kurulu degilse panel yine calisir; sadece "app" komutu tarayiciya duser.
 pywebview>=5.0

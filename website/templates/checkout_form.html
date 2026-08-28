@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ödeme — Arachne Sentinel</title>
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/site.css') }}">
+  <style>
+    .pay-wrap{max-width:36rem;margin:3rem auto;padding:0 1.25rem;}
+    .pay-banner{
+      font-family:var(--font-mono);font-size:.74rem;text-align:center;padding:.6rem;
+      margin-bottom:1.5rem;border:1px solid var(--silk-dim);color:var(--silk);
+      background:rgba(82,221,199,.08);
+    }
+  </style>
+</head>
+<body>
+  <div class="pay-wrap">
+    {% if sandbox %}
+    <div class="pay-banner">SANDBOX MODU — gerçek para geçmez, test ödemesidir</div>
+    {% endif %}
+    {{ checkout_form_content | safe }}
+  </div>
+</body>
+</html>

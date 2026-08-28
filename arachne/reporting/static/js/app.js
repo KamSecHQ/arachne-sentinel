@@ -494,10 +494,16 @@
       : `<div class="card pad-sm"><div class="empty" style="padding:1rem;">Aktif kısıtlama yok</div></div>`;
 
     // Honeytokens
+    // Faz 108: "core-vault-illusion" baglamli token'lar Son Hat'i aninda
+    // tetikleyen cekirdek yemidir - operator bunu siradan bir tuzaktan
+    // ayirt edebilsin diye ayri bir rozet + context tooltip'i eklenir.
     const ht = $("#honeytokens-list");
     if (ht) ht.innerHTML = (ad.honeytokens || []).length
-      ? ad.honeytokens.slice(0, 10).map((t) =>
-          `<div class="token-row ${t.triggered ? "triggered" : ""}"><span class="token-type">${esc(t.token_type)}</span><span class="token-val">${esc(t.value)}</span>${t.triggered ? '<span class="badge badge-critical">TETİKLENDİ</span>' : '<span class="badge badge-info">bekliyor</span>'}</div>`).join("")
+      ? ad.honeytokens.slice(0, 10).map((t) => {
+          const isCoreVault = (t.context || "").startsWith("core-vault-illusion");
+          const title = t.context ? ` title="${esc(t.context)}"` : "";
+          return `<div class="token-row ${t.triggered ? "triggered" : ""}"${title}><span class="token-type">${esc(t.token_type)}</span><span class="token-val">${esc(t.value)}</span>${isCoreVault ? '<span class="badge badge-medium" title="Faz 108: Son Hat\'i esik beklemeden aninda tetikleyen cekirdek yemi">ÇEKİRDEK YEMİ</span>' : ""}${t.triggered ? '<span class="badge badge-critical">TETİKLENDİ</span>' : '<span class="badge badge-info">bekliyor</span>'}</div>`;
+        }).join("")
       : `<div class="empty" style="padding:1rem;">Tuzak yok<span class="hint">full-demo tuzakları yerleştirir</span></div>`;
 
     // SOAR audit

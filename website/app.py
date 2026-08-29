@@ -19,13 +19,22 @@ Kullanim:
   python main.py website --unprotected    # karsilastirma icin (ONERILMEZ)
 """
 import os
+import re
+from collections import Counter
 
-from flask import Flask, abort, render_template, request, url_for
+from flask import Flask, abort, jsonify, render_template, request, url_for
 
+from arachne import storage
 from arachne.waf.middleware import WAFMiddleware
 from website import payments
 
 app = Flask(__name__)
+
+# Faz 114 - "Şebeke" radyal görselleştirmesi için gerçek WAF kategori
+# etiketleri. `arachne/waf/rules.py`'deki gerçek kural motorunun kategori
+# adlarıyla birebir eşleşir (middleware.py bu adları "reasons" alanına
+# "<kategori> supesi (...)" biçiminde yazar).
+_WAF_CATEGORIES = ["SQL Injection", "XSS", "Path Traversal", "Command Injection", "SSTI"]
 
 ENV_CONTACT_EMAIL = "ARACHNE_WEBSITE_CONTACT_EMAIL"
 DEFAULT_CONTACT_EMAIL = "emirhanbaydere00@outlook.com"
@@ -126,6 +135,44 @@ def checkout_callback():
                            contact_email=_contact_email())
 
 
+@app.route("/api/waf-live")
+def api_waf_live():
+    """Faz 114 - Şebeke görselleştirmesinin verisi: bu sitenin KENDİ gerçek
+    WAF olay kaydı (dogfooding). Sahte/örnek satır YOK — sadece bu sitenin
+    kendi WAFMiddleware'ının gerçekten işlediği isteklerin sayımı.
+
+    Trafik yoksa tüm sayılar dürüstçe 0 döner (bkz. projenin genel
+    "0 ise 0 göster" ilkesi)."""
+    db_path = app.config.get("ARACHNE_DB_PATH")
+    try:
+        events = storage.get_waf_events(limit=500, db_path=db_path)
+        stats = storage.waf_summary_stats(db_path=db_path)
+    except Exception:
+        events, stats = [], {"total_requests": 0, "blocked_requests": 0}
+
+    category_counts = Counter()
+    for ev in events:
+        if not ev.get("blocked"):
+            continue
+        reasons = ev.get("reasons") or ""
+        for cat in _WAF_CATEGORIES:
+            if re.search(re.escape(cat), reasons, re.IGNORECASE):
+                category_counts[cat] += 1
+
+    nodes = [{"id": cat, "label": cat, "count": category_counts.get(cat, 0)}
+             for cat in _WAF_CATEGORIES]
+    return jsonify({
+        "nodes": nodes,
+        "total_requests": stats.get("total_requests", 0),
+        "blocked_requests": stats.get("blocked_requests", 0),
+        "recent": [
+            {"id": ev.get("id"), "path": (ev.get("path") or "")[:80],
+             "blocked": bool(ev.get("blocked")), "timestamp": ev.get("timestamp")}
+            for ev in events[:10]
+        ],
+    })
+
+
 @app.route("/health")
 def health():
     """Basit saglik kontrolu - reverse proxy/yuk dengeleyici icin (bkz.
@@ -135,7 +182,12 @@ def health():
 
 def create_app(protected: bool = True, db_path=None):
     """WAF korumasini uygular. `protected=False` SADECE yerel
-    karsilastirma/test icindir - gercek dagitimda ASLA kullanilmamali."""
+    karsilastirma/test icindir - gercek dagitimda ASLA kullanilmamali.
+
+    `db_path`, `/api/waf-live`'in (Faz 114 - Sebeke gorsellestirmesi)
+    dogru veritabanini okumasi icin app.config'e de yazilir - aksi halde
+    testlerde/ozel db_path'lerde hep varsayilan DB okunurdu."""
+    app.config["ARACHNE_DB_PATH"] = db_path
     if protected:
         app.wsgi_app = WAFMiddleware(app.wsgi_app, db_path=db_path)
     return app

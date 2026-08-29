@@ -61,11 +61,17 @@ services:
   # korunuyor (dogfooding, bkz. website/app.py). Gercek bir alan adiniz
   # oldugunda bu servisi bir reverse proxy (Caddy/Nginx, TLS terminasyonu)
   # ile 80/443'e yonlendirin - bkz. docs/WEBSITE.md.
+  #
+  # GUVENLIK NOTU: port SADECE 127.0.0.1'e baglanir (0.0.0.0 degil). Docker,
+  # UFW/iptables kurallarini kendi DOCKER zinciriyle bypass edebildigi icin
+  # (bilinen bir Docker+UFW sorunu), 0.0.0.0:8088 disariya acik kalirdi -
+  # localhost'a sabitlemek, sadece ayni sunucudaki Caddy/Nginx'in erisebilmesini
+  # saglar; disaridan port 8088'e dogrudan erisim mumkun olmaz.
   website:
     build: .
     command: ["website", "--host", "0.0.0.0", "--port", "8088"]
     ports:
-      - "8088:8088"
+      - "127.0.0.1:8088:8088"
     volumes:
       - arachne_data:/app/data
     environment:

@@ -100,6 +100,41 @@
   $("#ai-form").addEventListener("submit", (e) => {
     e.preventDefault(); const q = input.value.trim(); input.value = ""; ask(q);
   });
+
+  /* ---------- sesle sor (Web Speech API — tarayici-ici, disariya veri
+     gitmez; Chrome/Edge destekler, desteklenmeyen tarayicilarda dugme
+     sessizce gizlenir) ---------- */
+  (function () {
+    const micBtn = document.getElementById("ai-mic");
+    if (!micBtn) return;
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) { micBtn.classList.add("ai-mic-unsupported"); return; }
+    const rec = new SR();
+    rec.lang = "tr-TR"; rec.interimResults = false; rec.maxAlternatives = 1;
+    let listening = false;
+    rec.addEventListener("start", () => {
+      listening = true; micBtn.classList.add("listening");
+      statusEl.textContent = "dinliyorum…";
+      if (window.ArachneSFX) window.ArachneSFX.tick();
+    });
+    rec.addEventListener("end", () => {
+      listening = false; micBtn.classList.remove("listening");
+      statusEl.textContent = "dinlemeye hazır";
+    });
+    rec.addEventListener("error", () => {
+      listening = false; micBtn.classList.remove("listening");
+      statusEl.textContent = "mikrofon hatası — tekrar deneyin";
+    });
+    rec.addEventListener("result", (e) => {
+      const text = e.results[0][0].transcript;
+      if (text && text.trim()) { dock.classList.add("open"); ask(text.trim()); }
+    });
+    micBtn.addEventListener("click", () => {
+      if (listening) { rec.stop(); return; }
+      dock.classList.add("open");
+      try { rec.start(); } catch (e) {}
+    });
+  })();
   document.querySelectorAll("#ai-dock .ai-chips button").forEach((b) =>
     b.addEventListener("click", () => ask(b.dataset.q)));
   document.addEventListener("keydown", (e) => {

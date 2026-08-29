@@ -135,15 +135,16 @@
       <div class="console panel">
         <div class="console-head">
           <div class="console-dots"><span></span><span></span><span></span></div>
-          <span class="console-title mono">arachne · komuta-merkezi · örnek görünüm</span>
+          <span class="console-title mono">arachne · şebeke · bu sitenin gerçek WAF kaydı</span>
+          <div class="console-head-actions">
+            <button id="web-voice-toggle" class="web-voice-btn" type="button">🔇 Sesli anlatım</button>
+            <button id="web-mic" class="web-mic-btn" type="button" title="Sesle sor">🎤</button>
+          </div>
         </div>
-        <div class="console-body">
-          <div class="console-feed" aria-hidden="true">
-            <div class="feed-line"><span class="feed-tag ok">YAKALANDI</span><span class="feed-ip mono">185.220.101.7</span><span class="feed-desc">SSH brute-force → Halka 3'te durduruldu</span></div>
-            <div class="feed-line"><span class="feed-tag warn">İZLENİYOR</span><span class="feed-ip mono">45.146.164.22</span><span class="feed-desc">Redis INFO taraması → davranışsal anomali</span></div>
-            <div class="feed-line"><span class="feed-tag ok">YAKALANDI</span><span class="feed-ip mono">193.106.31.98</span><span class="feed-desc">SQLi denemesi → WAF imza eşleşmesi</span></div>
-            <div class="feed-line"><span class="feed-tag crit">SON HAT</span><span class="feed-ip mono">91.240.118.5</span><span class="feed-desc">Çekirdek yemi tetiklendi → kimlik rotasyonu &lt;100ms</span></div>
-            <div class="feed-line"><span class="feed-tag ok">YAKALANDI</span><span class="feed-ip mono">154.213.9.44</span><span class="feed-desc">Docker API taraması → sahte konteyner listesi döndü</span></div>
+        <div class="console-body web-body">
+          <div class="web-canvas-wrap">
+            <canvas id="web-canvas"></canvas>
+            <div class="web-legend" id="web-legend"></div>
           </div>
           <div class="console-gauges">
             <div class="gauge">
@@ -151,8 +152,8 @@
               <span class="gauge-label">Ölçülen F1 skoru</span>
             </div>
             <div class="gauge">
-              <div class="gauge-ring" style="--pct:100"><span>18/18</span></div>
-              <span class="gauge-label">Aktif halka</span>
+              <div class="gauge-ring" style="--pct:100"><span>113</span></div>
+              <span class="gauge-label">Tamamlanan faz</span>
             </div>
             <div class="gauge">
               <div class="gauge-ring" style="--pct:88"><span>&lt;100ms</span></div>
@@ -161,7 +162,7 @@
           </div>
         </div>
       </div>
-      <p class="console-caption">Yukarıdaki IP/olay satırları örnek amaçlıdır — F1 skoru ve devreye giriş süresi bu depodaki gerçek ölçüm sonuçlarıdır.</p>
+      <p class="console-caption">Şebeke düğümleri bu sitenin kendi gerçek WAF olay kaydından besleniyor — örnek veri değil (dogfooding). Trafik yoksa düğümler dürüstçe sönük kalır. F1 skoru ve devreye giriş süresi bu depodaki gerçek ölçüm sonuçlarıdır.</p>
     </div>
   </section>
 
@@ -272,7 +273,7 @@
     <div class="wrap">
       <span class="eyebrow" style="justify-content:center;">Sıradaki adım</span>
       <h2>Kendi sitenizde 15 dakikada<br>çalıştığını görün.</h2>
-      <p class="sub">Topkapı Üniversitesi Bilgi Güvenliği Teknolojisi ekibinin geliştirdiği, TÜBİTAK 2209 kapsamında desteklenen bir araştırma projesinden doğdu.</p>
+      <p class="sub">Bir yıl boyunca sıfırdan, tek başına geliştirilen bağımsız bir siber güvenlik projesi.</p>
       <div class="hero-actions" style="justify-content:center;">
         <a class="btn-primary" href="mailto:{{ contact_email }}?subject=Arachne%20Sentinel%20-%20Pilot%20Talebi">Pilot talep et</a>
         <a class="btn-ghost" href="{{ github_url }}/blob/master/docs/INTEGRATION.md" target="_blank" rel="noopener">Dokümantasyona bak</a>
@@ -286,5 +287,6 @@
 </main>
 
 <script src="{{ url_for('static', filename='js/site.js') }}"></script>
+<script src="{{ url_for('static', filename='js/webnet.js') }}"></script>
 </body>
 </html>

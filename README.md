@@ -303,6 +303,14 @@ uygulama (SPA), iki hızlı poll döngüsü, birleşik toplayıcı
   bilgisi bize hiç ulaşmaz, resmi `iyzipay` SDK'sı kullanılır, varsayılan
   sandbox modu + çift kilit ile kazara canlı ödeme alımına karşı korumalı).
   Detaylar: [docs/PAYMENTS.md](docs/PAYMENTS.md).
+- **Faz 114 — Şebeke: radyal komuta merkezi + sesli asistan**: gerçek
+  komuta merkezinde (`python main.py dashboard`) yeni varsayılan ana
+  görünüm — 18 gerçek savunma katmanını (Çelik Kubbe ile **aynı veri**)
+  örümcek ağı geometrisiyle çizen canlı bir görselleştirme; her düğüm
+  gerçek olay sayısına göre parlar. Var olan sesli asistana mikrofonla
+  soru sorma (Web Speech API, tarayıcı-içi, veri dışarı çıkmaz) eklendi.
+  Tanıtım sitesinde de küçültülmüş, bu sitenin **kendi gerçek WAF olay
+  kaydına** bağlı bir versiyonu var (`/api/waf-live`) — örnek veri değil.
 
 **Ortak:**
 - **Otomatik HTML raporu**, **AI Markdown raporu**, **STIX 2.1 bundle** ve
@@ -440,7 +448,7 @@ export ARACHNE_NVD_API_KEY="anahtarınız"         # opsiyonel, sadece kota yük
 
 ```bash
 pip install pytest
-pytest tests/ -v      # 802 test
+pytest tests/ -v      # 804 test
 ```
 
 ## Mimari ve yol haritası
@@ -453,6 +461,7 @@ pytest tests/ -v      # 802 test
 - Fiyatlandırma paketleri (Faz 111): [docs/PRICING.md](docs/PRICING.md)
 - Kendi tanıtım sitesi (Faz 112): [docs/WEBSITE.md](docs/WEBSITE.md)
 - Ödeme sistemi / İyzico (Faz 113): [docs/PAYMENTS.md](docs/PAYMENTS.md)
+- Şebeke — radyal komuta merkezi + sesli asistan (Faz 114): [docs/ROADMAP.md](docs/ROADMAP.md)
 
 ## Proje ekibi
 

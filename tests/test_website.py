@@ -106,3 +106,41 @@ def test_unprotected_mode_skips_waf(tmp_path):
 
     response = client.get("/", query_string={"id": "1' OR 1=1--"})
     assert response.status_code == 200  # WAF devre disi - engellenmedi
+
+
+def test_waf_live_endpoint_starts_at_zero(tmp_path):
+    """Faz 114 - trafik yokken Sebeke gorsellestirmesi durustce 0 doner
+    (0 ise 0 gosterilir ilkesi) - hicbir kategori uydurulmaz."""
+    db = tmp_path / "t.db"
+    storage.init_db(db_path=db)
+    app = create_app(protected=True, db_path=db)
+    client = app.test_client()
+
+    response = client.get("/api/waf-live")
+    assert response.status_code == 200
+    data = response.get_json()
+    # /api/waf-live'a atilan istegin kendisi de WAF tarafindan gercekten
+    # loglanir (dogfooding) - bu yuzden total_requests >=1 olabilir, ama
+    # zararsiz oldugu icin hicbir kategori/engelleme sayaci artmaz.
+    assert data["blocked_requests"] == 0
+    assert len(data["nodes"]) == 5
+    assert all(n["count"] == 0 for n in data["nodes"])
+
+
+def test_waf_live_endpoint_reflects_real_block(tmp_path):
+    """Faz 114 - gercek bir SQLi denemesi gonderilince /api/waf-live'in
+    'SQL Injection' dugumu GERCEKTEN artiyor mu - sahte/varsayilan deger
+    degil, ayni middleware zincirinden gecen gercek bir sonuc."""
+    db = tmp_path / "t.db"
+    storage.init_db(db_path=db)
+    app = create_app(protected=True, db_path=db)
+    client = app.test_client()
+
+    blocked = client.get("/", query_string={"id": "1' OR 1=1--"})
+    assert blocked.status_code == 403
+
+    response = client.get("/api/waf-live")
+    data = response.get_json()
+    assert data["blocked_requests"] >= 1
+    sqli_node = next(n for n in data["nodes"] if n["id"] == "SQL Injection")
+    assert sqli_node["count"] >= 1

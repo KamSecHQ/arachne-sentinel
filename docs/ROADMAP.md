@@ -1144,6 +1144,47 @@ kendi ücretsiz İyzico sandbox hesabını açıp API anahtarlarını sağlamas�
 gerektirir — herkese açık bir demo anahtarı İyzico tarafından sunulmuyor.
 
 
+## Faz 114 — Şebeke: Radyal Komuta Merkezi + Sesli Asistan
+
+Kullanıcı, sosyal medyada gördüğü bir AI-ajan orbital arayüzünden ilham
+alarak komuta merkezinin "ana sayfasının" böyle bir görünüme sahip olmasını
+istedi. Süs olarak değil — **var olan gerçek veriye** dayanarak yapıldı.
+
+- [x] **`arachne/reporting/static/js/webnet.js`** — yeni "Şebeke" görünümü,
+  gerçek komuta merkezinde varsayılan (ana) görünüm oldu. Çelik Kubbe'yi
+  besleyen **aynı veri** (`command_center.py`'deki 18 gerçek `DEFENSE_LAYERS`,
+  `/api/state` → `dome`) farklı bir geometriyle çizilir: iç içe halkalar
+  yerine merkezi bir "çekirdeğe" örümcek-ağı iplikleriyle bağlı düğümler.
+  Düğüm boyutu/parlaklığı o katmanın **gerçek** `interceptions` sayısına,
+  çekirdek rengi **gerçek** tehdit duruşuna (`posture`) bağlıdır. Yeni bir
+  sahte veri kaynağı YOK — mevcut `build_dome_state()` yeniden kullanıldı.
+- [x] Düğüme tıklayınca gerçek açıklama + olay sayısı gösteren detay paneli;
+  yeni saldırılar kenardan düğüme akan parçacıklarla canlandırılıyor.
+- [x] **Sesle sorma**: proje zaten metinle soru sorulan, sesli (TTS) yanıt
+  veren bir "Komuta Asistanı" içeriyordu (`assistant.js`, `/api/assistant`).
+  Eksik olan tek yön ses**le** soru sormaktı — Web Speech API
+  (`SpeechRecognition`, tarayıcı-içi, veri dışarı çıkmaz) ile mikrofon
+  düğmesi eklendi; döngü artık tam sesli (konuş → gerçek veriden yanıt →
+  sesli oku).
+- [x] **Tanıtım sitesi**: aynı fikrin küçültülmüş, dogfooding'e uygun hâli.
+  Eskiden statik/örnek bir "konsol" gösterimi vardı (açıkça "örnek görünüm"
+  etiketliydi); şimdi `website/app.py`'ye eklenen `/api/waf-live` uç noktası
+  bu sitenin **kendi gerçek** WAF olay kaydından (5 gerçek kural kategorisi:
+  SQL Injection, XSS, Path Traversal, Command Injection, SSTI) canlı sayım
+  döner. Trafik yoksa düğümler dürüstçe sönük kalır. Basit bir sesli
+  anlatım + sabit gerçek istatistiklere (test sayısı, F1 skoru, engellenen
+  istek sayısı) yanıt veren küçük bir sesli soru-cevap da eklendi.
+- [x] **2 yeni test** (`tests/test_website.py`) — `/api/waf-live`'ın
+  trafik yokken durustçe 0 döndüğünü ve gerçek bir SQLi denemesinden sonra
+  ilgili düğümün gerçekten arttığını doğrular (mock yok, gerçek WAF zinciri
+  üzerinden). Toplam test sayısı 802 → **804**.
+
+**Dürüstlük notu:** Şebeke görünümü hiçbir yeni sayaç/veritabanı icat
+etmedi — tamamen var olan, zaten test edilmiş `build_dome_state()` ve
+`/api/waf-live`'ın kendi gerçek WAF tablosunu okumasına dayanır. Tek
+değişen şey görselleştirme geometrisidir.
+
+
 ## Sıradaki hedefler (stretch-goal, isteğe bağlı)
 
 - İkinci bilgisayar (Windows/x86-64) edinildiğinde Faz 3'ün assembly

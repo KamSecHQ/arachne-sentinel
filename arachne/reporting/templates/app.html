@@ -57,7 +57,10 @@
 
     <nav class="nav" id="nav">
       <div class="nav-group-label">İzleme</div>
-      <div class="nav-item active" data-view="overview">
+      <div class="nav-item active" data-view="web">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="2.4"/><path d="M12 2v4.4M12 17.6V22M2 12h4.4M17.6 12H22M5.2 5.2l3.1 3.1M15.7 15.7l3.1 3.1M18.8 5.2l-3.1 3.1M8.3 15.7l-3.1 3.1"/></svg>
+        Şebeke</div>
+      <div class="nav-item" data-view="overview">
         <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
         Genel Bakış</div>
       <div class="nav-item" data-view="command">
@@ -122,8 +125,21 @@
 
     <div class="content">
 
+      <!-- ===== ŞEBEKE (Faz 114) ===== -->
+      <section class="view active" id="view-web">
+        <div class="section-head"><h2>🕸 Şebeke — Canlı Savunma Ağı</h2></div>
+        <p class="section-desc">Çelik Kubbe'yi besleyen <b>aynı gerçek veri</b> — 18 gerçek savunma katmanı, örümcek ağı geometrisiyle. Her iplik gerçek bir bağlantı, her düğümün parlaklığı o katmanın <b>gerçek</b> olay sayısına bağlı. Bir düğüme tıklayın; sesli asistana (sağ alt) "savunma durumu ne?" diye sorun ya da 🎤 ile konuşun.</p>
+        <div class="rule-line"></div>
+        <div class="web-wrap">
+          <canvas id="web-canvas"></canvas>
+          <div class="web-hint">İpucu: bir düğüme tıklayın · fare ile gezinin</div>
+          <div class="web-detail" id="web-detail"></div>
+          <div class="web-legend" id="web-legend"></div>
+        </div>
+      </section>
+
       <!-- ===== GENEL BAKIŞ ===== -->
-      <section class="view active" id="view-overview">
+      <section class="view" id="view-overview">
         <div class="posture-hero">
           <div class="posture-box calm" id="ov-posture">
             <div class="pl">TEHDİT DÜZEYİ</div><div class="pv" id="ov-posture-val">—</div>
@@ -463,6 +479,7 @@
       <button data-drill="breach" class="chip-danger" title="Kalkanı delen ihlal senaryosu (simülasyon)">⛔ İhlal Tatbikatı</button>
     </div>
     <form id="ai-form">
+      <button type="button" id="ai-mic" class="ai-mic-btn" title="Sesle sor (mikrofon)">🎤</button>
       <input id="ai-input" placeholder="Bir şey sor… (örn. savunma durumu ne?)" autocomplete="off">
       <button type="submit" title="Gönder">➤</button>
     </form>
@@ -479,7 +496,8 @@
 <script src="{{ url_for('static', filename='js/boot.js') }}?v=53"></script>
 <script src="{{ url_for('static', filename='js/fx.js') }}?v=53"></script>
 <script src="{{ url_for('static', filename='js/command_center.js') }}?v=53"></script>
-<script src="{{ url_for('static', filename='js/assistant.js') }}?v=53"></script>
+<script src="{{ url_for('static', filename='js/webnet.js') }}?v=1"></script>
+<script src="{{ url_for('static', filename='js/assistant.js') }}?v=54"></script>
 <script src="{{ url_for('static', filename='js/app.js') }}?v=53"></script>
 <script src="{{ url_for('static', filename='js/views_fx.js') }}?v=53"></script>
 <script src="{{ url_for('static', filename='js/incidents.js') }}?v=53"></script>

@@ -203,6 +203,28 @@ tbody tr:hover{background:rgba(255,255,255,.02);}
 .dome-legend-item.active{color:var(--text);border-color:var(--border);}
 .dl-sw{width:7px;height:7px;border-radius:50%;}
 .dl-phase{opacity:.55;}
+
+/* ---------------- Şebeke görünümü (webnet.js) ----------------
+   Aynı Çelik Kubbe verisini (gerçek 18 katman) örümcek-ağı geometrisiyle
+   çizen radyal görünüm — merkezde çekirdek, çevrede gerçek katman düğümleri. */
+.web-wrap{position:relative;height:min(78vh,860px);border-radius:16px;overflow:hidden;
+  background:radial-gradient(ellipse at 50% 50%,#0a1420 0%,#070a10 55%,var(--panel) 100%);
+  border:1px solid var(--border);}
+#web-canvas{width:100%;height:100%;display:block;}
+.web-detail{position:absolute;top:3.1rem;left:1rem;width:270px;max-width:60vw;z-index:3;
+  background:rgba(6,9,13,.94);border:1px solid var(--border);border-radius:12px;
+  padding:.9rem 1rem;opacity:0;transform:translateY(-6px);pointer-events:none;
+  transition:opacity .18s ease,transform .18s ease;}
+.web-detail.open{opacity:1;transform:translateY(0);}
+.wd-head{font-family:var(--font-display);font-size:.78rem;letter-spacing:.03em;text-transform:uppercase;}
+.wd-head small{display:block;font-family:var(--font-mono);font-size:.6rem;color:var(--muted);margin-top:.15rem;text-transform:none;letter-spacing:0;}
+.wd-count{font-family:var(--font-mono);font-size:1.3rem;font-weight:700;color:var(--text);margin:.5rem 0;}
+.wd-count span{font-size:.62rem;font-weight:400;color:var(--muted);margin-left:.3rem;}
+.wd-desc{font-size:.72rem;line-height:1.55;color:var(--muted);}
+.web-legend{position:absolute;bottom:.7rem;left:.8rem;right:.8rem;z-index:2;display:flex;flex-wrap:wrap;
+  gap:.32rem;justify-content:center;max-height:5.4rem;overflow-y:auto;}
+.web-hint{position:absolute;top:.85rem;left:1rem;z-index:2;font-family:var(--font-mono);font-size:.64rem;
+  color:var(--muted);pointer-events:none;letter-spacing:.02em;}
 .dl-count{font-weight:700;color:var(--accent-2);}
 #map-stats .ms-row{display:flex;justify-content:space-between;gap:1rem;color:var(--muted);padding:.1rem 0;}
 #map-stats .ms-row b{color:var(--text);}
@@ -719,6 +741,14 @@ body.cinematic .topbar{margin-top:.6rem;}
 .ai-head-t small{font-family:var(--font-mono);font-size:.6rem;font-weight:400;color:var(--accent-2);letter-spacing:.08em;text-transform:uppercase;}
 .ai-head button{background:none;border:none;color:var(--muted);font-size:1rem;cursor:pointer;padding:.1rem .3rem;border-radius:6px;}
 .ai-head button:hover{color:var(--text);background:rgba(255,255,255,.06);}
+.ai-mic-btn{background:none;border:1px solid var(--border);color:var(--muted);border-radius:8px;
+  width:2.1rem;height:2.1rem;display:flex;align-items:center;justify-content:center;cursor:pointer;
+  font-size:.9rem;flex-shrink:0;transition:color .15s ease,border-color .15s ease,background .15s ease;}
+.ai-mic-btn:hover{color:var(--text);border-color:var(--accent-2);}
+.ai-mic-btn.listening{color:var(--accent);border-color:var(--accent);background:rgba(255,59,69,.12);
+  animation:aiMicPulse 1s ease-in-out infinite;}
+@keyframes aiMicPulse{0%,100%{box-shadow:0 0 0 0 rgba(255,59,69,.45);}50%{box-shadow:0 0 0 7px rgba(255,59,69,0);}}
+.ai-mic-unsupported{display:none;}
 .ai-msgs{flex:1;overflow-y:auto;padding:1rem;display:flex;flex-direction:column;gap:.7rem;}
 .ai-msg{max-width:86%;padding:.6rem .85rem;border-radius:12px;font-size:.82rem;line-height:1.55;white-space:pre-wrap;word-break:break-word;}
 .ai-msg.bot{align-self:flex-start;background:rgba(34,211,238,.08);border:1px solid rgba(34,211,238,.2);color:var(--text);border-bottom-left-radius:3px;}
@@ -737,6 +767,10 @@ body.cinematic .topbar{margin-top:.6rem;}
 #ai-input:focus{border-color:var(--accent-2);box-shadow:0 0 0 2px rgba(34,211,238,.15);}
 #ai-form button{width:42px;border-radius:10px;background:var(--accent-2);border:none;color:#04262b;font-size:1rem;cursor:pointer;font-weight:700;}
 #ai-form button:hover{filter:brightness(1.1);}
+#ai-form .ai-mic-btn{background:none;border:1px solid var(--border);color:var(--muted);font-weight:400;}
+#ai-form .ai-mic-btn:hover{filter:none;color:var(--text);border-color:var(--accent-2);}
+#ai-form .ai-mic-btn.listening{color:var(--accent);border-color:var(--accent);background:rgba(255,59,69,.12);
+  animation:aiMicPulse 1s ease-in-out infinite;}
 
 /* ============ AI proaktif saldiri anonsu (Faz 49) ============ */
 .ai-msg.alert{align-self:stretch;max-width:100%;

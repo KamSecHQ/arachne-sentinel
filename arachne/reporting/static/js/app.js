@@ -18,6 +18,7 @@
   const TAU = Math.PI * 2;
 
   const VIEW_META = {
+    web: ["Şebeke", "18 gerçek savunma katmanı — örümcek ağı geometrisiyle canlı görünüm"],
     overview: ["Genel Bakış", "Sistemin canlı durumu ve tehdit özeti"],
     command: ["Çelik Kubbe", "Katmanlı savunma simülasyonu ve küresel harita"],
     bunker: ["Son Hat — Yer Altı Ultra Savunma", "Kubbe delinirse devreye giren 50 katmanlı gizli savunma + hayalet kimlik"],
@@ -64,7 +65,7 @@
   function sevBadge(s) { return `<span class="badge badge-${esc(s || "info")}">${esc(s || "-")}</span>`; }
 
   /* ---------- routing ---------- */
-  let currentView = "overview";
+  let currentView = "web";
   function switchView(view) {
     if (!VIEW_META[view]) return;
     currentView = view;
@@ -1258,6 +1259,8 @@
     renderOverview(ov);
     // Command view (dome + map via command_center.js, layers here)
     if (window.ArachneCommandCenter) window.ArachneCommandCenter.update({ dome: d.dome, attack_map: d.attack_map });
+    // Şebeke view (Faz 114) - ayni dome verisi, radyal gorunum
+    if (window.ArachneWebNet) window.ArachneWebNet.update(d.dome);
     renderLayers(d.defense_layers);
     // SOAR view
     renderSoarView(d.active_defense || {}, d.live || {});

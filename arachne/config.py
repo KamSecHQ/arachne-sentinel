@@ -88,3 +88,8 @@ DEFAULT_LOOKBACK_SECONDS = 120
 PORT_SCAN_DISTINCT_PORTS = 3
 BRUTE_FORCE_ATTEMPTS = 5
 MULTI_SERVICE_COUNT = 2
+
+# Faz 116 - Son Hat GERCEK sinyalle devreye girince uygulanan yaptirimlar.
+# Hepsi sureli/geri alinabilir (SOAR TTL ilkesi); tatbikatta UYGULANMAZ.
+LASTLINE_SANCTION_SECONDS = 900       # SOAR engeli + aldatma karantinasi suresi (15 dk)
+LASTLINE_HOP_INTERVAL_SECONDS = 5     # Son Hat devredeyken hayalet panelin port sicrama araligi

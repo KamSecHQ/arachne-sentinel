@@ -56,8 +56,8 @@ CREDENTIALS = ["root:toor", "root:123456", "admin:admin", "root:password",
 
 
 class _TerminalFortress(LastLineFortress):
-    """Terminal onizlemesi icin ayri kale ornegi. Musteri webhook'unu panel
-    surecindeki kale zaten gonderir; burada ikinci bir bildirim UYGULANMAZ."""
+    """Terminal onizlemesi icin ayri kale ornegi. Musteri webhook'unu ve Faz 116
+    yaptirimlarini panel surecindeki kale uygular; burada ikinci kez UYGULANMAZ."""
 
     def _notify_engagement(self, ctx):
         pass
@@ -133,6 +133,8 @@ def run_core_breach(db_path=None, soar_enabled=True, speed=1.0, verbose=True):
             _print_fortress(fortress_status)
         say("\n  Panel aciksa (python main.py dashboard --port 5001) birkac saniye")
         say("  icinde Son Hat gorunumune KENDILIGINDEN gecer - 'GERCEK SINYAL'.")
+        say("  Faz 116 yaptirimlarini (SOAR engeli + aldatma karantinasi + hizli")
+        say("  port sicramasi) panel sureci uygular; bu onizleme uygulamaz.")
     else:
         say("  Esik asilmadi; Son Hat beklemede kaldi (bu da gercek bir sonuctur).")
 

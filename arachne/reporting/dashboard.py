@@ -314,7 +314,7 @@ def api_fortress():
     """Son Hat kalesinin GERCEK durumu. Kubbe sinyallerinden ihlal karari
     verilir; esik asilinca kale otomatik devreye girer (kimlik 100 ms'de
     doner, 50 katman muhurlenir). Rastgele degil — deterministik, dogrulanabilir."""
-    from ..lastline import context_from_live
+    from ..lastline import context_from_live, enforcement
 
     fort = _get_fortress()
     ctx = context_from_live()
@@ -324,22 +324,33 @@ def api_fortress():
     elif not should and fort.engaged and not ctx.extra.get("drill"):
         # esik altina dondu ve manuel tatbikat degil -> beklemeye al
         pass                          # devreye girmis kale beklemede birakilmaz
+    # Faz 115: gercek sinyal cekirdek yemiyse, yemi yutan kaynagi da bildir -
+    # panel anonsu "bir saldirgan" degil, kaydin kendisindeki IP'yi gosterir.
+    trigger_ip = None
+    if should and ctx.core_vault_touched:
+        touch = storage.core_vault_last_touch()
+        trigger_ip = touch["source_ip"] if touch else None
+    # Faz 116: yaptirimlar kale durumunu degil GERCEK karari izler (tatbikat
+    # kaleyi acmis olsa bile): sinyal varsa ac/uzat, yoksa kapat.
+    if should:
+        sanctions = (enforcement.refresh_sanctions()
+                     or enforcement.engage_sanctions(ctx, reason, trigger_ip=trigger_ip))
+    else:
+        enforcement.release_sanctions()
+        sanctions = None
     st = fort.status()
     st["should_engage"] = should
     st["engage_reason"] = reason
-    # Faz 115: gercek sinyal cekirdek yemiyse, yemi yutan kaynagi da bildir -
-    # panel anonsu "bir saldirgan" degil, kaydin kendisindeki IP'yi gosterir.
-    st["trigger_ip"] = None
-    if should and ctx.core_vault_touched:
-        touch = storage.core_vault_last_touch()
-        st["trigger_ip"] = touch["source_ip"] if touch else None
+    st["trigger_ip"] = trigger_ip
+    st["sanctions"] = sanctions
     return jsonify(st)
 
 
 @app.route("/api/fortress/engage", methods=["POST"])
 def api_fortress_engage():
     """Tatbikat: kaleyi elle devreye al (kubbe delinmis gibi). Savunma
-    sistemine dokunmaz — sadece son hat motorunu baslatir ve tepki suresini olcer."""
+    sistemine dokunmaz — sadece son hat motorunu baslatir ve tepki suresini olcer.
+    Faz 116 yaptirimlari (engel/karantina/hizli sicrama) burada UYGULANMAZ."""
     from ..lastline import context_from_live
 
     fort = _get_fortress()

@@ -586,8 +586,13 @@ def test_golden_fnv1a_values():
 # ---------------------------------------------------------------------------
 # API uc noktalari — /api/fortress (GET/engage/standby) GERCEK motoru surer.
 # ---------------------------------------------------------------------------
-def test_api_fortress_get_roster():
+def test_api_fortress_get_roster(tmp_path, monkeypatch):
+    from arachne import config, storage
     from arachne.reporting import dashboard
+    # Faz 116: GET gercek sinyalde yaptirim YAZAR - gercek data/arachne.db'ye
+    # dokunmamak icin izole veritabani.
+    monkeypatch.setattr(config, "DB_PATH", tmp_path / "roster.db")
+    storage.init_db()
     c = dashboard.app.test_client()
     d = c.get("/api/fortress").get_json()
     assert len(d["layers"]) == 50           # beklemede bile 50 katman rosteri

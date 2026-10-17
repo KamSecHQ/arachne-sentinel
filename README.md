@@ -316,11 +316,16 @@ uygulama (SPA), iki hızlı poll döngüsü, birleşik toplayıcı
   gerçek akışta tetiklenebiliyor. `scripts/demo_core_breach.py` bu yolu
   uçtan uca çalıştırır; panel `/api/fortress`'i izler ve Son Hat'i
   tatbikat olmadan, "GERÇEK SİNYAL" etiketiyle kendiliğinden açar.
+- **Faz 116 — Son Hat yaptırımları**: gerçek sinyalle açılan Son Hat artık
+  sistemi gerçekten değiştirir — kaynak IP SOAR ile engellenir (15 dk TTL),
+  honeypot onu reddetmek yerine tarpit + aldatma karantinasında tutar ve
+  hayalet admin paneli 5 sn'de bir port değiştirir. Tatbikat hiçbir yaptırım
+  uygulamaz; loopback/özel ağ adresleri korunur.
 
 **Ortak:**
 - **Otomatik HTML raporu**, **AI Markdown raporu**, **STIX 2.1 bundle** ve
   **sinematik canlı komuta merkezi** (gerçek performans metrikleriyle)
-- **813 birim testi** (`tests/`) ve kendi kendini test eden demo saldırı scriptleri
+- **835 birim testi** (`tests/`) ve kendi kendini test eden demo saldırı scriptleri
 
 ## Kurulum
 
@@ -456,7 +461,7 @@ export ARACHNE_NVD_API_KEY="anahtarınız"         # opsiyonel, sadece kota yük
 
 ```bash
 pip install pytest
-pytest tests/ -v      # 813 test
+pytest tests/ -v      # 835 test
 ```
 
 ## Mimari ve yol haritası

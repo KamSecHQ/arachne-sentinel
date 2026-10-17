@@ -1225,6 +1225,54 @@ aldanmadır ve gerçek varlığa ulaşılmaz. Senaryo adresleri RFC 5737
 aralığındandır, olaylar yerel veritabanına yazılır.
 
 
+## Faz 116 — Son Hat Yaptırımları (karardan uygulamaya)
+
+Sorun: Faz 115'e kadar Son Hat bir karar + kayıt + gösterim motoruydu. Panel
+dışında `engaged` durumunu okuyan hiçbir modül yoktu; Son Hat açılınca
+honeypot, SOAR ve MTD davranışı değişmiyordu. Ayrıca Faz 11 tarpit'i
+hesaplanıyor ama dinleyicilerde hiç uygulanmıyordu.
+
+Son Hat artık **gerçek sinyalle** (tatbikatta değil) açıldığında üç yaptırım
+uygular (`arachne/lastline/enforcement.py`):
+
+- [x] **SOAR engeli** — hedef IP 15 dk TTL'li engel listesine yazılır, SOAR
+  denetim kaydına `son-hat` playbook'uyla geçer.
+- [x] **Aldatma karantinası** — honeypot o IP'yi reddetmek yerine tarpit ile
+  yavaşlatır ve yalnızca aldatma içeriği verir (SSH/FTP banner'ı damla damla,
+  http-admin'de sahte "giriş başarılı" paneli, Redis/Docker/ES'te protokol
+  yanıtı). Karantina engelden **önce** gelir: ret saldırgana "yakalandın"
+  der, aldatma demez. Olaylar `quarantine` tipinde loglanır.
+- [x] **Hızlı port sıçrama** — hayalet admin paneli (Faz 4 `port_hopper`)
+  aralığını 5 sn'ye indirir. Döngü saniyelik adımlara bölündü; eskiden tek bir
+  `sleep(45)` Son Hat'in açıldığını bir sonraki sıçramaya kadar kaçırırdı.
+
+Tasarım kararları:
+
+- **Süreçler arası durum:** Kale panel sürecinde, honeypot ve port_hopper
+  `full-demo` sürecinde çalışır; durum `lastline_engagements` tablosunda
+  tutulur (engel listesiyle aynı disiplin).
+- **Yaşam döngüsü gerçek kararı izler:** `/api/fortress` sinyal varsa
+  yaptırımı açar/uzatır, yoksa kapatır. Karantina ve hızlı sıçrama biter;
+  SOAR engeli kendi TTL'iyle sürer.
+- **Hedef yalnızca gerçek kaynaktan:** çekirdek yemini yutan IP, yoksa
+  füzyonun en riskli IP'si. `DefenseContext`'in varsayılan IP'si yer
+  tutucudur, ona asla yaptırım uygulanmaz.
+- **Lab güvenliği:** loopback/özel ağ adresleri SOAR'daki aynı kuralla
+  korunur (`blocklist.is_protected`) — engellenmez, karantinaya alınmaz.
+- **Tatbikat** (`/api/fortress/engage`) hiçbir yaptırım uygulamaz.
+
+- [x] Panel ve asistan anonsu uygulanan yaptırımları gösterir.
+- [x] **22 yeni test** (`tests/test_lastline_enforcement.py`): pencere yaşam
+  döngüsü, hedef seçimi, korunan adresler, gerçek TCP ile karantina önceliği,
+  hızlı sıçrama döngüsü, API yaşam döngüsü, tatbikat izolasyonu.
+  `test_api_fortress_get_roster` artık izole veritabanı kullanıyor (GET artık
+  yaptırım yazabildiği için). Toplam test sayısı 813 → **835**.
+
+**Sınır:** Son Hat yalnızca panel açıkken değerlendirilir (kararı panel süreci
+verir). Panel kapanırsa açık yaptırım penceresi 15 dk TTL ile kendiliğinden
+biter.
+
+
 ## Sıradaki hedefler (stretch-goal, isteğe bağlı)
 
 - İkinci bilgisayar (Windows/x86-64) edinildiğinde Faz 3'ün assembly

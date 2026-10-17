@@ -79,6 +79,71 @@ async def _close(writer):
         pass
 
 
+# --- Faz 116: Son Hat aldatma karantinasi ------------------------------------
+# Son Hat gercek sinyalle acildiginda hedef IP burada REDDEDILMEZ: ret,
+# saldirgana "yakalandin" der. Bunun yerine tarpit ile yavaslatilir ve yalnizca
+# aldatma icerigi alir. Karar panel surecinde verilir, durum veritabanindan
+# okunur (bkz. arachne/lastline/enforcement.py).
+
+def _is_quarantined(source_ip):
+    try:
+        return storage.is_lastline_quarantined(source_ip)
+    except Exception:
+        return False
+
+
+def _quarantine_delay():
+    """Faz 11 tarpit politikasinin en ust kademesi (en yuksek tehdit + tekrar)."""
+    from ..active_defense.tarpit import compute_tarpit_delay
+    return compute_tarpit_delay(threat_score=100, prior_alerts=1)["delay"]
+
+
+async def _tarpit_write(writer, data: bytes, delay: float):
+    """Endlessh mantigi: yaniti tek seferde degil, tarpit suresine yayarak yollar."""
+    from ..active_defense.tarpit import tarpit_banner_stream
+    for chunk, pause in tarpit_banner_stream(data.decode("latin-1"), delay):
+        writer.write(chunk.encode("latin-1"))
+        await writer.drain()
+        await asyncio.sleep(pause)
+
+
+def _quarantine_http_response(source_ip):
+    """Karantinadaki saldirgana sahte 'giris basarili' paneli (Faz 108 cekirdek
+    yemiyle ayni ilke). Kimlikler uydurmadir; 'SAHTE' notu bilerek gonderilmez."""
+    from ..active_defense.deception import generate_fake_credentials
+    rows = "".join(f"<tr><td>{c['username']}</td><td>{c['password']}</td></tr>"
+                   for c in generate_fake_credentials(source_ip, count=2))
+    body = ("<html><head><title>Admin Panel</title></head><body>"
+            "<h2>Hos geldiniz, admin</h2><p>Servis hesaplari:</p>"
+            f"<table>{rows}</table></body></html>").encode()
+    return (b"HTTP/1.1 200 OK\r\n"
+            + f"Content-Length: {len(body)}\r\n".encode()
+            + b"Content-Type: text/html; charset=utf-8\r\n"
+            + b"Connection: close\r\n\r\n" + body)
+
+
+async def _serve_quarantine(service_name, dest_port, reader, writer, source_ip,
+                            source_port, banner: bytes = b"", respond=None):
+    """Karantinadaki baglanti: banner/yanit tarpit ile yavas akar. Olay
+    'quarantine' tipinde loglanir ve yeniden skorlanmaz - karar zaten verildi."""
+    logger.info("KARANTINA: %s -> %s (Son Hat aldatma kuyusu)", source_ip, service_name)
+    payload = None
+    delay = _quarantine_delay()
+    try:
+        if banner:
+            await _tarpit_write(writer, banner, delay)
+        payload = await _read_payload(reader)
+        if payload:
+            _check_honeytokens(source_ip, payload)
+        response = respond(payload or "") if respond else None
+        if response:
+            await _tarpit_write(writer, response, delay)
+    finally:
+        storage.log_event(source_ip, service_name, "quarantine", source_port=source_port,
+                          dest_port=dest_port, payload=payload)
+        await _close(writer)
+
+
 def _attack_classes_for_ip(source_ip):
     """SOAR playbook secimi icin bu IP'nin saldiri siniflarini belirler.
 
@@ -131,6 +196,18 @@ async def _handle_generic(service_name: str, dest_port: int, reader, writer,
                           rotator=None, soar_enabled=False):
     source_ip, source_port = _peer_info(writer)
 
+    # Faz 4 (Moving Target Defense) aktifse rotator'dan zaman icinde degisen
+    # banner'i kullan; aktif degilse (varsayilan) config.py'deki sabit
+    # banner'i kullan - davranis Faz 1-3 ile birebir ayni kalir.
+    banner = (rotator.current_banner(service_name) if rotator else None) \
+        or config.FAKE_SERVICES[service_name].get("banner")
+
+    # Faz 116: Son Hat karantinasi engelden ONCE gelir - ret yerine aldatma.
+    if soar_enabled and _is_quarantined(source_ip):
+        await _serve_quarantine(service_name, dest_port, reader, writer, source_ip,
+                                source_port, banner=(banner or "").encode(errors="ignore"))
+        return
+
     # Faz 7: engelli IP'ler icin baglanti aninda kapatilir. Bu, SOAR
     # katmaninin GERCEK yaptirim noktasidir - bir raporlama detayi degil,
     # gercekten uygulanan bir kisitlama.
@@ -145,11 +222,6 @@ async def _handle_generic(service_name: str, dest_port: int, reader, writer,
                        dest_port=dest_port)
     logger.info("baglanti: %s -> %s (port %s)", source_ip, service_name, dest_port)
 
-    # Faz 4 (Moving Target Defense) aktifse rotator'dan zaman icinde degisen
-    # banner'i kullan; aktif degilse (varsayilan) config.py'deki sabit
-    # banner'i kullan - davranis Faz 1-3 ile birebir ayni kalir.
-    banner = (rotator.current_banner(service_name) if rotator else None) \
-        or config.FAKE_SERVICES[service_name].get("banner")
     try:
         if banner:
             await _response_jitter()
@@ -182,6 +254,12 @@ async def _handle_http_admin(dest_port: int, reader, writer, soar_enabled=False)
     giris formu doner. Girilen kullanici adi/sifre gercek hicbir sisteme
     gonderilmez, sadece loglanir (tuzak/deception amacli)."""
     source_ip, source_port = _peer_info(writer)
+
+    if soar_enabled and _is_quarantined(source_ip):
+        await _serve_quarantine("http-admin", dest_port, reader, writer, source_ip,
+                                source_port,
+                                respond=lambda _p: _quarantine_http_response(source_ip))
+        return
 
     if soar_enabled and _is_blocked(source_ip):
         storage.log_event(source_ip, "http-admin", "blocked", source_port=source_port,
@@ -303,6 +381,11 @@ async def _handle_bespoke_service(service_name: str, dest_port: int, reader, wri
     fonksiyonlarda kalır; bu fonksiyon sadece I/O ve loglama akışını
     (`_handle_generic` ile aynı disiplin) sağlar."""
     source_ip, source_port = _peer_info(writer)
+
+    if soar_enabled and _is_quarantined(source_ip):
+        await _serve_quarantine(service_name, dest_port, reader, writer, source_ip,
+                                source_port, respond=build_response)
+        return
 
     if soar_enabled and _is_blocked(source_ip):
         storage.log_event(source_ip, service_name, "blocked", source_port=source_port,

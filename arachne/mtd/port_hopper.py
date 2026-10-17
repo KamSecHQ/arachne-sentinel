@@ -16,6 +16,7 @@ import logging
 
 from .. import storage
 from ..detection import scorer
+from ..lastline import enforcement
 
 logger = logging.getLogger("arachne.mtd.port_hopper")
 
@@ -95,27 +96,41 @@ class PortHopper:
                                   reason="ilk baslatma", db_path=self.db_path)
         logger.info("ghost-admin dinlemede: %s:%s", self.host, self._current_port)
 
-    async def hop(self):
+    def current_interval(self):
+        """Faz 116: Son Hat devredeyse sicrama araligi kisalir (durum veritabanindan)."""
+        return enforcement.hop_interval(self.hop_interval_seconds, db_path=self.db_path)
+
+    async def hop(self, interval=None):
         """Bir sonraki porta sicrar (havuz sonuna gelince basa doner)."""
+        interval = interval or self.hop_interval_seconds
         old_port = self._current_port
         self._server.close()
         await self._server.wait_closed()
         self._index = (self._index + 1) % len(self.port_pool)
         self._server = await self._bind(self.port_pool[self._index])
+        reason = f"{interval}sn sicrama araligi doldu"
+        if interval < self.hop_interval_seconds:
+            reason += " (Son Hat devrede - hizlandirilmis)"
         storage.log_mtd_rotation(
             component=COMPONENT_NAME, old_identity=str(old_port),
-            new_identity=str(self._current_port),
-            reason=f"{self.hop_interval_seconds}sn sicrama araligi doldu",
+            new_identity=str(self._current_port), reason=reason,
             db_path=self.db_path,
         )
         logger.info("ghost-admin sicradi: %s -> %s", old_port, self._current_port)
 
-    async def run_forever(self):
+    async def run_forever(self, tick_seconds=1.0):
+        """Kisa adimlarla bekler: Son Hat acilinca uzun bir uykuyu bitirmeden
+        hizlanir (onceden tek bir `sleep(hop_interval)` bunu kacirirdi)."""
         await self.start()
         try:
+            waited = 0.0
             while True:
-                await asyncio.sleep(self.hop_interval_seconds)
-                await self.hop()
+                await asyncio.sleep(tick_seconds)
+                waited += tick_seconds
+                interval = self.current_interval()
+                if waited >= interval:
+                    await self.hop(interval)
+                    waited = 0.0
         finally:
             if self._server:
                 self._server.close()

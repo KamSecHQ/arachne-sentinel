@@ -280,11 +280,16 @@
         `<div class="ai-alert-row">${esc(d.reason || "İhlal kararı kayıtlardan verildi")}</div>` +
         (d.ip ? `<div class="ai-alert-row">Kaynak: <b>${esc(d.ip)}</b></div>` : "") +
         `<div class="ai-alert-row">Hedef kimliği <b>~100 ms'de bir dönüyor</b> · 50 katman devrede.</div>` +
+        (d.sanctions && window.ArachneBunkerLogic
+          ? `<div class="ai-alert-row">Yaptırım: <b>${esc(window.ArachneBunkerLogic.sanctionText(d.sanctions))}</b></div>`
+          : "") +
         `<div class="ai-breach-warn">● TATBİKAT DEĞİL — karar veritabanı kayıtlarından verildi. Gerçek varlığa ulaşılmadı.</div>`);
       dock.classList.add("open", "alerting", "speaking");
       // trigger_ip yalnızca çekirdek yemi tetiklediğinde gelir (dashboard.api_fortress)
       speak("Son hat devrede. Bu bir tatbikat değil; karar gerçek kayıtlardan verildi. " +
         (d.ip ? "Saldırgan sahte başarıyı gerçek sandı. " : "") +
+        (d.sanctions && d.sanctions.quarantined
+          ? "Kaynak engellendi ve aldatma karantinasına alındı. " : "") +
         "Hedef kimliği saniyede on kez dönüyor. Gerçek varlığa ulaşılamadı.");
       setTimeout(() => dock.classList.remove("speaking"), 6500);
     });

@@ -147,6 +147,20 @@ CREATE INDEX IF NOT EXISTS idx_threat_intel_ip ON threat_intel_cache(ip, source)
 CREATE INDEX IF NOT EXISTS idx_nvd_cache_query ON nvd_cache(query);
 """
 
+# Faz 116: Son Hat yaptirim durumu. Panel sureci yazar, honeypot/port_hopper
+# sureci okur (engelleme listesiyle ayni surecler-arasi disiplin). Ayri sabit:
+# init_db cagirmamis eski veritabanlarinda da tembel olusturulabilsin.
+_LASTLINE_TABLE = """
+CREATE TABLE IF NOT EXISTS lastline_engagements (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    engaged_at TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    released_at TEXT,
+    target_ip TEXT,
+    reason TEXT
+)"""
+SCHEMA += _LASTLINE_TABLE + ";\n"
+
 # Sonradan eklenen sutunlar: mevcut veritabanlarini bozmadan yukseltmek icin.
 # Format: (tablo, sutun, SQL tipi)
 _MIGRATIONS = [
@@ -574,6 +588,61 @@ def core_vault_last_touch(since_seconds=300, db_path=None):
             (f"-{int(since_seconds)} seconds",),
         ).fetchone()
         return dict(row) if row else None
+
+
+def start_lastline_engagement(target_ip, reason, ttl_seconds, db_path=None):
+    """Faz 116: Son Hat yaptirim penceresini acar (onceki acik pencere kapanir).
+    target_ip None olabilir - hedefsiz ihlalde yalnizca port sicramasi hizlanir."""
+    with get_conn(db_path) as conn:
+        conn.execute(_LASTLINE_TABLE)
+        conn.execute("UPDATE lastline_engagements SET released_at = ? "
+                     "WHERE released_at IS NULL", (_now(),))
+        cursor = conn.execute(
+            "INSERT INTO lastline_engagements (engaged_at, expires_at, target_ip, reason) "
+            "VALUES (?, datetime('now', ?), ?, ?)",
+            (_now(), f"+{int(ttl_seconds)} seconds", target_ip, reason),
+        )
+        return cursor.lastrowid
+
+
+def extend_lastline_engagement(ttl_seconds, db_path=None):
+    """Sinyal surdukce acik pencerenin suresini en az `ttl_seconds` sonraya tasir."""
+    with get_conn(db_path) as conn:
+        conn.execute(_LASTLINE_TABLE)
+        cursor = conn.execute(
+            "UPDATE lastline_engagements SET expires_at = MAX(expires_at, datetime('now', ?)) "
+            "WHERE released_at IS NULL AND expires_at > datetime('now')",
+            (f"+{int(ttl_seconds)} seconds",),
+        )
+        return cursor.rowcount > 0
+
+
+def release_lastline_engagements(db_path=None):
+    """Acik yaptirim penceresini kapatir (sinyal bitti). SOAR engeli kendi TTL'iyle surer."""
+    with get_conn(db_path) as conn:
+        conn.execute(_LASTLINE_TABLE)
+        cursor = conn.execute("UPDATE lastline_engagements SET released_at = ? "
+                              "WHERE released_at IS NULL", (_now(),))
+        return cursor.rowcount
+
+
+def active_lastline_engagement(db_path=None):
+    """Su an gecerli yaptirim penceresi (kapanmamis ve suresi dolmamis) ya da None."""
+    with get_conn(db_path) as conn:
+        conn.execute(_LASTLINE_TABLE)
+        row = conn.execute(
+            "SELECT *, CAST((julianday(expires_at) - julianday('now')) * 86400 AS INTEGER) "
+            "AS remaining_seconds FROM lastline_engagements "
+            "WHERE released_at IS NULL AND expires_at > datetime('now') "
+            "ORDER BY id DESC LIMIT 1"
+        ).fetchone()
+        return dict(row) if row else None
+
+
+def is_lastline_quarantined(ip, db_path=None):
+    """Bu IP, Son Hat'in aldatma karantinasinda mi (honeypot sicak yolu)?"""
+    engagement = active_lastline_engagement(db_path=db_path)
+    return bool(ip and engagement and engagement["target_ip"] == ip)
 
 
 def active_defense_stats(db_path=None):

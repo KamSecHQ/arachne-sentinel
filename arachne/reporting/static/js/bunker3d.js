@@ -64,7 +64,17 @@
     if (!real && isActive && currentMode === "real") return "standby";
     return "none";
   }
-  window.ArachneBunkerLogic = { decideWatch };
+  /* Faz 116: /api/fortress → sanctions alanından insan-okur yaptırım özeti. */
+  function sanctionText(s) {
+    if (!s) return "";
+    const parts = [];
+    if (s.target_ip && s.blocked) parts.push(s.target_ip + " SOAR ile engellendi");
+    if (s.target_ip && s.quarantined) parts.push("aldatma karantinası (tarpit)");
+    if (!s.target_ip) parts.push("hedef IP yok/korunan adres");
+    parts.push("port sıçrama " + s.hop_interval_seconds + " sn");
+    return parts.join(" + ");
+  }
+  window.ArachneBunkerLogic = { decideWatch, sanctionText };
 
   /* ---------- HAYALET hiper-kimlik motoru (GERÇEK: sunucuyla parite) ---------- */
   let active = false, rotTimer = null, mode = null;   // mode: "drill" | "real" | null
@@ -337,7 +347,8 @@
      "Gerçek" = sunucu devrede VE kararı tatbikatsız bağlam veriyor. */
   function realStatusText(st) {
     return "● AKTİF — GERÇEK SİNYAL: " + (st.engage_reason || "ihlal kararı") +
-      (st.trigger_ip ? " · kaynak " + st.trigger_ip : "");
+      (st.trigger_ip ? " · kaynak " + st.trigger_ip : "") +
+      (st.sanctions ? " · yaptırım: " + sanctionText(st.sanctions) : "");
   }
   function goToBunkerView() {
     // ~1.4 sn sonra kullanıcıyı Son Hat görünümüne al (dramatik geçiş)
@@ -348,7 +359,8 @@
   }
   function announceReal(st) {
     window.dispatchEvent(new CustomEvent("arachne:lastline", {
-      detail: { real: true, reason: st.engage_reason || "", ip: st.trigger_ip || null },
+      detail: { real: true, reason: st.engage_reason || "", ip: st.trigger_ip || null,
+                sanctions: st.sanctions || null },
     }));
   }
   function onRealSignal(st) {

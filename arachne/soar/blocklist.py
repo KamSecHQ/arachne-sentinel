@@ -67,6 +67,11 @@ def _is_protected(ip: str) -> bool:
     return addr.is_loopback or addr.is_private
 
 
+def is_protected(ip: str) -> bool:
+    """Public kapi: Son Hat yaptirimlari (Faz 116) da ayni koruma kuralina uyar."""
+    return _is_protected(ip)
+
+
 def _invalidate_cache():
     with _lock:
         _cache["fetched_at"] = 0.0

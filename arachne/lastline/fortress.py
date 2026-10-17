@@ -192,6 +192,9 @@ def context_from_live(db_path=None, drill: bool = False) -> DefenseContext:
         fusion = (adv or {}).get("fusion", {})
         ctx.fused_posterior = float(fusion.get("top_posterior", 0.0) or 0.0)
         ctx.attacker_ip = fusion.get("top_ip") or ctx.attacker_ip
+        # Faz 116: yaptirim hedefi yalnizca GERCEK bir kaynaktan secilir;
+        # varsayilan attacker_ip bir yer tutucudur, ona yaptirim uygulanmaz.
+        ctx.extra["fusion_top_ip"] = fusion.get("top_ip")
         nov = (adv or {}).get("novelty", {})
         ctx.novelty = float(nov.get("novelty", 0.0) or 0.0) if isinstance(nov, dict) else 0.0
     except Exception:

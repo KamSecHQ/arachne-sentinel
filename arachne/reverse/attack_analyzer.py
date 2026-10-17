@@ -17,7 +17,7 @@ TEK BASINA tetiklemez. Karar, deterministik kural motorunda (Faz 1) kalir.
 Bu katman zenginlestirir, karar vermez - ayni ilke Faz 8'deki AI katmani
 icin de gecerlidir (bkz. docs/ARCHITECTURE.md "Zenginlestirme vs Karar").
 """
-from ..detection.rules import ATTACK_SIGNATURES
+from ..detection.rules import ATTACK_SIGNATURES, rule_brute_force
 from ..intel import attck
 from .advanced_decoder import advanced_decode, is_polyglot
 from .deobfuscator import deobfuscate, obfuscation_score
@@ -174,6 +174,13 @@ def _verdict(score: int) -> str:
     return "temiz"
 
 
+def _has_brute_force_rhythm(events: list) -> bool:
+    """Faz 1 `rule_brute_force` kuralini eksik alanli olaylara karsi guvenle uygular."""
+    slim = [{"event_type": e.get("event_type"), "service": e.get("service")}
+            for e in events or []]
+    return rule_brute_force(slim)[0]
+
+
 def analyze_ip(source_ip: str, events: list) -> dict:
     """Bir IP'nin tum olaylarini birlestirerek saldiri zincirini yeniden kurar.
 
@@ -192,11 +199,22 @@ def analyze_ip(source_ip: str, events: list) -> dict:
         result["event_id"] = event.get("id")
         analyses.append(result)
 
-    all_classes = sorted({c for a in analyses for c in a["attack_classes"]})
+    all_classes = {c for a in analyses for c in a["attack_classes"]}
     all_techniques = {}
     for a in analyses:
         for t in a["attck_techniques"]:
             all_techniques[t["id"]] = t
+
+    # Davranissal sinif: brute-force bir YUK imzasi degil, ayni servise tekrarli
+    # baglanti ritmidir - yuk analizi onu goremez. Faz 1 kurali (tek esik
+    # kaynagi) burada sinif olarak da raporlanir; aksi halde SOAR'in
+    # pb-brute-force playbook'u ve aldatma motorunun 'fake-success' karari
+    # (Faz 108 cekirdek yemi) canli akista hic tetiklenemezdi.
+    if _has_brute_force_rhythm(events):
+        all_classes.add("Brute Force")
+        for t in attck.map_attack_class("Brute Force")["techniques"]:
+            all_techniques[t["id"]] = t
+    all_classes = sorted(all_classes)
 
     tool_votes = {}
     for a in analyses:

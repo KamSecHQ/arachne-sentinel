@@ -562,6 +562,20 @@ def core_vault_recently_touched(since_seconds=300, db_path=None):
         return row is not None
 
 
+def core_vault_last_touch(since_seconds=300, db_path=None):
+    """Son `since_seconds` icindeki en yeni cekirdek-yemi kaydini dondurur
+    ({source_ip, timestamp}) ya da None - panelin Son Hat anonsunda yemi
+    yutan GERCEK kaynagi gosterebilmesi icin."""
+    with get_conn(db_path) as conn:
+        row = conn.execute(
+            "SELECT source_ip, timestamp FROM active_defense "
+            "WHERE technique = 'core_vault_breach_illusion' "
+            "AND timestamp >= datetime('now', ?) ORDER BY id DESC LIMIT 1",
+            (f"-{int(since_seconds)} seconds",),
+        ).fetchone()
+        return dict(row) if row else None
+
+
 def active_defense_stats(db_path=None):
     with get_conn(db_path) as conn:
         total = conn.execute("SELECT COUNT(*) c FROM active_defense").fetchone()["c"]

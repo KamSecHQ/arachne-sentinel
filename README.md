@@ -311,11 +311,16 @@ uygulama (SPA), iki hızlı poll döngüsü, birleşik toplayıcı
   soru sorma (Web Speech API, tarayıcı-içi, veri dışarı çıkmaz) eklendi.
   Tanıtım sitesinde de küçültülmüş, bu sitenin **kendi gerçek WAF olay
   kaydına** bağlı bir versiyonu var (`/api/waf-live`) — örnek veri değil.
+- **Faz 115 — Son Hat gerçek sinyalle**: brute-force artık saldırı sınıfı
+  olarak da raporlanıyor, böylece çekirdek yemi (sahte "giriş başarılı")
+  gerçek akışta tetiklenebiliyor. `scripts/demo_core_breach.py` bu yolu
+  uçtan uca çalıştırır; panel `/api/fortress`'i izler ve Son Hat'i
+  tatbikat olmadan, "GERÇEK SİNYAL" etiketiyle kendiliğinden açar.
 
 **Ortak:**
 - **Otomatik HTML raporu**, **AI Markdown raporu**, **STIX 2.1 bundle** ve
   **sinematik canlı komuta merkezi** (gerçek performans metrikleriyle)
-- **802 birim testi** (`tests/`) ve kendi kendini test eden demo saldırı scriptleri
+- **813 birim testi** (`tests/`) ve kendi kendini test eden demo saldırı scriptleri
 
 ## Kurulum
 
@@ -405,6 +410,9 @@ python main.py onboard                         # kimlik/iletişim profili kurulu
 # --- Faz 112: kendi tanıtım sitesi (bkz. docs/WEBSITE.md) ---
 python main.py website                         # WAF ile korumalı, http://127.0.0.1:8088
 docker compose up -d website                   # ya da container ile
+
+# --- Faz 115: Son Hat'i gerçek sinyalle görmek (panel açıkken) ---
+python scripts/demo_core_breach.py             # çekirdek yemi -> Son Hat kendiliğinden devreye girer
 ```
 
 ## Yapay zeka katmanını yapılandırma (opsiyonel)
@@ -448,7 +456,7 @@ export ARACHNE_NVD_API_KEY="anahtarınız"         # opsiyonel, sadece kota yük
 
 ```bash
 pip install pytest
-pytest tests/ -v      # 804 test
+pytest tests/ -v      # 813 test
 ```
 
 ## Mimari ve yol haritası

@@ -327,6 +327,12 @@ def api_fortress():
     st = fort.status()
     st["should_engage"] = should
     st["engage_reason"] = reason
+    # Faz 115: gercek sinyal cekirdek yemiyse, yemi yutan kaynagi da bildir -
+    # panel anonsu "bir saldirgan" degil, kaydin kendisindeki IP'yi gosterir.
+    st["trigger_ip"] = None
+    if should and ctx.core_vault_touched:
+        touch = storage.core_vault_last_touch()
+        st["trigger_ip"] = touch["source_ip"] if touch else None
     return jsonify(st)
 
 

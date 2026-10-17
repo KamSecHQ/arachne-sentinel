@@ -1185,6 +1185,46 @@ etmedi — tamamen var olan, zaten test edilmiş `build_dome_state()` ve
 değişen şey görselleştirme geometrisidir.
 
 
+## Faz 115 — Son Hat'in Gerçek Sinyalle Devreye Girmesi
+
+Sorun: demo saldırıları Çelik Kubbe'yi geçemediği için Son Hat yalnızca
+elle başlatılan İhlal Tatbikatı ile (Shift+B) görülebiliyordu. İnceleme iki
+gerçek açık buldu:
+
+1. **"Brute Force" sınıfı canlı akışta hiç üretilmiyordu.** `analyze_ip`
+   sınıfları yalnızca yük imzalarından çıkarıyordu; brute-force ise bir
+   davranış (aynı servise tekrarlı bağlantı, Faz 1 kuralı). Sonuç: aldatma
+   motorunun `fake-success` kararı (Faz 108 çekirdek yemi) ve SOAR'ın
+   `pb-brute-force` playbook'u gerçek trafikle **hiç tetiklenemiyordu**;
+   testler sınıfı elle verdiği için açık görünmüyordu.
+2. **Panel gerçek tetiklenmeyi izlemiyordu.** `/api/fortress` sunucuda
+   `should_engage` ile kaleyi açıyordu ama panel bu uç noktayı yalnızca
+   tatbikat sırasında soruyordu.
+
+- [x] `arachne/reverse/attack_analyzer.py` — Faz 1 `rule_brute_force` kuralı
+  (tek eşik kaynağı) tetiklenince saldırı zincirine "Brute Force" sınıfı ve
+  T1110.001 tekniği eklenir.
+- [x] `scripts/demo_core_breach.py` — keşif + saf SSH brute-force senaryosu;
+  olaylar gerçek akıştan geçer (kayıt → skor → sınıf → SOAR → aldatma →
+  `should_engage`). Terminalde 50 katmanın gerçek sonucunu da gösterir
+  (webhook'u ikinci kez göndermeyen ayrı bir kale örneğiyle).
+- [x] `/api/fortress` — çekirdek yemi tetiklediyse yemi yutan kaynak IP'yi
+  (`trigger_ip`) döndürür (`storage.core_vault_last_touch`).
+- [x] `bunker3d.js` — 2,5 sn'de bir `/api/fortress` izleyicisi. Sunucu gerçek
+  sinyalle devredeyse Son Hat kendiliğinden açılır, "GERÇEK SİNYAL" olarak
+  etiketlenir ve sinyal sürdükçe (yem kaydı 5 dk) açık kalır; tatbikat
+  eskisi gibi 11 sn sürer. Karar saf bir fonksiyondadır (`decideWatch`).
+- [x] `assistant.js` — gerçek sinyal için ayrı anons ("TATBİKAT DEĞİL —
+  karar veritabanı kayıtlarından verildi"); tatbikat anonsu değişmedi.
+- [x] **9 yeni test** (`tests/test_core_breach.py`), `decideWatch` dahil
+  (Node.js ile, DOM'suz). Toplam test sayısı 804 → **813**.
+
+**Dürüstlük notu:** Kalkan gerçekte delinmez. Saldırgan sahte bir "giriş
+başarılı" yanıtını gerçek sanar; Son Hat'i tetikleyen tam olarak bu
+aldanmadır ve gerçek varlığa ulaşılmaz. Senaryo adresleri RFC 5737
+aralığındandır, olaylar yerel veritabanına yazılır.
+
+
 ## Sıradaki hedefler (stretch-goal, isteğe bağlı)
 
 - İkinci bilgisayar (Windows/x86-64) edinildiğinde Faz 3'ün assembly

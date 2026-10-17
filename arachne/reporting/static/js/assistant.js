@@ -268,5 +268,25 @@
       b.addEventListener("click", () => window.dispatchEvent(new CustomEvent("arachne:breach", { detail: { drill: true } }))));
     // programatik tetik (demo_breach.py bunu önerir)
     window.ArachneBreachDrill = () => window.dispatchEvent(new CustomEvent("arachne:breach", { detail: { drill: true } }));
+
+    /* Faz 115: Son Hat GERÇEK sinyalle açıldı (bunker3d.js izleyicisi, ör.
+       çekirdek yemi). Tatbikat anonsundan ayrı: "simülasyon" DEMEZ, kararın
+       kayıtlardan geldiğini ve gerçek varlığa ulaşılmadığını söyler. */
+    window.addEventListener("arachne:lastline", (e) => {
+      const d = (e && e.detail) || {};
+      const ts = new Date().toLocaleTimeString("tr-TR", { hour12: false });
+      addMsg("breach",
+        `<div class="ai-breach-head">⛨ SON HAT DEVREDE · GERÇEK SİNYAL · <span>${esc(ts)}</span></div>` +
+        `<div class="ai-alert-row">${esc(d.reason || "İhlal kararı kayıtlardan verildi")}</div>` +
+        (d.ip ? `<div class="ai-alert-row">Kaynak: <b>${esc(d.ip)}</b></div>` : "") +
+        `<div class="ai-alert-row">Hedef kimliği <b>~100 ms'de bir dönüyor</b> · 50 katman devrede.</div>` +
+        `<div class="ai-breach-warn">● TATBİKAT DEĞİL — karar veritabanı kayıtlarından verildi. Gerçek varlığa ulaşılmadı.</div>`);
+      dock.classList.add("open", "alerting", "speaking");
+      // trigger_ip yalnızca çekirdek yemi tetiklediğinde gelir (dashboard.api_fortress)
+      speak("Son hat devrede. Bu bir tatbikat değil; karar gerçek kayıtlardan verildi. " +
+        (d.ip ? "Saldırgan sahte başarıyı gerçek sandı. " : "") +
+        "Hedef kimliği saniyede on kez dönüyor. Gerçek varlığa ulaşılamadı.");
+      setTimeout(() => dock.classList.remove("speaking"), 6500);
+    });
   })();
 })();

@@ -53,8 +53,21 @@
     return { slot, ip, port, fingerprint: fp, token };
   }
 
+  /* ---------- Faz 115: izleyici kararı (saf fonksiyon — DOM'suz test edilir) ----------
+     st: /api/fortress yanıtı · isActive: panel Son Hat'i gösteriyor mu ·
+     currentMode: "drill" | "real" | null. Dönüş: yapılacak tek eylem. */
+  function decideWatch(st, isActive, currentMode) {
+    if (!st) return "none";
+    const real = !!(st.engaged && st.should_engage);
+    if (real && !isActive) return "activate-real";
+    if (real && currentMode === "drill") return "promote-real";
+    if (!real && isActive && currentMode === "real") return "standby";
+    return "none";
+  }
+  window.ArachneBunkerLogic = { decideWatch };
+
   /* ---------- HAYALET hiper-kimlik motoru (GERÇEK: sunucuyla parite) ---------- */
-  let active = false, rotTimer = null;
+  let active = false, rotTimer = null, mode = null;   // mode: "drill" | "real" | null
   // sunucudan gelen gerçek parametreler; sunucu erişilemezse güvenli varsayılan
   let mtdSeed = "arachne", mtdInterval = 100, mtdEngaged = false, mtdEpochSlot = 0;
   let layerNames = [];                 // sunucudan gelen gerçek katman adları
@@ -277,14 +290,17 @@
   /* ============================================================
      ETKİNLEŞTİRME AKIŞI
      ============================================================ */
-  async function activateBunker() {
+  // realSt verilirse: sunucu Son Hat'i GERÇEK sinyalle (should_engage) zaten
+  // açmıştır — yeniden açılmaz, o durum gösterilir. Verilmezse: tatbikat.
+  async function activateBunker(realSt) {
     if (active) return;
     active = true;
-    setStatus("● AKTİF — SON HAT DEVREDE · hedef kilitlenemiyor", "on");
+    mode = realSt ? "real" : "drill";
+    setStatus(realSt ? realStatusText(realSt) : "● AKTİF — SON HAT DEVREDE · hedef kilitlenemiyor", "on");
     if (three) three.activate();
     if (window.ArachneSFX) window.ArachneSFX.alarm();
-    // GERÇEK motoru devreye al (kubbe delinmiş gibi) — tepki süresi ölçülür
-    const st = await fetchFortress("/api/fortress/engage", { method: "POST" });
+    // Tatbikat: GERÇEK motoru elle devreye al (kubbe delinmiş gibi) — tepki süresi ölçülür
+    const st = realSt || await fetchFortress("/api/fortress/engage", { method: "POST" });
     if (st) {
       applyStatus(st);                  // gerçek katman durumu + tepki + bütünlük kökü
       startRotation(mtdInterval || 100); // 100 ms'de bir kimlik döner (sunucuyla parite)
@@ -300,21 +316,61 @@
       mtdEngaged = true; mtdEpochSlot = Math.floor(Date.now() / (mtdInterval || 100));
       startRotation(mtdInterval || 100);
     }
-    // periyodik tazele (gerçek bütünlük/tepki/yem sayısı canlı kalsın)
-    clearInterval(window.__bunkerPoll);
-    window.__bunkerPoll = setInterval(refreshFortress, 2000);
-    // 11 sn sonra bekleme moduna dön
+    // canlı tazeleme izleyicide (watchFortress). Tatbikat 11 sn sonra biter;
+    // gerçek sinyal ise sinyal sürdükçe açık kalır, izleyici kapatır.
     clearTimeout(window.__bunkerStand);
-    window.__bunkerStand = setTimeout(standbyBunker, 11000);
+    if (mode === "drill") window.__bunkerStand = setTimeout(standbyBunker, 11000);
   }
   async function standbyBunker() {
     active = false;
+    mode = null;
     setStatus("◎ HAZIR (STANDBY) — kubbe delinirse otomatik devreye girer", "");
     if (three) three.standby();
-    clearInterval(window.__bunkerPoll);
     await fetchFortress("/api/fortress/standby", { method: "POST" });
     mtdEngaged = false;
     startRotation(1100);                // uykuda yavaş "nöbet" rotasyonu
+  }
+
+  /* ---------- Faz 115: GERÇEK sinyal izleyicisi ----------
+     Tatbikat Son Hat'i elle açar. Gerçek sinyal (ör. çekirdek yemi) ise sunucuda
+     should_engage ile açılır; panel bunu /api/fortress'i izleyerek fark eder.
+     "Gerçek" = sunucu devrede VE kararı tatbikatsız bağlam veriyor. */
+  function realStatusText(st) {
+    return "● AKTİF — GERÇEK SİNYAL: " + (st.engage_reason || "ihlal kararı") +
+      (st.trigger_ip ? " · kaynak " + st.trigger_ip : "");
+  }
+  function goToBunkerView() {
+    // ~1.4 sn sonra kullanıcıyı Son Hat görünümüne al (dramatik geçiş)
+    setTimeout(() => {
+      const nav = document.querySelector('.nav-item[data-view="bunker"]');
+      if (nav) nav.click();
+    }, 1400);
+  }
+  function announceReal(st) {
+    window.dispatchEvent(new CustomEvent("arachne:lastline", {
+      detail: { real: true, reason: st.engage_reason || "", ip: st.trigger_ip || null },
+    }));
+  }
+  function onRealSignal(st) {
+    activateBunker(st);
+    announceReal(st);
+    goToBunkerView();
+  }
+  function promoteToReal(st) {
+    // tatbikat sürerken gerçek sinyal geldi: 11 sn'lik kapanış iptal, etiket gerçek
+    mode = "real";
+    clearTimeout(window.__bunkerStand);
+    setStatus(realStatusText(st), "on");
+    announceReal(st);
+  }
+  async function watchFortress() {
+    const st = await fetchFortress("/api/fortress");
+    if (!st) return;
+    if (active) applyStatus(st);         // açıkken gerçek bütünlük/tepki/yem canlı kalsın
+    const verdict = decideWatch(st, active, mode);
+    if (verdict === "activate-real") onRealSignal(st);
+    else if (verdict === "promote-real") promoteToReal(st);
+    else if (verdict === "standby") standbyBunker();
   }
 
   /* ---------- başlat ---------- */
@@ -325,16 +381,18 @@
     renderLayerGrid(st && st.layers);
     three = initThree();
     window.__BUNKER = true;
-    active = true; standbyBunker();     // uykuda başlar, nöbet rotasyonu döner
-    // kubbe DELİNİRSE (arachne:breach) → SON HAT otomatik devreye girer
+    if (decideWatch(st, false, null) === "activate-real") {
+      onRealSignal(st);                 // sayfa açılmadan önce gelmiş gerçek sinyal
+    } else {
+      active = true; standbyBunker();   // uykuda başlar, nöbet rotasyonu döner
+    }
+    // İhlal Tatbikatı (arachne:breach) → SON HAT elle devreye girer
     window.addEventListener("arachne:breach", () => {
       activateBunker();
-      // ~1.4 sn sonra kullanıcıyı Son Hat görünümüne al (dramatik geçiş)
-      setTimeout(() => {
-        const nav = document.querySelector('.nav-item[data-view="bunker"]');
-        if (nav) nav.click();
-      }, 1400);
+      goToBunkerView();
     });
+    clearInterval(window.__bunkerWatch);
+    window.__bunkerWatch = setInterval(watchFortress, 2500);
     window.ArachneBunker = { activate: activateBunker, standby: standbyBunker, refresh: refreshFortress };
   }
   if (document.readyState === "loading")

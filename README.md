@@ -325,11 +325,14 @@ uygulama (SPA), iki hızlı poll döngüsü, birleşik toplayıcı
   ister (`ARACHNE_PANEL_TOKEN` ya da `data/panel_token`); açılışta
   terminale 10 dk geçerli, tek kullanımlık bir giriş linki basılır.
   HttpOnly + SameSite=Strict oturum, kaba kuvvet kilidi, güvenlik başlıkları.
+- **Faz 118 — Engel gerçek varlıkta**: WAF artık SOAR engel listesini
+  uygular; honeypot'ta ya da Son Hat'te engellenen bir IP, WAF'ın koruduğu
+  uygulamaya da giremez.
 
 **Ortak:**
 - **Otomatik HTML raporu**, **AI Markdown raporu**, **STIX 2.1 bundle** ve
   **sinematik canlı komuta merkezi** (gerçek performans metrikleriyle)
-- **853 birim testi** (`tests/`) ve kendi kendini test eden demo saldırı scriptleri
+- **861 birim testi** (`tests/`) ve kendi kendini test eden demo saldırı scriptleri
 
 ## Kurulum
 
@@ -466,7 +469,7 @@ export ARACHNE_NVD_API_KEY="anahtarınız"         # opsiyonel, sadece kota yük
 
 ```bash
 pip install pytest
-pytest tests/ -v      # 853 test
+pytest tests/ -v      # 861 test
 ```
 
 ## Mimari ve yol haritası

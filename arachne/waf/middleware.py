@@ -14,14 +14,39 @@ from urllib.parse import unquote_plus
 from .. import storage
 from . import rules
 
+# Faz 118: engel listesi sicak yol onbellegi (soar/blocklist.py ile ayni denge:
+# her istekte veritabanina gitme, ama yeni engel en gec 1 sn'de devreye girsin).
+BLOCKLIST_CACHE_SECONDS = 1.0
+SOAR_BLOCK_REASON = ("SOAR engel listesinde (Faz 118): honeypot/Son Hat karari "
+                     "gercek varliga uygulandi")
+
 
 class WAFMiddleware:
-    def __init__(self, app, block_threshold=50, db_path=None):
+    def __init__(self, app, block_threshold=50, db_path=None, enforce_soar_blocklist=True):
         self.app = app
         self.block_threshold = block_threshold
         self.db_path = db_path
+        # Faz 118: SOAR engeli eskiden yalnizca honeypot'ta uygulaniyordu;
+        # honeypot'ta engellenen IP gercek varliga (bu WAF'in korudugu
+        # uygulama) girmeye devam edebiliyordu.
+        self.enforce_soar_blocklist = enforce_soar_blocklist
+        self._blocked_ips = set()
+        self._blocks_fetched_at = float("-inf")
         # IP -> son istek zamanlarinin deque'si (rate limiting icin, bellek ici)
         self._recent_requests = defaultdict(deque)
+
+    def _soar_blocked(self, source_ip: str) -> bool:
+        now = time.monotonic()
+        if now - self._blocks_fetched_at > BLOCKLIST_CACHE_SECONDS:
+            try:
+                self._blocked_ips = {b["ip"] for b in
+                                     storage.get_active_blocks(db_path=self.db_path)}
+            except Exception:
+                # fail-open (honeypot ile ayni bilincli tercih): bir depolama
+                # hatasi mesru trafigi kesmemeli
+                self._blocked_ips = set()
+            self._blocks_fetched_at = now
+        return source_ip in self._blocked_ips
 
     def _check_rate_limit(self, source_ip: str) -> bool:
         now = time.monotonic()
@@ -82,20 +107,31 @@ class WAFMiddleware:
 
         return blocked, score, reasons
 
+    def _forbidden(self, start_response, score):
+        body = (
+            "<html><body><h1>403 Forbidden</h1>"
+            "<p>Arachne Sentinel WAF bu istegi supheli buldu ve engelledi.</p>"
+            "</body></html>"
+        ).encode("utf-8")
+        start_response("403 Forbidden", [
+            ("Content-Type", "text/html; charset=utf-8"),
+            ("Content-Length", str(len(body))),
+            ("X-Arachne-WAF-Score", str(score)),
+        ])
+        return [body]
+
     def __call__(self, environ, start_response):
+        # Faz 118: engelli kaynak, govdesi okunmadan ve imza taranmadan reddedilir.
+        source_ip = environ.get("REMOTE_ADDR", "unknown")
+        if self.enforce_soar_blocklist and self._soar_blocked(source_ip):
+            storage.log_waf_event(source_ip, environ.get("REQUEST_METHOD", ""),
+                                  environ.get("PATH_INFO", ""), self.block_threshold,
+                                  True, [SOAR_BLOCK_REASON], db_path=self.db_path)
+            return self._forbidden(start_response, self.block_threshold)
+
         blocked, score, reasons = self._inspect(environ)
 
         if blocked:
-            body = (
-                "<html><body><h1>403 Forbidden</h1>"
-                "<p>Arachne Sentinel WAF bu istegi supheli buldu ve engelledi.</p>"
-                "</body></html>"
-            ).encode("utf-8")
-            start_response("403 Forbidden", [
-                ("Content-Type", "text/html; charset=utf-8"),
-                ("Content-Length", str(len(body))),
-                ("X-Arachne-WAF-Score", str(score)),
-            ])
-            return [body]
+            return self._forbidden(start_response, score)
 
         return self.app(environ, start_response)

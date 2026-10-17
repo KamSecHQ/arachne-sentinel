@@ -1299,6 +1299,22 @@ kontrol uç noktalarını (Son Hat tatbikat/bekleme, analiz, asistan)
   835 → **853**.
 
 
+## Faz 118 — SOAR Engeli Gerçek Varlıkta (WAF)
+
+Sorun: SOAR ve Son Hat engeli yalnızca honeypot'ta uygulanıyordu; WAF engel
+listesine bakmıyordu. Honeypot'ta engellenen bir IP, WAF'ın koruduğu gerçek
+uygulamaya girmeye devam edebiliyordu.
+
+- [x] `arachne/waf/middleware.py` — engelli kaynak, isteğin gövdesi okunmadan
+  ve imza taranmadan 403 alır; olay WAF kaydına gerekçesiyle yazılır.
+- [x] Sıcak yol önbelleği 1 sn (honeypot engel listesiyle aynı denge). Depolama
+  hatasında fail-open: bir depolama hatası meşru trafiği kesmemeli.
+- [x] `enforce_soar_blocklist=False` ile kapatılabilir.
+- [x] **8 yeni test** (`tests/test_waf_blocklist.py`); Son Hat yaptırımının
+  tanıtım sitesine (gerçek varlık) ulaştığını uçtan uca doğrulayan test dahil.
+  Toplam test sayısı 853 → **861**.
+
+
 ## Sıradaki hedefler (stretch-goal, isteğe bağlı)
 
 - İkinci bilgisayar (Windows/x86-64) edinildiğinde Faz 3'ün assembly

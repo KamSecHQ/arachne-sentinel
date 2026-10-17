@@ -7,7 +7,8 @@ Faz 115'e kadar Son Hat bir karar + kayit + gosterim motoruydu: panel disinda
 GERCEK sinyalle (tatbikatta DEGIL) acildiginda:
 
   1. SOAR engeli   : hedef IP TTL'li engelleme listesine yazilir ve SOAR denetim
-                     kaydina "son-hat" playbook'uyla gecer.
+                     kaydina "son-hat" playbook'uyla gecer. Faz 118'den beri
+                     WAF da bu listeyi uygular (gercek varlik).
   2. Karantina     : honeypot o IP'yi reddetmek yerine tarpit + aldatma
                      kuyusunda tutar - saldirgan yakalandigini anlamaz. Pencere
                      kapaninca SOAR engeli kendi TTL'iyle baglantiyi reddeder.

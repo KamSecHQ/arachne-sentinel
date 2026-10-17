@@ -14,19 +14,33 @@ GERCEK sinyalle (tatbikatta DEGIL) acildiginda:
                      kapaninca SOAR engeli kendi TTL'iyle baglantiyi reddeder.
   3. Hizli sicrama : hayalet admin paneli (Faz 4 port_hopper) port degistirme
                      araligini LASTLINE_HOP_INTERVAL_SECONDS'e indirir.
+  4. Kampanya      : (Faz 119) ayni davranissal parmak izini paylasan kardes
+                     IP'ler de engellenir ve karantinaya alinir. Sinyal surdukce
+                     kampanya yeniden taranir: IP degistiren saldirganin YENI
+                     IP'si de yakalanir.
 
-Durum veritabaninda tutulur (lastline_engagements): kale panel surecinde,
-honeypot ve port_hopper ise full-demo surecinde calisir.
+Durum veritabaninda tutulur (lastline_engagements, lastline_campaign_targets):
+kale panel surecinde, honeypot ve port_hopper ise full-demo surecinde calisir.
 
 Guvenlik: hedef yalnizca GERCEK bir kaynaktan secilir (cekirdek yemini yutan
 IP, yoksa fuzyonun en riskli IP'si). Loopback/ozel ag adresleri SOAR'daki
-ayni kuralla korunur: engellenmez, karantinaya da alinmaz. Tum yaptirimlar
-sureli ve geri alinabilirdir.
+ayni kuralla korunur: engellenmez, karantinaya da alinmaz. Kampanya basina en
+fazla MAX_CAMPAIGN_TARGETS kardes yaptirim alir - bir korelasyon hatasinin
+etki alanini sinirlar. Tum yaptirimlar sureli ve geri alinabilirdir.
 """
+import time
+from collections import defaultdict
+
 from .. import config, storage
 from .base import DefenseContext
 
 PLAYBOOK = "son-hat"
+MAX_CAMPAIGN_TARGETS = 16
+CAMPAIGN_LOOKBACK_SECONDS = 3600
+CAMPAIGN_RESCAN_SECONDS = 30
+MAX_PROFILED_IPS = 200
+
+_last_campaign_scan = {}     # db_path -> monotonic (yeniden tarama kisitlamasi)
 
 
 def select_target(ctx: DefenseContext, trigger_ip=None):
@@ -39,9 +53,48 @@ def select_target(ctx: DefenseContext, trigger_ip=None):
     return None, "kaynak IP belirlenemedi"
 
 
+def campaign_siblings(ip, db_path=None) -> list:
+    """Hedefle ayni davranissal kampanyadaki diger IP'ler (Faz 6 korelasyonu).
+    Son bir saatin en aktif IP'leri profillenir; korunan adresler elenir."""
+    from ..intel import profiler
+    from ..soar import blocklist
+
+    by_ip = defaultdict(list)
+    for event in storage.get_recent_events(since_seconds=CAMPAIGN_LOOKBACK_SECONDS,
+                                           db_path=db_path):
+        by_ip[event["source_ip"]].append(event)
+    if ip not in by_ip:
+        return []
+    busiest = sorted(by_ip, key=lambda k: -len(by_ip[k]))[:MAX_PROFILED_IPS]
+    if ip not in busiest:
+        busiest.append(ip)
+    profiles = [profiler.build_profile(src, by_ip[src]) for src in busiest]
+    for campaign in profiler.correlate_campaigns(profiles):
+        if ip in campaign["member_ips"]:
+            return [m for m in campaign["member_ips"]
+                    if m != ip and not blocklist.is_protected(m)]
+    return []
+
+
+def _block(ip, reason, db_path):
+    from ..soar import actions
+    actions.block_ip(ip, context={"reason": reason, "playbook": PLAYBOOK, "severity": "critical"},
+                     db_path=db_path, seconds=config.LASTLINE_SANCTION_SECONDS)
+
+
+def _sanction_campaign(engagement_id, target, reason, db_path):
+    """Kampanya kardeslerini pencereye ekler ve engeller (ust sinir korunur)."""
+    _last_campaign_scan[db_path] = time.monotonic()
+    existing = set(storage.lastline_campaign_targets(engagement_id, db_path=db_path))
+    room = max(0, MAX_CAMPAIGN_TARGETS - len(existing))
+    fresh = [s for s in campaign_siblings(target, db_path=db_path) if s not in existing][:room]
+    for ip in storage.add_lastline_campaign_targets(engagement_id, fresh, db_path=db_path):
+        _block(ip, f"Son Hat: {reason} (kampanya kardesi: {target})", db_path)
+
+
 def engage_sanctions(ctx: DefenseContext, reason: str, trigger_ip=None, db_path=None) -> dict:
     """Son Hat gercek sinyalle acildi: yaptirim penceresini baslatir."""
-    from ..soar import actions, blocklist
+    from ..soar import blocklist
 
     ip, source = select_target(ctx, trigger_ip)
     target, note = None, ""
@@ -49,32 +102,33 @@ def engage_sanctions(ctx: DefenseContext, reason: str, trigger_ip=None, db_path=
         note = f"{ip} korunan adres (loopback/ozel ag) - engellenmedi, karantinaya alinmadi"
     elif ip:
         target = ip
-        actions.block_ip(ip, context={"reason": f"Son Hat: {reason}", "playbook": PLAYBOOK,
-                                      "severity": "critical"},
-                         db_path=db_path, seconds=config.LASTLINE_SANCTION_SECONDS)
+        _block(ip, f"Son Hat: {reason}", db_path)
     else:
         note = source
-    storage.start_lastline_engagement(target, reason, config.LASTLINE_SANCTION_SECONDS,
-                                      db_path=db_path)
+    engagement_id = storage.start_lastline_engagement(
+        target, reason, config.LASTLINE_SANCTION_SECONDS, db_path=db_path)
+    if target:
+        _sanction_campaign(engagement_id, target, reason, db_path)
     st = status(db_path=db_path) or {}
     st.update({"target_source": source, "note": note})
     return st
 
 
 def refresh_sanctions(db_path=None):
-    """Sinyal suruyor: pencereyi uzatir; engel TTL'i dolduysa yeniler."""
-    from ..soar import actions
-
+    """Sinyal suruyor: pencereyi uzatir, suresi dolan engelleri yeniler ve
+    kampanyayi (kisitli aralikla) yeniden tarar - IP degistiren saldirgan icin."""
     if not storage.extend_lastline_engagement(config.LASTLINE_SANCTION_SECONDS, db_path=db_path):
         return None
     st = status(db_path=db_path)
-    if st and st["target_ip"] and not st["blocked"]:
-        actions.block_ip(st["target_ip"],
-                         context={"reason": "Son Hat: sinyal suruyor (engel yenilendi)",
-                                  "playbook": PLAYBOOK, "severity": "critical"},
-                         db_path=db_path, seconds=config.LASTLINE_SANCTION_SECONDS)
-        st = status(db_path=db_path)
-    return st
+    if not st or not st["target_ip"]:
+        return st
+    for ip in [st["target_ip"]] + st["campaign_ips"]:
+        if not storage.is_ip_blocked(ip, db_path=db_path):
+            _block(ip, "Son Hat: sinyal suruyor (engel yenilendi)", db_path)
+    last = _last_campaign_scan.get(db_path, float("-inf"))
+    if time.monotonic() - last >= CAMPAIGN_RESCAN_SECONDS:
+        _sanction_campaign(st["engagement_id"], st["target_ip"], st["reason"], db_path)
+    return status(db_path=db_path)
 
 
 def release_sanctions(db_path=None) -> int:
@@ -88,12 +142,16 @@ def status(db_path=None):
     if not engagement:
         return None
     ip = engagement["target_ip"]
+    campaign = storage.lastline_campaign_targets(engagement["id"], db_path=db_path)
     return {
+        "engagement_id": engagement["id"],
         "target_ip": ip,
         "reason": engagement["reason"],
         "remaining_seconds": max(0, int(engagement["remaining_seconds"] or 0)),
         "blocked": bool(ip) and storage.is_ip_blocked(ip, db_path=db_path),
         "quarantined": bool(ip),
+        "campaign_ips": campaign,
+        "campaign_blocked": sum(1 for c in campaign if storage.is_ip_blocked(c, db_path=db_path)),
         "hop_interval_seconds": config.LASTLINE_HOP_INTERVAL_SECONDS,
     }
 

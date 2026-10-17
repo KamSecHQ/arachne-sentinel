@@ -159,7 +159,20 @@ CREATE TABLE IF NOT EXISTS lastline_engagements (
     target_ip TEXT,
     reason TEXT
 )"""
-SCHEMA += _LASTLINE_TABLE + ";\n"
+# Faz 119: birincil hedefle ayni davranissal kampanyadaki kardes IP'ler.
+_LASTLINE_TARGETS_TABLE = """
+CREATE TABLE IF NOT EXISTS lastline_campaign_targets (
+    engagement_id INTEGER NOT NULL,
+    ip TEXT NOT NULL,
+    added_at TEXT NOT NULL,
+    PRIMARY KEY (engagement_id, ip)
+)"""
+SCHEMA += _LASTLINE_TABLE + ";\n" + _LASTLINE_TARGETS_TABLE + ";\n"
+
+
+def _ensure_lastline(conn):
+    conn.execute(_LASTLINE_TABLE)
+    conn.execute(_LASTLINE_TARGETS_TABLE)
 
 # Sonradan eklenen sutunlar: mevcut veritabanlarini bozmadan yukseltmek icin.
 # Format: (tablo, sutun, SQL tipi)
@@ -594,7 +607,7 @@ def start_lastline_engagement(target_ip, reason, ttl_seconds, db_path=None):
     """Faz 116: Son Hat yaptirim penceresini acar (onceki acik pencere kapanir).
     target_ip None olabilir - hedefsiz ihlalde yalnizca port sicramasi hizlanir."""
     with get_conn(db_path) as conn:
-        conn.execute(_LASTLINE_TABLE)
+        _ensure_lastline(conn)
         conn.execute("UPDATE lastline_engagements SET released_at = ? "
                      "WHERE released_at IS NULL", (_now(),))
         cursor = conn.execute(
@@ -608,7 +621,7 @@ def start_lastline_engagement(target_ip, reason, ttl_seconds, db_path=None):
 def extend_lastline_engagement(ttl_seconds, db_path=None):
     """Sinyal surdukce acik pencerenin suresini en az `ttl_seconds` sonraya tasir."""
     with get_conn(db_path) as conn:
-        conn.execute(_LASTLINE_TABLE)
+        _ensure_lastline(conn)
         cursor = conn.execute(
             "UPDATE lastline_engagements SET expires_at = MAX(expires_at, datetime('now', ?)) "
             "WHERE released_at IS NULL AND expires_at > datetime('now')",
@@ -620,7 +633,7 @@ def extend_lastline_engagement(ttl_seconds, db_path=None):
 def release_lastline_engagements(db_path=None):
     """Acik yaptirim penceresini kapatir (sinyal bitti). SOAR engeli kendi TTL'iyle surer."""
     with get_conn(db_path) as conn:
-        conn.execute(_LASTLINE_TABLE)
+        _ensure_lastline(conn)
         cursor = conn.execute("UPDATE lastline_engagements SET released_at = ? "
                               "WHERE released_at IS NULL", (_now(),))
         return cursor.rowcount
@@ -629,7 +642,7 @@ def release_lastline_engagements(db_path=None):
 def active_lastline_engagement(db_path=None):
     """Su an gecerli yaptirim penceresi (kapanmamis ve suresi dolmamis) ya da None."""
     with get_conn(db_path) as conn:
-        conn.execute(_LASTLINE_TABLE)
+        _ensure_lastline(conn)
         row = conn.execute(
             "SELECT *, CAST((julianday(expires_at) - julianday('now')) * 86400 AS INTEGER) "
             "AS remaining_seconds FROM lastline_engagements "
@@ -639,10 +652,43 @@ def active_lastline_engagement(db_path=None):
         return dict(row) if row else None
 
 
+def add_lastline_campaign_targets(engagement_id, ips, db_path=None):
+    """Faz 119: pencereye kampanya kardesi IP'leri ekler; yeni eklenenleri dondurur."""
+    added = []
+    with get_conn(db_path) as conn:
+        _ensure_lastline(conn)
+        for ip in ips:
+            cursor = conn.execute(
+                "INSERT OR IGNORE INTO lastline_campaign_targets (engagement_id, ip, added_at) "
+                "VALUES (?, ?, ?)", (engagement_id, ip, _now()))
+            if cursor.rowcount:
+                added.append(ip)
+    return added
+
+
+def lastline_campaign_targets(engagement_id, db_path=None):
+    with get_conn(db_path) as conn:
+        _ensure_lastline(conn)
+        rows = conn.execute(
+            "SELECT ip FROM lastline_campaign_targets WHERE engagement_id = ? ORDER BY ip",
+            (engagement_id,)).fetchall()
+        return [r["ip"] for r in rows]
+
+
 def is_lastline_quarantined(ip, db_path=None):
-    """Bu IP, Son Hat'in aldatma karantinasinda mi (honeypot sicak yolu)?"""
-    engagement = active_lastline_engagement(db_path=db_path)
-    return bool(ip and engagement and engagement["target_ip"] == ip)
+    """Bu IP, Son Hat'in aldatma karantinasinda mi (honeypot sicak yolu)?
+    Birincil hedef ya da ayni kampanyanin kardes IP'si (Faz 119)."""
+    if not ip:
+        return False
+    with get_conn(db_path) as conn:
+        _ensure_lastline(conn)
+        row = conn.execute(
+            "SELECT 1 FROM lastline_engagements e "
+            "WHERE e.released_at IS NULL AND e.expires_at > datetime('now') "
+            "AND (e.target_ip = ? OR EXISTS (SELECT 1 FROM lastline_campaign_targets t "
+            "     WHERE t.engagement_id = e.id AND t.ip = ?)) LIMIT 1",
+            (ip, ip)).fetchone()
+        return row is not None
 
 
 def active_defense_stats(db_path=None):

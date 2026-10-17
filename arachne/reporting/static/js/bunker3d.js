@@ -71,6 +71,9 @@
     if (s.target_ip && s.blocked) parts.push(s.target_ip + " SOAR ile engellendi");
     if (s.target_ip && s.quarantined) parts.push("aldatma karantinası (tarpit)");
     if (!s.target_ip) parts.push("hedef IP yok/korunan adres");
+    // Faz 119: ayni davranissal kampanyanin kardes IP'leri
+    if (s.campaign_ips && s.campaign_ips.length)
+      parts.push("kampanya: " + s.campaign_ips.length + " kardeş IP daha");
     parts.push("port sıçrama " + s.hop_interval_seconds + " sn");
     return parts.join(" + ");
   }

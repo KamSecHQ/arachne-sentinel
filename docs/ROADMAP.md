@@ -1315,6 +1315,32 @@ uygulamaya girmeye devam edebiliyordu.
   Toplam test sayısı 853 → **861**.
 
 
+## Faz 119 — Kampanya Yaptırımı (IP Değiştiren Saldırgan)
+
+Sorun: Son Hat yaptırımları tek bir IP'ye bağlıydı. VPN/proxy/botnet ile IP
+değiştiren saldırgan engeli ve karantinayı aşıyordu; parmak izi katmanı onu
+tanısa da yaptırım kümeye uygulanmıyordu.
+
+- [x] `arachne/lastline/enforcement.py` — Son Hat hedefiyle aynı davranışsal
+  parmak izini paylaşan kardeş IP'ler (Faz 6 kampanya korelasyonu, son 1 saat)
+  de SOAR ile engellenir ve aldatma karantinasına alınır.
+- [x] Sinyal sürdükçe kampanya 30 sn'de bir yeniden taranır: IP değiştiren
+  saldırganın yeni IP'si de yakalanır.
+- [x] Etki alanı sınırı: kampanya başına en fazla 16 kardeş IP — bir korelasyon
+  hatası çok sayıda IP'yi etkileyemez. Korunan adresler (loopback/özel ağ)
+  hariçtir.
+- [x] Durum `lastline_campaign_targets` tablosunda tutulur; eski veritabanlarında
+  tembel oluşturulur. Honeypot karantinası kardeşleri de tanır, WAF engeli
+  (Faz 118) kardeşlere de uygulanır.
+- [x] Panel yaptırım özeti kardeş IP sayısını gösterir.
+- [x] **10 yeni test** (`tests/test_campaign_sanctions.py`). Toplam test sayısı
+  861 → **871**.
+
+**Sınır:** Kampanya korelasyonu davranışsal parmak izine dayanır (servis
+tercihi, zamanlama ritmi, yük karakteri). Davranışını da değiştiren bir
+saldırgan ayrı bir kampanya olarak görünür.
+
+
 ## Sıradaki hedefler (stretch-goal, isteğe bağlı)
 
 - İkinci bilgisayar (Windows/x86-64) edinildiğinde Faz 3'ün assembly

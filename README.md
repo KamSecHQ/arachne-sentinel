@@ -328,11 +328,15 @@ uygulama (SPA), iki hızlı poll döngüsü, birleşik toplayıcı
 - **Faz 118 — Engel gerçek varlıkta**: WAF artık SOAR engel listesini
   uygular; honeypot'ta ya da Son Hat'te engellenen bir IP, WAF'ın koruduğu
   uygulamaya da giremez.
+- **Faz 119 — Kampanya yaptırımı**: Son Hat, hedefle aynı davranışsal
+  parmak izini paylaşan kardeş IP'leri de engeller ve karantinaya alır;
+  IP değiştiren saldırganın yeni IP'si 30 sn içinde yakalanır (en fazla
+  16 kardeş IP).
 
 **Ortak:**
 - **Otomatik HTML raporu**, **AI Markdown raporu**, **STIX 2.1 bundle** ve
   **sinematik canlı komuta merkezi** (gerçek performans metrikleriyle)
-- **861 birim testi** (`tests/`) ve kendi kendini test eden demo saldırı scriptleri
+- **871 birim testi** (`tests/`) ve kendi kendini test eden demo saldırı scriptleri
 
 ## Kurulum
 
@@ -469,7 +473,7 @@ export ARACHNE_NVD_API_KEY="anahtarınız"         # opsiyonel, sadece kota yük
 
 ```bash
 pip install pytest
-pytest tests/ -v      # 861 test
+pytest tests/ -v      # 871 test
 ```
 
 ## Mimari ve yol haritası

@@ -341,6 +341,8 @@ console.log(JSON.stringify({
   none: t(null),
   full: t({ target_ip: "203.0.113.200", blocked: true, quarantined: true, hop_interval_seconds: 5 }),
   noTarget: t({ target_ip: null, blocked: false, quarantined: false, hop_interval_seconds: 5 }),
+  campaign: t({ target_ip: "203.0.113.200", blocked: true, quarantined: true,
+                campaign_ips: ["198.51.100.52", "198.51.100.53"], hop_interval_seconds: 5 }),
 }));
 """
 
@@ -355,4 +357,6 @@ def test_bunker_sanction_text_js():
         "none": "",
         "full": "203.0.113.200 SOAR ile engellendi + aldatma karantinası (tarpit) + port sıçrama 5 sn",
         "noTarget": "hedef IP yok/korunan adres + port sıçrama 5 sn",
+        "campaign": ("203.0.113.200 SOAR ile engellendi + aldatma karantinası (tarpit) + "
+                     "kampanya: 2 kardeş IP daha + port sıçrama 5 sn"),
     }

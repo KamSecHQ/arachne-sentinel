@@ -6,6 +6,17 @@
 <title>Arachne Sentinel — Komuta Merkezi</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%95%B8%3C/text%3E%3C/svg%3E">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}?v=54">
+<script>
+/* Faz 117: oturum dustuyse (sunucu yeniden basladi) API 401 doner -> girise yonlendir */
+(function () {
+  const _fetch = window.fetch.bind(window);
+  window.fetch = async function () {
+    const r = await _fetch.apply(null, arguments);
+    if (r.status === 401) location.href = "/login";
+    return r;
+  };
+})();
+</script>
 </head>
 <body>
 

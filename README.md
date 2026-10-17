@@ -321,11 +321,15 @@ uygulama (SPA), iki hızlı poll döngüsü, birleşik toplayıcı
   honeypot onu reddetmek yerine tarpit + aldatma karantinasında tutar ve
   hayalet admin paneli 5 sn'de bir port değiştirir. Tatbikat hiçbir yaptırım
   uygulamaz; loopback/özel ağ adresleri korunur.
+- **Faz 117 — Panel kimlik doğrulaması**: komuta merkezi artık anahtar
+  ister (`ARACHNE_PANEL_TOKEN` ya da `data/panel_token`); açılışta
+  terminale 10 dk geçerli, tek kullanımlık bir giriş linki basılır.
+  HttpOnly + SameSite=Strict oturum, kaba kuvvet kilidi, güvenlik başlıkları.
 
 **Ortak:**
 - **Otomatik HTML raporu**, **AI Markdown raporu**, **STIX 2.1 bundle** ve
   **sinematik canlı komuta merkezi** (gerçek performans metrikleriyle)
-- **835 birim testi** (`tests/`) ve kendi kendini test eden demo saldırı scriptleri
+- **853 birim testi** (`tests/`) ve kendi kendini test eden demo saldırı scriptleri
 
 ## Kurulum
 
@@ -345,6 +349,7 @@ python main.py full-demo
 
 # Terminal 2 — komuta merkezi
 python main.py dashboard --port 5001    # -> http://127.0.0.1:5001
+# (Faz 117: panel giriş ister - terminalde basılan tek kullanımlık linki açın)
 # (macOS'ta port 5000 AirPlay Receiver ile çakışır — bu yüzden 5001)
 
 # Terminal 3 — küresel saldırı senaryosunu çalıştır
@@ -461,7 +466,7 @@ export ARACHNE_NVD_API_KEY="anahtarınız"         # opsiyonel, sadece kota yük
 
 ```bash
 pip install pytest
-pytest tests/ -v      # 835 test
+pytest tests/ -v      # 853 test
 ```
 
 ## Mimari ve yol haritası

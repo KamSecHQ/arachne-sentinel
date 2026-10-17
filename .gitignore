@@ -11,6 +11,8 @@ data/report.html
 data/ai_report.md
 data/stix_bundle.json
 data/*.joblib
+# Faz 117: panel anahtari - ASLA depoya girmemeli
+data/panel_token
 
 # Derlenmis native ciktilar (Faz 3)
 arachne/native/arm64/build/

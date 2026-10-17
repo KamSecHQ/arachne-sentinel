@@ -48,7 +48,10 @@ def run_app(host: str = "127.0.0.1", port: int = 5001, cinematic_terminal: bool 
             pass
 
     _wait_port(host, port)
-    url = f"http://{host}:{port}/?mode=native"
+    # Faz 117: native pencere tek kullanimlik giris linkiyle acilir
+    from . import panel_auth
+    url = (panel_auth.login_url(host, port, native=True) if panel_auth.enabled()
+           else f"http://{host}:{port}/?mode=native")
 
     # 3) Native pencere (PyWebView)
     try:

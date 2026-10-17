@@ -178,14 +178,19 @@ def _progress(width: int = 34, dur: float = 0.9, color: str = "cyan"):
 
 
 def play(host: str, port: int, open_browser: bool = True, voice: bool = True,
-         fast: bool = False):
-    """Acilis dizisini oynatir, sonra tarayiciyi acar (best-effort)."""
+         fast: bool = False, url: str = None):
+    """Acilis dizisini oynatir, sonra tarayiciyi acar (best-effort).
+
+    `url` verilirse tarayici onu acar (Faz 117: tek kullanimlik giris linki);
+    terminalde yine panelin duz adresi gosterilir - kod tek kullanimliktir."""
     color = _supports_color()
     def c(name):
         return _C[name] if color else ""
     R = _C["r"] if color else ""
 
+    open_url = url
     url = f"http://{host}:{port}"
+    open_url = open_url or url
     d = 0.0 if fast else 1.0  # hiz carpani
 
     # Ekrani temizle
@@ -230,7 +235,7 @@ def play(host: str, port: int, open_browser: bool = True, voice: bool = True,
         def _open():
             time.sleep(1.6)
             try:
-                webbrowser.open(url)
+                webbrowser.open(open_url)
             except Exception:
                 pass
         threading.Thread(target=_open, daemon=True).start()

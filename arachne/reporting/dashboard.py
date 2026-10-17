@@ -45,6 +45,11 @@ def _no_cache_static(response):
     return response
 
 
+# Faz 117: kimlik dogrulama + guvenlik basliklari (bkz. panel_auth.py).
+from . import panel_auth  # noqa: E402
+panel_auth.install(app)
+
+
 # Faz 9: sensor agi toplayicisini panele bagla. Boylece tek bir surecte
 # hem komuta merkezi hem toplayici calisir (kucuk lab kurulumu); gercek
 # dagitik senaryoda ayri calistirilabilir - kod degismeden.
@@ -457,13 +462,30 @@ def ai_report():
     return Response(content, mimetype="text/markdown; charset=utf-8")
 
 
+def _print_access(host, port):
+    """Faz 117: terminale tek kullanimlik giris linki + anahtarin yeri."""
+    if not panel_auth.enabled():
+        print("  [!] ARACHNE_PANEL_AUTH=0 - panel KIMLIK DOGRULAMASIZ (yalnizca izole lab)")
+        return
+    panel_auth.panel_token()                      # yoksa simdi uret (0600)
+    where = (panel_auth.TOKEN_ENV if os.environ.get(panel_auth.TOKEN_ENV)
+             else panel_auth.TOKEN_FILE)
+    print("\n  Panel girisi (tek kullanimlik, 10 dk): " + panel_auth.login_url(host, port))
+    print(f"  Kalici panel anahtari: {where}\n")
+
+
 def run_dashboard(host="127.0.0.1", port=5000, cinematic=True, open_browser=True):
+    # Faz 117: tarayici kendi tek kullanimlik giris linkiyle acilir.
+    browser_url = (panel_auth.login_url(host, port) if panel_auth.enabled()
+                   else f"http://{host}:{port}")
     # Sinematik acilis dizisi (kozmetik; --no-intro ile kapatilabilir).
     if cinematic:
         try:
             from . import boot_sequence
             boot_sequence.play(host, port, open_browser=open_browser,
-                               voice=True, fast=bool(os.environ.get("ARACHNE_FAST_BOOT")))
+                               voice=True, fast=bool(os.environ.get("ARACHNE_FAST_BOOT")),
+                               url=browser_url)
         except Exception:
             logger.exception("Acilis dizisi oynatilamadi (kozmetik, atlaniyor)")
+    _print_access(host, port)
     app.run(host=host, port=port, debug=False)

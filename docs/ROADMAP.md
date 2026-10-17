@@ -1273,6 +1273,32 @@ verir). Panel kapanırsa açık yaptırım penceresi 15 dk TTL ile kendiliğinde
 biter.
 
 
+## Faz 117 — Komuta Merkezi Kimlik Doğrulaması
+
+Sorun: panelde hiçbir kimlik doğrulama yoktu. `docker-compose.yml` paneli
+`0.0.0.0:5001`'de açtığı için ağdaki herkes tüm istihbaratı görebilir ve
+kontrol uç noktalarını (Son Hat tatbikat/bekleme, analiz, asistan)
+çağırabilirdi. Dağıtımdaki en kritik açık buydu.
+
+- [x] `arachne/reporting/panel_auth.py` — panel anahtarı `ARACHNE_PANEL_TOKEN`
+  ortam değişkeninden, yoksa ilk çalışmada üretilen `data/panel_token`
+  dosyasından okunur (0600 izin, `.gitignore`'da).
+- [x] Tek kullanımlık giriş linki: açılışta üretilir, 10 dk geçerlidir ve bir
+  kez kullanılır — URL geçmişe ya da loglara düşse bile tekrar kullanılamaz.
+  Tarayıcı, sinematik açılış ve native pencere (`app`) bu linkle açılır.
+- [x] Oturum: imzalı çerez, HttpOnly + SameSite=Strict (CSRF'e karşı). Gizli
+  anahtar süreç başınadır; sunucu yeniden başlayınca oturum düşer ve panel
+  girişe yönlendirir.
+- [x] Kaba kuvvet koruması: IP başına 5 hatalı deneme / 5 dk → 429; anahtar
+  karşılaştırması sabit sürelidir. Güvenlik başlıkları (X-Frame-Options,
+  nosniff, no-referrer).
+- [x] Muaf yollar: `/login`, `/static/`, `/mesh/ingest` (kendi HMAC imzası var).
+- [x] `ARACHNE_PANEL_AUTH=0` yalnızca testler / izole lab içindir; varsayılan
+  AÇIK. `tests/conftest.py` mevcut panel testleri için kapatır.
+- [x] **18 yeni test** (`tests/test_panel_auth.py`). Toplam test sayısı
+  835 → **853**.
+
+
 ## Sıradaki hedefler (stretch-goal, isteğe bağlı)
 
 - İkinci bilgisayar (Windows/x86-64) edinildiğinde Faz 3'ün assembly

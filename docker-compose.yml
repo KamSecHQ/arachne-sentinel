@@ -48,8 +48,15 @@ services:
   dashboard:
     build: .
     command: ["dashboard", "--host", "0.0.0.0", "--port", "5001", "--no-open"]
+    # GUVENLIK NOTU (SECURITY_AUDIT_TOB.md, Bulgu 2): komuta merkezi kontrol
+    # duzlemidir ve dogrudan aga BAKMAMALIDIR. website servisiyle ayni gerekce:
+    # Docker, UFW/iptables kurallarini kendi DOCKER zinciriyle bypass edebildigi
+    # icin "5001:5001" host'ta 0.0.0.0'a acilir ve guvenlik duvari beklendigi
+    # gibi engellemeyebilir. 127.0.0.1'e sabitlemek, erisimi yalnizca ayni
+    # sunucudaki reverse proxy'ye (Caddy/Nginx, TLS + auth) birakir.
+    # --host 0.0.0.0 container ICINDE kalir; host yayini localhost'a sinirli.
     ports:
-      - "5001:5001"
+      - "127.0.0.1:5001:5001"
     volumes:
       - arachne_data:/app/data
     environment: *arachne_env

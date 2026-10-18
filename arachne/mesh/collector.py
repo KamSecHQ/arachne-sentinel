@@ -85,6 +85,14 @@ def ingest():
 
     Basarisiz dogrulamalar 401 doner ve KAYDEDILIR - basarisiz kimlik
     dogrulama denemelerinin kendisi bir guvenlik sinyalidir."""
+    # Fail-secure: paylasilan sir hic saglanamadiysa (ne ortam degiskeni ne de
+    # data/mesh_secret) uc nokta acik tutulmaz (bkz. SECURITY_AUDIT_TOB.md,
+    # Bulgu 1). verify_message zaten reddederdi; burada niyeti net 503 ile
+    # belirtiyoruz.
+    if crypto.get_shared_secret() is None:
+        logger.error("Mesh ingest devre disi: paylasilan sir yok")
+        return jsonify({"ok": False, "error": "Mesh devre disi - sunucu sirri yok"}), 503
+
     envelope = request.get_json(silent=True)
     if envelope is None:
         return jsonify({"ok": False, "error": "Gecersiz JSON"}), 400

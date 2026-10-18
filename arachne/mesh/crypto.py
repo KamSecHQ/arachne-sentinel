@@ -26,9 +26,15 @@ gercek bir tuzaktir - stdlib'in bu fonksiyonu tam da bunun icin vardir.
 import hashlib
 import hmac
 import json
+import logging
 import os
 import secrets
 import time
+from pathlib import Path
+
+from .. import config
+
+logger = logging.getLogger(__name__)
 
 # Tekrar oynatma penceresi: bu suredan eski mesajlar reddedilir (saniye).
 # 300sn (5 dk), sensor ile toplayici arasindaki makul saat farkini tolere
@@ -39,19 +45,58 @@ REPLAY_WINDOW_SECONDS = 300
 _seen_nonces = {}
 
 ENV_SHARED_SECRET = "ARACHNE_MESH_SECRET"
-# Lab varsayilani. URETIMDE ORTAM DEGISKENI ILE DEGISTIRILMELIDIR - bu
-# deger acik kaynak depoda oldugu icin gizli sayilmaz.
-DEFAULT_LAB_SECRET = "arachne-lab-shared-secret-degistirin"
+# Guvenlik denetimi (SECURITY_AUDIT_TOB.md, Bulgu 1): depoda YAZILI sabit bir
+# varsayilan sir, onu okuyan herkesin gecerli imzali sahte sensor raporlari
+# uretmesine - yani auth'suz SOAR silahlandirmasina - izin verirdi. Artik
+# repoda hicbir sir yok:
+#   1. ARACHNE_MESH_SECRET ortam degiskeni (dagitik/uretim: iki uca da ayni
+#      deger girilir) - onceliklidir.
+#   2. Yoksa, her kuruluma OZGU, otomatik uretilen data/mesh_secret dosyasi
+#      (0600, git disi) - panel_token ile ayni fail-secure desen. Tek-makineli
+#      lab/demoda hem imzalayan hem dogrulayan ayni dosyayi okur.
+#   3. Hicbiri saglanamazsa (ornegin data/ yazilamaz) sir None'dir; bu durumda
+#      verify_message HER mesaji reddeder ve /mesh/ingest fiilen kapanir.
+SECRET_FILE = config.DATA_DIR / "mesh_secret"
+
+
+def _load_or_create_local_secret() -> str:
+    """Kuruluma ozgu paylasilan sirri okur; yoksa 0600 ile uretir.
+
+    panel_auth.panel_token ile ayni desen: O_EXCL ile yaris kosulsuz olusturur,
+    varsa dosyadan okur. Uretemezse (izin/FS hatasi) None doner - fail-secure."""
+    path = Path(SECRET_FILE)
+    try:
+        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    except FileExistsError:
+        try:
+            return path.read_text().strip() or None
+        except OSError:
+            return None
+    except OSError:
+        return None
+    secret = secrets.token_urlsafe(32)
+    with os.fdopen(fd, "w") as f:
+        f.write(secret)
+    return secret
 
 
 def get_shared_secret() -> str:
-    """Paylasilan sirri dondurur (ortam degiskeni onceliklidir)."""
-    return os.environ.get(ENV_SHARED_SECRET) or DEFAULT_LAB_SECRET
+    """Paylasilan sirri dondurur: ortam degiskeni > data/mesh_secret > None.
+
+    None donebilir (hicbir sir saglanamadiginda); cagiranlar bunu fail-secure
+    ele almalidir (verify_message reddeder, sign_message hata firlatir)."""
+    env = os.environ.get(ENV_SHARED_SECRET)
+    if env:
+        return env
+    return _load_or_create_local_secret()
 
 
 def using_default_secret() -> bool:
-    """Varsayilan lab sirri mi kullaniliyor? Panelde uyari gostermek icin."""
-    return get_shared_secret() == DEFAULT_LAB_SECRET
+    """Ortam degiskeni ayarlanmamis, kuruluma ozgu yerel sir mi kullaniliyor?
+
+    Tek-makineli lab icin sorun degil; dagitik/uretimde ARACHNE_MESH_SECRET
+    ayarlanmalidir. Panelde/demoda uyari gostermek icin kullanilir."""
+    return not os.environ.get(ENV_SHARED_SECRET)
 
 
 def generate_nonce() -> str:
@@ -74,6 +119,10 @@ def canonical_json(payload: dict) -> str:
 def sign_message(payload: dict, secret: str = None) -> dict:
     """Bir mesaji imzalar; imzali zarfi (envelope) dondurur."""
     secret = secret or get_shared_secret()
+    if not secret:
+        raise RuntimeError(
+            "Mesh paylasilan sirri yok (ARACHNE_MESH_SECRET ayarli degil ve "
+            "data/mesh_secret uretilemedi) - imzalama yapilamaz.")
     envelope = {
         "payload": payload,
         "timestamp": int(time.time()),
@@ -111,6 +160,10 @@ def verify_message(envelope: dict, secret: str = None,
     kriptografik islem. Ayrica hata mesajlari saldirgana bilgi sizdirmayacak
     kadar genel ama hata ayiklamaya yetecek kadar spesifik tutuldu."""
     secret = secret or get_shared_secret()
+    if not secret:
+        # Fail-secure: sir yoksa hicbir mesaj dogrulanamaz, dolayisiyla
+        # /mesh/ingest fiilen kapanir (bkz. SECURITY_AUDIT_TOB.md, Bulgu 1).
+        return False, "Mesh sirri yok - ingest devre disi (ARACHNE_MESH_SECRET ayarlayin)"
 
     if not isinstance(envelope, dict):
         return False, "Zarf bir JSON nesnesi degil"

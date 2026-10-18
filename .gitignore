@@ -13,6 +13,8 @@ data/stix_bundle.json
 data/*.joblib
 # Faz 117: panel anahtari - ASLA depoya girmemeli
 data/panel_token
+# Guvenlik denetimi (Bulgu 1): kuruluma ozgu mesh sirri - ASLA depoya girmemeli
+data/mesh_secret
 
 # Derlenmis native ciktilar (Faz 3)
 arachne/native/arm64/build/

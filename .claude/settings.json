@@ -1,0 +1,23 @@
+{
+  "extraKnownMarketplaces": {
+    "trailofbits": {
+      "source": {
+        "source": "github",
+        "repo": "trailofbits/skills"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "insecure-defaults@trailofbits": true,
+    "constant-time-analysis@trailofbits": true,
+    "supply-chain-risk-auditor@trailofbits": true,
+    "static-analysis@trailofbits": true,
+    "semgrep-rule-creator@trailofbits": true,
+    "sharp-edges@trailofbits": true,
+    "variant-analysis@trailofbits": true,
+    "differential-review@trailofbits": true,
+    "yara-authoring@trailofbits": true,
+    "property-based-testing@trailofbits": true,
+    "mutation-testing@trailofbits": true
+  }
+}

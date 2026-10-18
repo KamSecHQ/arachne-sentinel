@@ -11,8 +11,12 @@ hicbirinin yakalayamayacagi bir kapsama alani saglar.
 import logging
 
 from .. import config
+from . import model_integrity
 
 logger = logging.getLogger("arachne.ml")
+
+# Butunluk sabitlemesi icin ortam degiskeni (data/ disinda; bkz. model_integrity).
+ML_MODEL_SHA256_ENV = "ARACHNE_ML_MODEL_SHA256"
 
 _model = None
 
@@ -49,6 +53,7 @@ def train_and_save(model_path=None):
     path = model_path or config.ML_MODEL_PATH
     path.parent.mkdir(parents=True, exist_ok=True)
     joblib.dump(pipeline, path)
+    model_integrity.write_manifest(path)
     logger.info("ML modeli egitildi ve kaydedildi: %s", path)
     return pipeline
 
@@ -71,7 +76,12 @@ def _get_model():
 
     # 1) Kayitli modeli yuklemeyi dene; ama SADECE gercekten calisiyorsa kullan.
     #    (Surumler-arasi joblib pickle 'idf vector is not fitted' verebilir.)
-    if config.ML_MODEL_PATH.exists():
+    # Butunluk: guvenilir referans (ortam degiskeni > sidecar manifest) yoksa
+    # pickle'i YUKLEMEYIZ - kurcalanmis bir .joblib pickle RCE'sine yol acar
+    # (bkz. model_integrity, SECURITY_AUDIT_TOB.md Bulgu 3). Model yalnizca
+    # onbellek oldugundan, dogrulanamazsa asagida kodtan yeniden egitiriz.
+    trusted, reason = model_integrity.verify(config.ML_MODEL_PATH, ML_MODEL_SHA256_ENV)
+    if trusted:
         try:
             import joblib
             candidate = joblib.load(config.ML_MODEL_PATH)
@@ -83,6 +93,9 @@ def _get_model():
         except Exception:
             logger.warning("Kayitli ML modeli yuklenemedi; yeniden egitiliyor.",
                            exc_info=True)
+    else:
+        logger.warning("Kayitli ML modeli butunluk dogrulamasindan gecemedi (%s); "
+                       "pickle yuklenmeden bundled veriyle yeniden egitiliyor.", reason)
 
     # 2) Yok ya da bozuk: taze egit. Diske kaydetmeyi dene (best-effort);
     #    yazamasak bile bellekteki model calisir.
@@ -91,6 +104,7 @@ def _get_model():
         import joblib
         config.ML_MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
         joblib.dump(_model, config.ML_MODEL_PATH)
+        model_integrity.write_manifest(config.ML_MODEL_PATH)
         logger.info("ML modeli yeniden egitildi ve kaydedildi: %s", config.ML_MODEL_PATH)
     except Exception:
         logger.warning("Yeniden egitilen model kaydedilemedi (salt-okunur olabilir); "

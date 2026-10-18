@@ -36,8 +36,11 @@ TOKEN_FILE = config.DATA_DIR / "panel_token"
 CODE_TTL_SECONDS = 600
 MAX_FAILURES = 5
 FAILURE_WINDOW_SECONDS = 300
-EXEMPT_PATHS = {"/login"}
-EXEMPT_PREFIXES = ("/static/", "/mesh/ingest")
+# Guvenlik denetimi (SECURITY_AUDIT_TOB.md, Bulgu 6): /mesh/ingest TAM yol
+# olarak muaf tutulur, onek olarak DEGIL. Onek eslesmesi /mesh/ingest-config
+# gibi gelecekte eklenebilecek yollari da sessizce auth'suz acardi.
+EXEMPT_PATHS = {"/login", "/mesh/ingest"}
+EXEMPT_PREFIXES = ("/static/",)
 
 _lock = threading.Lock()
 _codes = {}       # tek kullanimlik kod -> son gecerlilik (monotonic)

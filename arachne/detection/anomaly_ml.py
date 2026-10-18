@@ -40,6 +40,7 @@ bir donusumudur.
 import logging
 
 from .. import config
+from . import model_integrity
 
 logger = logging.getLogger("arachne.anomaly_ml")
 
@@ -47,6 +48,8 @@ FEATURE_NAMES = ["event_count", "distinct_services", "distinct_ports",
                  "avg_payload_length", "avg_entropy"]
 
 MODEL_PATH = config.DATA_DIR / "anomaly_ml_model.joblib"
+# Butunluk sabitlemesi icin ortam degiskeni (bkz. model_integrity, Bulgu 3).
+ANOMALY_MODEL_SHA256_ENV = "ARACHNE_ANOMALY_MODEL_SHA256"
 
 _model = None
 
@@ -73,6 +76,7 @@ def train_and_save(model_path=None):
     path = model_path or MODEL_PATH
     path.parent.mkdir(parents=True, exist_ok=True)
     joblib.dump(model, path)
+    model_integrity.write_manifest(path)
     logger.info("Davranissal anomali modeli egitildi ve kaydedildi: %s", path)
     return model
 
@@ -92,7 +96,9 @@ def _get_model():
     if _model is not None:
         return _model
 
-    if MODEL_PATH.exists():
+    # Butunluk: guvenilir referans yoksa pickle'i YUKLEMEYIZ (bkz. Bulgu 3).
+    trusted, reason = model_integrity.verify(MODEL_PATH, ANOMALY_MODEL_SHA256_ENV)
+    if trusted:
         try:
             import joblib
             candidate = joblib.load(MODEL_PATH)
@@ -104,12 +110,16 @@ def _get_model():
         except Exception:
             logger.warning("Kayitli anomali modeli yuklenemedi; yeniden egitiliyor.",
                            exc_info=True)
+    else:
+        logger.warning("Kayitli anomali modeli butunluk dogrulamasindan gecemedi (%s); "
+                       "pickle yuklenmeden bundled veriyle yeniden egitiliyor.", reason)
 
     _model = _fit_model()
     try:
         import joblib
         MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
         joblib.dump(_model, MODEL_PATH)
+        model_integrity.write_manifest(MODEL_PATH)
         logger.info("Anomali modeli yeniden egitildi ve kaydedildi: %s", MODEL_PATH)
     except Exception:
         logger.warning("Yeniden egitilen anomali modeli kaydedilemedi (salt-okunur "

@@ -11,6 +11,8 @@ data/report.html
 data/ai_report.md
 data/stix_bundle.json
 data/*.joblib
+# Guvenlik denetimi (Bulgu 3): model butunluk manifestleri - turetilmis, repoya girmez
+data/*.joblib.sha256
 # Faz 117: panel anahtari - ASLA depoya girmemeli
 data/panel_token
 # Guvenlik denetimi (Bulgu 1): kuruluma ozgu mesh sirri - ASLA depoya girmemeli

@@ -23,6 +23,8 @@ calisabilir (kucuk lab kurulumu) ya da ayri ayri calistirilabilir
 """
 import ipaddress
 import logging
+import threading
+import time
 
 from flask import Blueprint, jsonify, request
 
@@ -38,6 +40,48 @@ REQUIRED_EVENT_FIELDS = {"source_ip", "service", "event_type"}
 # Tek bir raporda kabul edilen maksimum olay sayisi (kaynak tuketimi siniri)
 MAX_EVENTS_PER_REPORT = 200
 MAX_PAYLOAD_LEN = 4096
+
+# --- IP basina hiz siniri (SECURITY_AUDIT_TOB.md, Bulgu 5) ---
+# Kimlik dogrulamasiz bir istemci /mesh/ingest'i gecersiz zarflarla sel edip
+# her istekte bir DB yazimi tetikleyebilir (disk-dolum/log-tasma DoS). Sensorler
+# periyodik rapor gonderir; dakikada 120 istek mesru kullanim icin fazlasiyla
+# yeterli ama selin siniridir. panel_auth'taki pencere mantiginin muadili.
+RATE_WINDOW_SECONDS = 60
+MAX_REQUESTS_PER_WINDOW = 120
+# Basarisiz dogrulama bir sinyaldir ve KAYDEDILIR; ancak ayni IP'den gelen her
+# redde ayri DB satiri yazmak yerine kisa bir pencerede toparlanir.
+REJECT_LOG_COOLDOWN_SECONDS = 10
+
+_rate_lock = threading.Lock()
+_req_times = {}         # ip -> [monotonic, ...]
+_last_reject_log = {}   # ip -> monotonic (son yazilan red kaydi)
+
+
+def _rate_limited(ip: str) -> bool:
+    """Bu IP pencere icinde sinir astiysa True. Her cagri istegi de kaydeder."""
+    now = time.monotonic()
+    with _rate_lock:
+        recent = [t for t in _req_times.get(ip, []) if now - t < RATE_WINDOW_SECONDS]
+        recent.append(now)
+        _req_times[ip] = recent
+        return len(recent) > MAX_REQUESTS_PER_WINDOW
+
+
+def _should_log_reject(ip: str) -> bool:
+    """Ayni IP icin red kaydini pencere basina en fazla bir kez yazdirir."""
+    now = time.monotonic()
+    with _rate_lock:
+        if now - _last_reject_log.get(ip, 0.0) >= REJECT_LOG_COOLDOWN_SECONDS:
+            _last_reject_log[ip] = now
+            return True
+        return False
+
+
+def _reset_rate_state():
+    """Testler icin: hiz siniri ve red-kaydi sayaclarini temizler."""
+    with _rate_lock:
+        _req_times.clear()
+        _last_reject_log.clear()
 
 
 def _validate_event(event: dict) -> tuple:
@@ -93,23 +137,32 @@ def ingest():
         logger.error("Mesh ingest devre disi: paylasilan sir yok")
         return jsonify({"ok": False, "error": "Mesh devre disi - sunucu sirri yok"}), 503
 
+    remote = request.remote_addr or "bilinmiyor"
+
+    # Hiz siniri (Bulgu 5): sel durumunda 429 ile erken don - DB'ye yazmadan.
+    if _rate_limited(remote):
+        logger.warning("Mesh ingest hiz siniri asildi (%s)", remote)
+        return jsonify({"ok": False, "error": "Cok fazla istek - hiz siniri"}), 429
+
     envelope = request.get_json(silent=True)
     if envelope is None:
         return jsonify({"ok": False, "error": "Gecersiz JSON"}), 400
 
     valid, reason = crypto.verify_message(envelope)
     if not valid:
-        remote = request.remote_addr or "bilinmiyor"
         logger.warning("Sensor dogrulamasi basarisiz (%s): %s", remote, reason)
-        try:
-            storage.log_mesh_event(
-                sensor_id=str(envelope.get("payload", {}).get("sensor_id", "bilinmiyor"))[:64]
-                if isinstance(envelope.get("payload"), dict) else "bilinmiyor",
-                status="reddedildi", detail=reason, event_count=0,
-                remote_addr=remote,
-            )
-        except Exception:
-            pass
+        # Red kaydi bir sinyaldir ama IP basina pencere basina bir kez yazilir
+        # (Bulgu 5): aksi halde bir sel, ortak SQLite'i her istekte sisirirdi.
+        if _should_log_reject(remote):
+            try:
+                storage.log_mesh_event(
+                    sensor_id=str(envelope.get("payload", {}).get("sensor_id", "bilinmiyor"))[:64]
+                    if isinstance(envelope.get("payload"), dict) else "bilinmiyor",
+                    status="reddedildi", detail=reason, event_count=0,
+                    remote_addr=remote,
+                )
+            except Exception:
+                pass
         return jsonify({"ok": False, "error": "Dogrulama basarisiz", "reason": reason}), 401
 
     payload = envelope["payload"]

@@ -1,6 +1,19 @@
-flask>=3.0
-scikit-learn>=1.4
-joblib>=1.3
+# Arachne Sentinel - dogrudan bagimliliklar.
+#
+# Guvenlik denetimi (SECURITY_AUDIT_TOB.md, Bulgu 4): surumler artik ">=" kayan
+# aralik DEGIL, test edilen (871 test gecen) tam surumlere SABITLENMISTIR.
+# Boylece her kurulum tekrarlanabilir ve ele gecirilmis/kirici bir upstream
+# surumu onay olmadan otomatik gelmez.
+#
+# Tam gecisli (transitive) kilit + hash dogrulamasi icin requirements.lock
+# dosyasina bakin; uretim/CI kurulumu:
+#     uv pip install --require-hashes -r requirements.lock
+# Kilidi yenilemek icin (surum yukseltirken):
+#     uv pip compile requirements.txt -o requirements.lock --generate-hashes
+
+flask==3.1.3
+scikit-learn==1.9.1
+joblib==1.6.0
 
 # Faz 113 - Iyzico odeme entegrasyonu (website/payments.py) icin resmi SDK.
 # Projenin genel "sadece stdlib" ilkesine BILINCLI bir istisna: bir odeme
@@ -8,12 +21,12 @@ joblib>=1.3
 # islemlerinde risklidir - burada dogruluk/guvenlik, minimum bagimlilik
 # ilkesinin onune geciyor. Kurulu degilse/yapilandirilmamissa odeme sayfasi
 # sessizce "yapilandirilmamis" uyarisi gosterir, sistem cokmez.
-iyzipay>=1.0.46
+iyzipay==1.0.46
 
 # Native masaustu Komuta Merkezi penceresi (python main.py app) icin.
 # Kurulu degilse panel yine calisir; sadece "app" komutu tarayiciya duser.
-pywebview>=5.0
+pywebview==6.2.1
 # macOS'ta PyWebView'in Cocoa/WebKit arka ucu icin:
-pyobjc-core>=10.0 ; sys_platform == "darwin"
-pyobjc-framework-Cocoa>=10.0 ; sys_platform == "darwin"
-pyobjc-framework-WebKit>=10.0 ; sys_platform == "darwin"
+pyobjc-core==12.2.2 ; sys_platform == "darwin"
+pyobjc-framework-Cocoa==12.2.2 ; sys_platform == "darwin"
+pyobjc-framework-WebKit==12.2.2 ; sys_platform == "darwin"

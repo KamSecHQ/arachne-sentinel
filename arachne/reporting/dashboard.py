@@ -45,6 +45,13 @@ def _no_cache_static(response):
     return response
 
 
+# Kasa (crown jewel) uc noktasi — tatbikat hedefi (bkz. vault.py).
+# panel_auth'tan ONCE kurulur ki canary before_request'i auth guard'indan once
+# calissin ve auth'suz kasa denemelerini de kaydedebilsin. Ucun KENDISI yine
+# panel_auth tarafindan korunur (/api/ -> auth'suz 401).
+from . import vault  # noqa: E402
+vault.install(app)
+
 # Faz 117: kimlik dogrulama + guvenlik basliklari (bkz. panel_auth.py).
 from . import panel_auth  # noqa: E402
 panel_auth.install(app)

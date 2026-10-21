@@ -45,6 +45,13 @@ def _no_cache_static(response):
     return response
 
 
+# Yem (honeytoken) uc noktalari — "YAKALANDIN" tuzagi (bkz. decoy.py).
+# panel_auth'tan ONCE kurulur: yem uclari KIMLIK DOGRULAMASIZ erisilebilir
+# olmali (tuzak davetkar olsun) ve istek auth guard'indan once tuzak yanitiyla
+# kisa devre yapilsin.
+from . import decoy  # noqa: E402
+decoy.install(app)
+
 # Kasa (crown jewel) uc noktasi — tatbikat hedefi (bkz. vault.py).
 # panel_auth'tan ONCE kurulur ki canary before_request'i auth guard'indan once
 # calissin ve auth'suz kasa denemelerini de kaydedebilsin. Ucun KENDISI yine

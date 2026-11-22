@@ -1,0 +1,25 @@
+{
+  // GitHub Codespaces: projeyi tarayicida, kurulumsuz ve terminalsiz acar.
+  // Acilinca: bagimliliklar kurulur, demo + komuta merkezi arka planda
+  // baslar ve panel yeni sekmede kendiliginden acilir.
+  //
+  // ARACHNE_PANEL_AUTH=0: panelin kendi giris ekrani burada kapali. Bunun
+  // yerine GitHub korur: Codespaces portu varsayilan olarak OZELDIR (private),
+  // yalnizca codespace'in sahibi kendi GitHub oturumuyla acabilir. Portu
+  // "public" yapmayin. Gercek kurulumda bu degisken asla kullanilmaz.
+  "name": "Arachne Sentinel",
+  "image": "mcr.microsoft.com/devcontainers/python:3.12",
+  "containerEnv": {
+    "ARACHNE_PANEL_AUTH": "0"
+  },
+  "postCreateCommand": "pip install --no-cache-dir -r requirements.txt",
+  "postStartCommand": "mkdir -p data && (nohup python main.py full-demo > /tmp/arachne-demo.log 2>&1 &) && (nohup python main.py dashboard --port 5001 --no-open --no-intro > /tmp/arachne-panel.log 2>&1 &)",
+  "forwardPorts": [5001],
+  "portsAttributes": {
+    "5001": { "label": "Komuta Merkezi", "onAutoForward": "openBrowser" }
+  },
+  "customizations": {
+    "codespaces": { "openFiles": ["README.md"] },
+    "vscode": { "extensions": ["ms-python.python"] }
+  }
+}

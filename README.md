@@ -1,5 +1,13 @@
 # 🕸 Arachne Sentinel
 
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/KamSecHQ/arachne-sentinel?quickstart=1)
+
+> **Kurulumsuz dene:** Yukarıdaki butona tıklayın, ardından **Create codespace**
+> deyin (GitHub hesabı gerekir, aylık ücretsiz kota yeterlidir). İlk açılış
+> 1-2 dakika sürer; bitince **Komuta Merkezi yeni sekmede kendiliğinden açılır** —
+> terminal gerekmez. Sekme açılmazsa alttaki **Ports** sekmesinde 5001'in
+> yanındaki 🌐 simgesine tıklayın.
+
 Honeypot tabanlı, **112 fazlı** bir **erken uyarı, saldırı tespit, otonom
 müdahale, aktif savunma, adaptif (ko-evrim) savunma ve ölçülebilir SOC
 platformu**. Faz 1-100 tam — motor + test + sinematik komuta merkezi + AI

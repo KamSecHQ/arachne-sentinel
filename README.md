@@ -1,5 +1,8 @@
 # 🕸 Arachne Sentinel
 
+**🛰 Komuta merkezini hemen gör:** **[arachnesentinel.com/panel](https://arachnesentinel.com/panel/)**
+— kurulum ve hesap gerekmez (gerçek lab tatbikatı verisiyle kayıtlı demo).
+
 [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/KamSecHQ/arachne-sentinel?quickstart=1)
 
 > **Kurulumsuz dene:** Yukarıdaki butona tıklayın, ardından **Create codespace**

@@ -91,10 +91,54 @@ def build() -> Path:
         "recent": [],
     }, ensure_ascii=False), encoding="utf-8")
 
+    # Ana sayfadan kayitli komuta merkezi demosuna giris
+    html = replace_once(
+        html, '<a class="nav-cta"',
+        '<a class="nav-cta" href="panel/" style="margin-right:10px">Komuta merkezini aç</a>'
+        '<a class="nav-cta"')
+    html = replace_once(
+        html, '>Entegrasyonu incele</a>',
+        '>Entegrasyonu incele</a>\n            '
+        '<a class="btn-ghost" href="panel/">Komuta merkezini aç →</a>')
+
+    build_panel()
+
     (OUT / "index.html").write_text(html, encoding="utf-8")
     (OUT / "CNAME").write_text(DOMAIN + "\n", encoding="utf-8")
     (OUT / ".nojekyll").write_text("", encoding="utf-8")
     return OUT
+
+
+PANEL_SRC = ROOT / "website" / "panel_demo"   # scripts/snapshot_panel.py uretir
+
+
+def build_panel():
+    """Kayitli komuta merkezi demosu -> _site/panel/ (bkz. snapshot_panel.py)."""
+    panel = OUT / "panel"
+    shutil.copytree(PANEL_SRC, panel)
+    shutil.copytree(ROOT / "arachne" / "reporting" / "static", panel / "static")
+    shutil.copy2(ROOT / "website" / "panel_demo_shim.js", panel / "demo-shim.js")
+    meta = json.loads((PANEL_SRC / "meta.json").read_text(encoding="utf-8"))
+
+    html = (panel / "index.html").read_text(encoding="utf-8")
+    html = replace_once(html, '"/static/', '"static/')
+    html = replace_once(html, 'href="/report"', 'href="report.html"')
+    html = replace_once(html, 'href="/api/stix"', 'href="api/stix.json"')
+    html = replace_once(html, 'location.href = "/login"', 'void 0')
+    first, last = meta["first_event"][:10], meta["last_event"][:10]
+    banner = (
+        '<div id="demo-banner" style="position:fixed;left:50%;bottom:10px;transform:translateX(-50%);'
+        'z-index:9999;max-width:calc(100vw - 32px);box-sizing:border-box;padding:6px 14px;border-radius:999px;'
+        'background:rgba(5,8,13,.88);border:1px solid #22d3ee55;color:#cfe8f5;'
+        'font:12px/1.4 system-ui,sans-serif;text-align:center;pointer-events:auto">'
+        f'KAYITLI DEMO · gerçek lab tatbikatı verisi ({first} → {last}) · '
+        '<a href="../" style="color:#22d3ee">arachnesentinel.com</a> · '
+        '<a href="https://github.com/KamSecHQ/arachne-sentinel" style="color:#22d3ee">GitHub</a>'
+        '</div>'
+    )
+    html = replace_once(html, "<head>", '<head>\n<script src="demo-shim.js"></script>')
+    html = replace_once(html, "</body>", banner + "\n</body>")
+    (panel / "index.html").write_text(html, encoding="utf-8")
 
 
 if __name__ == "__main__":

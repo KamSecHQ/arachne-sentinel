@@ -802,9 +802,9 @@
     const gradeTone = c.f1 >= 0.9 ? "ok" : c.f1 >= 0.75 ? "warn" : "bad";
 
     const tiles = [
+      metricTile("F1 Skoru", c.f1.toFixed(3), full.grade, gradeTone + " hero"),
       metricTile("Precision", pct(c.precision), `TP ${c.tp} / FP ${c.fp}`, "ok"),
       metricTile("Recall", pct(c.recall), `yakalanan / toplam kötü`, c.recall >= 0.9 ? "ok" : "warn"),
-      metricTile("F1 Skoru", c.f1.toFixed(3), full.grade, gradeTone),
       metricTile("Yanlış Pozitif (FPR)", pct(c.false_positive_rate), `FP ${c.fp} / temiz ${c.fp + c.tn}`, c.false_positive_rate <= 0.02 ? "ok" : "warn"),
       metricTile("Yanlış Negatif (FNR)", pct(c.false_negative_rate), `kaçan ${c.fn}`, c.false_negative_rate <= 0.1 ? "ok" : "warn"),
       metricTile("Tespit Oranı", pct(c.detection_rate), `${c.tp}/${c.tp + c.fn}`, "ok"),

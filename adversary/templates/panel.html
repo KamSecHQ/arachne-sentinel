@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Arachne Adversary — Saldırı Komuta Merkezi</title>
+<style>
+  :root{
+    --bg:#0a0608; --bg2:#120a0e; --card:#1a0f14; --line:#3a2028;
+    --red:#ff4d4d; --crim:#e0244e; --amber:#ffb347; --teal:#35e0d0; --green:#3ddc84;
+    --violet:#b06bff; --ink:#f3e9ec; --mut:#b28a92;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{background:radial-gradient(1200px 620px at 72% -12%,#2a0d18 0%,var(--bg) 62%),var(--bg);
+    color:var(--ink);font-family:-apple-system,Segoe UI,Roboto,sans-serif;overflow-x:hidden}
+  body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:5;
+    background:repeating-linear-gradient(0deg,rgba(255,60,80,.03) 0 2px,transparent 2px 4px);mix-blend-mode:overlay}
+  .wrap{max-width:1220px;margin:0 auto;padding:1.6rem 1.4rem 3rem}
+  header{display:flex;align-items:center;gap:.9rem;margin-bottom:.4rem}
+  .logo{font-size:2.5rem;filter:drop-shadow(0 0 12px rgba(224,36,78,.7))}
+  h1{font-size:1.7rem;margin:0;letter-spacing:.5px}
+  h1 b{color:var(--crim)}
+  .sub{color:var(--mut);font-size:.9rem;margin:.1rem 0 1rem}
+  .safe{display:flex;gap:.6rem;align-items:center;background:rgba(53,224,208,.07);
+    border:1px solid rgba(53,224,208,.32);border-radius:11px;padding:.55rem .85rem;
+    font-size:.82rem;color:#bdeee8;margin-bottom:1.3rem}
+  .toprow{display:flex;gap:1rem;align-items:stretch;flex-wrap:wrap;margin-bottom:1.2rem}
+  .fire{flex:0 0 auto;display:flex;flex-direction:column;justify-content:center;
+    background:linear-gradient(160deg,#3a0d1c,#1a0810);border:1px solid #5a1a2c;border-radius:16px;
+    padding:1rem 1.3rem;min-width:270px}
+  .fire button{cursor:pointer;border:none;border-radius:12px;padding:.85rem 1.2rem;font-size:1.05rem;
+    font-weight:800;letter-spacing:.5px;color:#fff;background:linear-gradient(135deg,var(--crim),#8a1030);
+    box-shadow:0 0 24px rgba(224,36,78,.5);transition:transform .1s,box-shadow .2s}
+  .fire button:hover{transform:translateY(-1px);box-shadow:0 0 34px rgba(224,36,78,.75)}
+  .fire button:disabled{opacity:.55;cursor:default;box-shadow:none}
+  .fire small{color:var(--mut);margin-top:.5rem;font-size:.72rem}
+  .kpis{flex:1;display:grid;grid-template-columns:repeat(4,1fr);gap:.7rem;min-width:520px}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:.7rem .85rem}
+  .kpi .l{font-size:.6rem;letter-spacing:.09em;color:var(--mut);text-transform:uppercase}
+  .kpi .v{font-size:1.75rem;font-weight:800;margin-top:.1rem;font-family:var(--mono)}
+  .cRed{color:var(--red)} .cTeal{color:var(--teal)} .cViolet{color:var(--violet)} .cAmber{color:var(--amber)}
+  .grid{display:grid;grid-template-columns:1.15fr 1fr;gap:1.1rem}
+  @media(max-width:920px){.grid{grid-template-columns:1fr}.kpis{min-width:0;grid-template-columns:repeat(2,1fr)}}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:1rem 1.1rem}
+  .panel h2{font-size:.95rem;margin:0 0 .8rem;display:flex;align-items:center;gap:.5rem}
+  .dotp{width:.5rem;height:.5rem;border-radius:50%;background:var(--crim);box-shadow:0 0 8px var(--crim)}
+  /* round race */
+  .round{margin-bottom:.7rem;opacity:0;transform:translateY(6px);animation:rise .4s forwards}
+  @keyframes rise{to{opacity:1;transform:none}}
+  .round .rh{display:flex;justify-content:space-between;font-size:.8rem;margin-bottom:.25rem}
+  .round .rh b{color:var(--ink)} .round .rh span{color:var(--mut)}
+  .track{position:relative;height:24px;background:#12080c;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .track .fill{height:100%;border-radius:7px 0 0 7px;background:linear-gradient(90deg,var(--crim),#ff7a5a);
+    width:0;transition:width .8s cubic-bezier(.2,.8,.2,1)}
+  .track .pct{position:absolute;right:8px;top:2px;font-size:.74rem;font-weight:700;font-family:var(--mono)}
+  .learn{font-size:.72rem;color:var(--teal);margin-top:.28rem}
+  .learn.none{color:var(--mut)}
+  /* feed terminal */
+  .feed{background:#0b0609;border:1px solid var(--line);border-radius:11px;padding:.7rem .8rem;
+    height:330px;overflow:auto;font-family:var(--mono);font-size:.76rem;line-height:1.7}
+  .feed .ln{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .feed .t{color:var(--mut)} .feed .cat{color:var(--amber)} .feed .mut{color:var(--violet)}
+  .tag{display:inline-block;min-width:64px;text-align:center;border-radius:4px;padding:0 .35rem;font-weight:700;margin-right:.4rem}
+  .tag.b{background:rgba(255,77,77,.16);color:var(--red)}
+  .tag.g{background:rgba(61,220,132,.16);color:var(--green)}
+  .verdict{margin-top:1.1rem;border-radius:14px;padding:1rem 1.2rem;font-size:1rem;
+    border:1px solid var(--line);background:var(--card);display:none}
+  .verdict.show{display:block;animation:rise .5s}
+  .verdict b{font-size:1.15rem}
+  .idle{color:var(--mut);font-size:.82rem;padding:1.4rem 0;text-align:center}
+  .spin{display:inline-block;width:.8rem;height:.8rem;border:2px solid rgba(255,77,77,.3);
+    border-top-color:var(--red);border-radius:50%;animation:sp .7s linear infinite;vertical-align:-1px}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  .catbars{display:grid;gap:.4rem;margin-top:.2rem}
+  .catbar{display:grid;grid-template-columns:130px 1fr 46px;align-items:center;gap:.5rem;font-size:.74rem}
+  .catbar .cb{height:14px;background:#12080c;border:1px solid var(--line);border-radius:5px;overflow:hidden}
+  .catbar .cf{height:100%;background:linear-gradient(90deg,var(--crim),#ff7a5a);width:0;transition:width .7s}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">🕷</div>
+    <div>
+      <h1>Arachne Adversary — <b>Saldırı Komuta Merkezi</b></h1>
+      <div class="sub">Kırmızı takım ↔ mavi takım ko-evrimi · saldırıda geliştikçe savunmayı yukarı çekeriz</div>
+    </div>
+  </header>
+
+  <div class="safe">🔒 <span><b>Yalnızca yerel test.</b> Tüm saldırılar kendi izole lab hedefimize (localhost) yöneliktir; motor loopback dışına <b>çıkamaz</b>. Amaç dışarı saldırmak değil, savunmamızı ölçüp güçlendirmektir.</span></div>
+
+  <div class="toprow">
+    <div class="fire">
+      <button id="fire">⚔ SALDIRIYI BAŞLAT</button>
+      <small id="firehint">Ko-evrim döngüsünü yerel lab hedefine karşı çalıştırır.</small>
+    </div>
+    <div class="kpis">
+      <div class="kpi"><div class="l">Başlangıç Atlatma</div><div class="v cRed" id="k-start">—</div></div>
+      <div class="kpi"><div class="l">Güncel Atlatma</div><div class="v cTeal" id="k-now">—</div></div>
+      <div class="kpi"><div class="l">Savunma Öğrendi</div><div class="v cViolet" id="k-def">0</div></div>
+      <div class="kpi"><div class="l">Yanlış Pozitif</div><div class="v cAmber" id="k-fp">—</div></div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="panel">
+      <h2><span class="dotp"></span> Tur Tur Yarış</h2>
+      <div id="rounds"><div class="idle" id="idle-r">Başlatmak için “Saldırıyı Başlat”a bas.</div></div>
+      <div id="catwrap" style="margin-top:.6rem"></div>
+    </div>
+    <div class="panel">
+      <h2><span class="dotp"></span> Canlı Saldırı Akışı</h2>
+      <div class="feed" id="feed"><div class="ln t">[ hazır ] — yerel lab hedefi bekleniyor…</div></div>
+    </div>
+  </div>
+
+  <div class="verdict" id="verdict"></div>
+</div>
+
+<script>
+const $ = (id)=>document.getElementById(id);
+const pct = (x)=> (x*100).toFixed(1)+"%";
+const sleep = (ms)=>new Promise(r=>setTimeout(r,ms));
+
+const CAT_COLORS = {}; // opsiyonel
+function feedLine(item, roundNo){
+  const f = $("feed");
+  const tag = item.verdict==="bypass"
+    ? `<span class="tag b">ATLATTI</span>`
+    : `<span class="tag g">ENGEL</span>`;
+  const el = document.createElement("div");
+  el.className = "ln";
+  el.innerHTML = `<span class="t">T${roundNo}·</span> ${tag}`
+    + `<span class="cat">${item.category}</span> `
+    + `<span class="mut">[${item.mutation}]</span> `
+    + `<span class="t">${escapeHtml(item.payload)}</span>`;
+  f.appendChild(el);
+  f.scrollTop = f.scrollHeight;
+}
+function escapeHtml(s){return (s||"").replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));}
+
+function addRound(h, startRate){
+  $("idle-r") && $("idle-r").remove();
+  const wrap = document.createElement("div");
+  wrap.className = "round";
+  const learned = h.defense_learned && h.defense_learned.length
+    ? `<div class="learn">🛡 savunma öğrendi: ${h.defense_learned.join(", ")}</div>`
+    : `<div class="learn none">🛡 yeni öğrenme yok</div>`;
+  wrap.innerHTML = `
+    <div class="rh"><b>Tur ${h.round}</b><span>${h.bypassed}/${h.exploited} çalışan saldırı geçti</span></div>
+    <div class="track"><div class="fill"></div><span class="pct">${pct(h.attacker_bypass_rate)}</span></div>
+    ${learned}`;
+  $("rounds").appendChild(wrap);
+  requestAnimationFrame(()=>{ wrap.querySelector(".fill").style.width = Math.max(h.attacker_bypass_rate*100,2)+"%"; });
+}
+
+function renderCats(per){
+  const cw = $("catwrap");
+  cw.innerHTML = `<div class="learn none" style="color:var(--mut);margin-bottom:.3rem">Son turda kategori bazında atlatma</div>`;
+  const box = document.createElement("div"); box.className="catbars";
+  Object.entries(per).forEach(([cat,v])=>{
+    const rate = v.exploited? v.bypassed/v.exploited : 0;
+    const row = document.createElement("div"); row.className="catbar";
+    row.innerHTML = `<span>${cat}</span><div class="cb"><div class="cf"></div></div><span>${v.bypassed}/${v.exploited}</span>`;
+    box.appendChild(row);
+    requestAnimationFrame(()=> row.querySelector(".cf").style.width = Math.max(rate*100,1.5)+"%");
+  });
+  cw.appendChild(box);
+}
+
+async function run(){
+  const btn = $("fire");
+  btn.disabled = true; btn.textContent = "⚔ SALDIRI SÜRÜYOR…";
+  $("firehint").innerHTML = `<span class="spin"></span> yerel lab hedefine kampanya gönderiliyor…`;
+  $("rounds").innerHTML = ""; $("feed").innerHTML = ""; $("catwrap").innerHTML="";
+  $("verdict").classList.remove("show");
+  try{
+    const res = await fetch("/api/coevolve").then(r=>r.json());
+    const rounds = res.rounds, s = res.summary;
+    $("k-start").textContent = pct(s.start_bypass_rate);
+    for(let i=0;i<rounds.length;i++){
+      const h = rounds[i];
+      addRound(h);
+      $("k-now").textContent = pct(h.attacker_bypass_rate);
+      $("k-def").textContent = h.defense_after.length;
+      $("k-fp").textContent = pct(h.false_positive_rate);
+      // akış: bu turun örneklerini akıt
+      for(const it of (h.feed||[])){ feedLine(it, h.round); await sleep(90); }
+      if(i===rounds.length-1) renderCats(h.per_category);
+      await sleep(650);
+    }
+    const v = $("verdict");
+    v.classList.add("show");
+    v.style.borderColor = s.converged ? "rgba(61,220,132,.5)" : "rgba(255,179,71,.5)";
+    v.innerHTML = s.converged
+      ? `✅ <b>Savunma yakaladı (yakınsadı).</b> Saldırgan atlatması %${(s.start_bypass_rate*100).toFixed(1)} → <b style="color:var(--green)">%0,0</b> · yanlış pozitif %${(s.final_false_positive_rate*100).toFixed(1)}. Daha zengin bir saldırı korpusu yarışı yeniden açar — sistemin amacı budur.`
+      : `⚔ <b>Yarış sürüyor.</b> Atlatma %${(s.start_bypass_rate*100).toFixed(1)} → %${(s.end_bypass_rate*100).toFixed(1)}. Kalan boşluk davranışsal tespit gerektiriyor.`;
+  }catch(e){
+    $("feed").innerHTML = `<div class="ln" style="color:var(--red)">Hata: ${escapeHtml(String(e))}</div>`;
+  }finally{
+    btn.disabled = false; btn.textContent = "⚔ TEKRAR SALDIR";
+    $("firehint").textContent = "Ko-evrim döngüsünü yerel lab hedefine karşı çalıştırır.";
+  }
+}
+$("fire").addEventListener("click", run);
+</script>
+</body>
+</html>

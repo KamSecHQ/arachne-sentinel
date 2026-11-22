@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Arachne Arena — Kırmızı vs Mavi Canlı Düello</title>
+<style>
+  :root{
+    --bg:#06070d; --card:#111524; --line:#26304a;
+    --red:#ff4d5e; --redd:#8a1226; --blue:#38b6ff; --blued:#134a72;
+    --teal:#35e0d0; --green:#3ddc84; --amber:#ffb347; --violet:#b06bff;
+    --ink:#eef3fb; --mut:#8b95ad; --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{background:var(--bg);color:var(--ink);font-family:-apple-system,Segoe UI,Roboto,sans-serif;overflow-x:hidden}
+  .wrap{max-width:1320px;margin:0 auto;padding:1.2rem 1.2rem 2.4rem}
+  header{display:flex;align-items:center;gap:.8rem;margin-bottom:.3rem}
+  .logo{font-size:2.2rem}
+  h1{font-size:1.5rem;margin:0;letter-spacing:.4px}
+  h1 .r{color:var(--red)} h1 .b{color:var(--blue)}
+  .sub{color:var(--mut);font-size:.85rem;margin:.1rem 0 .9rem}
+  .safe{display:flex;gap:.55rem;align-items:center;background:rgba(53,224,208,.07);
+    border:1px solid rgba(53,224,208,.3);border-radius:10px;padding:.5rem .8rem;font-size:.8rem;color:#bdeee8;margin-bottom:1rem}
+
+  /* skor / tug of war */
+  .score{display:flex;align-items:center;gap:1rem;margin-bottom:.8rem}
+  .score .side{font-family:var(--mono);font-weight:800;font-size:1.5rem;min-width:150px}
+  .score .rr{color:var(--red);text-align:right} .score .bb{color:var(--blue)}
+  .tug{flex:1;position:relative;height:26px;border-radius:14px;overflow:hidden;
+    background:linear-gradient(90deg,rgba(255,77,94,.18),rgba(56,182,255,.18));border:1px solid var(--line)}
+  .tug .mid{position:absolute;left:50%;top:0;bottom:0;width:2px;background:rgba(255,255,255,.25);transform:translateX(-1px);z-index:2}
+  .tug .rfill{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,var(--redd),var(--red));width:50%;transition:width .8s cubic-bezier(.2,.8,.2,1)}
+  .tug .lbl{position:absolute;top:3px;font-size:.72rem;font-weight:700;font-family:var(--mono);z-index:3}
+  .tug .lr{left:10px;color:#fff} .tug .lb{right:10px;color:#fff}
+  .roundtag{font-family:var(--mono);font-size:.8rem;color:var(--mut);min-width:74px;text-align:center}
+
+  /* arena */
+  .arena{position:relative;display:grid;grid-template-columns:270px 1fr 270px;gap:0;
+    background:radial-gradient(700px 300px at 50% -10%,#141a2e,transparent),var(--card);
+    border:1px solid var(--line);border-radius:16px;height:430px;overflow:hidden}
+  .tower{position:relative;z-index:3;padding:1rem .95rem;display:flex;flex-direction:column;gap:.5rem}
+  .tower.red{background:linear-gradient(135deg,rgba(138,18,38,.35),transparent 70%)}
+  .tower.blue{background:linear-gradient(225deg,rgba(19,74,114,.35),transparent 70%);text-align:right}
+  .tower h3{margin:.1rem 0;font-size:1rem;letter-spacing:.5px}
+  .tower.red h3{color:var(--red)} .tower.blue h3{color:var(--blue)}
+  .tower .st{font-size:.72rem;color:var(--mut)}
+  .tower .big{font-family:var(--mono);font-size:1.7rem;font-weight:800;line-height:1}
+  .tower.red .big{color:var(--red)} .tower.blue .big{color:var(--blue)}
+  .chips{display:flex;flex-wrap:wrap;gap:.3rem}
+  .tower.blue .chips{justify-content:flex-end}
+  .chip{font-size:.62rem;font-family:var(--mono);padding:.12rem .4rem;border-radius:5px;
+    background:rgba(56,182,255,.14);color:#a9deff;border:1px solid rgba(56,182,255,.3)}
+  .field{position:relative;overflow:hidden}
+  /* kalkan çizgisi (savunma) */
+  .shield{position:absolute;right:20%;top:6%;bottom:6%;width:3px;
+    background:linear-gradient(180deg,transparent,var(--blue),transparent);
+    box-shadow:0 0 18px var(--blue);opacity:.55;z-index:2;transition:opacity .4s,box-shadow .4s}
+  .shield.strong{opacity:.95;box-shadow:0 0 30px var(--blue),0 0 60px rgba(56,182,255,.4)}
+  .core{position:absolute;right:6%;top:50%;width:34px;height:34px;transform:translateY(-50%) rotate(45deg);
+    background:linear-gradient(135deg,#a8e6ff,#38b6ff);border-radius:6px;z-index:2;
+    box-shadow:0 0 22px rgba(56,182,255,.7)}
+  .src{position:absolute;left:6%;top:50%;width:30px;height:30px;transform:translateY(-50%) rotate(45deg);
+    background:linear-gradient(135deg,#ff8a97,#e0244e);border-radius:6px;z-index:2;box-shadow:0 0 18px rgba(224,36,78,.7)}
+  .shot{position:absolute;width:9px;height:9px;border-radius:50%;z-index:1;pointer-events:none;
+    left:11%;top:50%;transform:translate(-50%,-50%)}
+  .shot.b{background:#ff6b78;box-shadow:0 0 10px #ff4d5e}
+  .burst{position:absolute;width:12px;height:12px;border-radius:50%;z-index:2;pointer-events:none;
+    transform:translate(-50%,-50%);opacity:.9}
+  .burst.blk{background:radial-gradient(circle,#8affc9,#3ddc84);animation:pop .5s forwards}
+  .burst.byp{background:radial-gradient(circle,#ffd0d6,#ff4d5e);animation:pop .5s forwards}
+  @keyframes pop{from{transform:translate(-50%,-50%) scale(.3);opacity:1}to{transform:translate(-50%,-50%) scale(2.6);opacity:0}}
+  .field .hint{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);text-align:center;color:var(--mut);font-size:.85rem;z-index:2}
+
+  .ctl{display:flex;gap:.8rem;align-items:center;margin:1rem 0 .8rem;flex-wrap:wrap}
+  .ctl button{cursor:pointer;border:none;border-radius:11px;padding:.75rem 1.3rem;font-size:1rem;font-weight:800;
+    letter-spacing:.4px;color:#fff;background:linear-gradient(135deg,#e0244e,#38b6ff);box-shadow:0 0 22px rgba(120,80,200,.4)}
+  .ctl button:disabled{opacity:.55;cursor:default;box-shadow:none}
+  .ctl .note{color:var(--mut);font-size:.78rem}
+  .spin{display:inline-block;width:.8rem;height:.8rem;border:2px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite;vertical-align:-1px}
+  @keyframes sp{to{transform:rotate(360deg)}}
+
+  .grid2{display:grid;grid-template-columns:1fr 340px;gap:1rem}
+  @media(max-width:980px){.grid2{grid-template-columns:1fr}.arena{grid-template-columns:120px 1fr 120px;height:360px}}
+  .feed{background:#080a12;border:1px solid var(--line);border-radius:12px;padding:.65rem .8rem;height:250px;overflow:auto;font-family:var(--mono);font-size:.74rem;line-height:1.65}
+  .feed .ln{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tg{display:inline-block;min-width:60px;text-align:center;border-radius:4px;padding:0 .3rem;font-weight:700;margin-right:.35rem}
+  .tg.b{background:rgba(255,77,94,.16);color:var(--red)} .tg.g{background:rgba(61,220,132,.16);color:var(--green)}
+  .cat{color:var(--amber)} .mut{color:var(--violet)} .t{color:var(--mut)}
+  .timeline{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:.8rem .9rem;height:250px;overflow:auto}
+  .tl{display:flex;align-items:center;gap:.5rem;font-size:.78rem;margin-bottom:.5rem}
+  .tl .n{font-family:var(--mono);color:var(--mut);min-width:44px}
+  .tl .bar{flex:1;height:14px;border-radius:5px;background:#0b0f1a;border:1px solid var(--line);overflow:hidden}
+  .tl .bf{height:100%;background:linear-gradient(90deg,var(--redd),var(--red));width:0;transition:width .7s}
+  .tl .lr{font-family:var(--mono);color:var(--red);min-width:52px;text-align:right}
+  .verdict{margin-top:1rem;border-radius:13px;padding:.9rem 1.1rem;border:1px solid var(--line);background:var(--card);display:none}
+  .verdict.show{display:block}
+  .verdict b{font-size:1.1rem}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">⚔</div>
+    <div>
+      <h1>Arachne Arena — <span class="r">Kırmızı</span> vs <span class="b">Mavi</span> Canlı Düello</h1>
+      <div class="sub">Saldırgan atlatmaya çalışır, savunma öğrenir — her tur ölçülür ve ekranda canlı çarpışır.</div>
+    </div>
+  </header>
+  <div class="safe">🔒 <span><b>Yalnızca yerel test.</b> Tüm saldırılar kendi izole lab hedefimize (localhost) yöneliktir; motor loopback dışına çıkamaz. Amaç savunmayı ölçüp güçlendirmektir.</span></div>
+
+  <div class="score">
+    <div class="side rr" id="s-red">—</div>
+    <div class="roundtag" id="s-round">TUR —</div>
+    <div class="tug"><div class="rfill" id="tug"></div><div class="mid"></div>
+      <span class="lbl lr">SALDIRGAN</span><span class="lbl lb">SAVUNMA</span></div>
+    <div class="side bb" id="s-blue">—</div>
+  </div>
+
+  <div class="arena">
+    <div class="tower red">
+      <h3>🕷 KIRMIZI TAKIM</h3>
+      <div class="st">Saldırgan · mutasyon motoru</div>
+      <div class="big" id="r-rate">—</div>
+      <div class="st">atlatma oranı</div>
+      <div class="st" style="margin-top:.3rem">gönderilen: <b id="r-sent" style="color:var(--ink)">0</b> · atlatan: <b id="r-byp" style="color:var(--red)">0</b></div>
+    </div>
+    <div class="field" id="field">
+      <div class="src"></div>
+      <div class="shield" id="shield"></div>
+      <div class="core"></div>
+      <div class="hint" id="hint">“Düelloyu Başlat”a bas — saldırı başlasın.</div>
+    </div>
+    <div class="tower blue">
+      <h3>🛡 MAVİ TAKIM</h3>
+      <div class="st">Savunma · adaptif WAF</div>
+      <div class="big" id="b-rate">—</div>
+      <div class="st">durdurma oranı</div>
+      <div class="st" style="margin-top:.3rem">öğrenilen normalleştirici:</div>
+      <div class="chips" id="b-chips"></div>
+    </div>
+  </div>
+
+  <div class="ctl">
+    <button id="fire">⚔ DÜELLOYU BAŞLAT</button>
+    <span class="note" id="note">Ko-evrim döngüsü yerel lab hedefine karşı çalışır.</span>
+  </div>
+
+  <div class="grid2">
+    <div>
+      <div style="font-size:.82rem;color:var(--mut);margin:.1rem 0 .4rem">Canlı çarpışma akışı</div>
+      <div class="feed" id="feed"><div class="ln t">[ hazır ] — yerel lab hedefi bekleniyor…</div></div>
+    </div>
+    <div>
+      <div style="font-size:.82rem;color:var(--mut);margin:.1rem 0 .4rem">Tur zaman çizelgesi (atlatma)</div>
+      <div class="timeline" id="timeline"></div>
+    </div>
+  </div>
+
+  <div class="verdict" id="verdict"></div>
+</div>
+
+<script>
+const $=(id)=>document.getElementById(id);
+const pct=(x)=>(x*100).toFixed(1)+"%";
+const sleep=(ms)=>new Promise(r=>setTimeout(r,ms));
+const esc=(s)=>(s||"").replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+
+function feedLine(it,rn){
+  const f=$("feed");
+  const tag=it.verdict==="bypass"?`<span class="tg b">ATLATTI</span>`:`<span class="tg g">ENGEL</span>`;
+  const el=document.createElement("div");el.className="ln";
+  el.innerHTML=`<span class="t">T${rn}·</span>${tag}<span class="cat">${it.category}</span> <span class="mut">[${it.mutation}]</span> <span class="t">${esc(it.payload)}</span>`;
+  f.appendChild(el);f.scrollTop=f.scrollHeight;
+}
+
+// tek bir saldırı mermisi uçur
+function fireShot(bypass){
+  const field=$("field"); const r=field.getBoundingClientRect();
+  const shot=document.createElement("div"); shot.className="shot b";
+  field.appendChild(shot);
+  const shieldX = r.width*0.80;   // kalkan konumu
+  const coreX   = r.width*0.94;
+  const startX  = r.width*0.11;
+  const y = 50 + (Math.sin(performance.now()/700)*18) + (bypass?0: (Math.random()*24-12));
+  shot.style.top=y+"%";
+  requestAnimationFrame(()=>{
+    shot.style.transition="transform .55s ease-in, opacity .2s";
+    const endX = bypass ? coreX : shieldX;
+    shot.style.transform=`translate(${endX-startX}px,-50%)`;
+  });
+  setTimeout(()=>{
+    const burst=document.createElement("div");
+    burst.className="burst "+(bypass?"byp":"blk");
+    burst.style.left=((bypass?coreX:shieldX)/r.width*100)+"%";
+    burst.style.top=y+"%";
+    field.appendChild(burst);
+    shot.remove();
+    setTimeout(()=>burst.remove(),500);
+  }, 560);
+}
+
+function addTimeline(h){
+  const tl=document.createElement("div"); tl.className="tl";
+  tl.innerHTML=`<span class="n">Tur ${h.round}</span><div class="bar"><div class="bf"></div></div><span class="lr">${pct(h.attacker_bypass_rate)}</span>`;
+  $("timeline").appendChild(tl);
+  requestAnimationFrame(()=> tl.querySelector(".bf").style.width=Math.max(h.attacker_bypass_rate*100,2)+"%");
+}
+
+async function playRound(h){
+  $("s-round").textContent="TUR "+h.round;
+  $("r-rate").textContent=pct(h.attacker_bypass_rate);
+  $("b-rate").textContent=pct(1-h.attacker_bypass_rate);
+  $("s-red").textContent=pct(h.attacker_bypass_rate);
+  $("s-blue").textContent=pct(1-h.attacker_bypass_rate);
+  $("tug").style.width=(20+ h.attacker_bypass_rate*60)+"%"; // 20..80 bandı
+  // savunma güçlendikçe kalkan parlar
+  $("shield").classList.toggle("strong", h.defense_after.length>=2);
+  $("b-chips").innerHTML=h.defense_after.map(n=>`<span class="chip">${n}</span>`).join("") || `<span class="chip" style="opacity:.5">henüz yok</span>`;
+
+  // bu turun çarpışmaları: feed önce (etiketli), sonra dolgu mermiler
+  let sent=parseInt($("r-sent").textContent)||0, byp=parseInt($("r-byp").textContent)||0;
+  const shots = h.feed && h.feed.length ? h.feed.slice() : [];
+  // en az ~14 mermi göster: feed + oranla dolgu
+  const total=Math.max(14, shots.length);
+  const bypassCount = Math.round((h.bypassed/Math.max(h.exploited,1)) * 0);
+  for(let i=0;i<total;i++){
+    let bypass;
+    if(i<shots.length){ bypass = shots[i].verdict==="bypass"; feedLine(shots[i],h.round); }
+    else { bypass = false; }
+    fireShot(bypass);
+    if(i<shots.length){ sent++; if(bypass) byp++; $("r-sent").textContent=sent; $("r-byp").textContent=byp; }
+    await sleep(120);
+  }
+  addTimeline(h);
+  await sleep(500);
+}
+
+async function run(){
+  const btn=$("fire"); btn.disabled=true; btn.textContent="⚔ DÜELLO SÜRÜYOR…";
+  $("note").innerHTML=`<span class="spin"></span> yerel lab hedefine kampanya gönderiliyor…`;
+  $("feed").innerHTML=""; $("timeline").innerHTML=""; $("hint")&&($("hint").style.display="none");
+  $("verdict").classList.remove("show"); $("r-sent").textContent="0"; $("r-byp").textContent="0";
+  try{
+    const res=await fetch("/api/coevolve").then(r=>r.json());
+    for(const h of res.rounds){ await playRound(h); }
+    const s=res.summary, v=$("verdict"); v.classList.add("show");
+    v.style.borderColor = s.converged? "rgba(56,182,255,.55)":"rgba(255,179,71,.55)";
+    v.innerHTML = s.converged
+      ? `🏆 <b style="color:var(--blue)">Savunma kazandı (yakınsadı).</b> Saldırgan atlatması <span style="color:var(--red)">%${(s.start_bypass_rate*100).toFixed(1)}</span> → <span style="color:var(--green)">%0,0</span>, yanlış pozitif %${(s.final_false_positive_rate*100).toFixed(1)}. Daha zengin bir saldırı korpusu düelloyu yeniden açar — sistemin amacı budur.`
+      : `⚔ <b>Düello sürüyor.</b> Atlatma %${(s.start_bypass_rate*100).toFixed(1)} → %${(s.end_bypass_rate*100).toFixed(1)}. Kalan boşluk davranışsal tespit gerektiriyor.`;
+  }catch(e){
+    $("feed").innerHTML=`<div class="ln" style="color:var(--red)">Hata: ${esc(String(e))}</div>`;
+  }finally{
+    btn.disabled=false; btn.textContent="⚔ TEKRAR DÜELLO";
+    $("note").textContent="Ko-evrim döngüsü yerel lab hedefine karşı çalışır.";
+  }
+}
+$("fire").addEventListener("click",run);
+</script>
+</body>
+</html>

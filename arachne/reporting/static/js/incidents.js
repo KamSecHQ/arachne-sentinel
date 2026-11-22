@@ -72,6 +72,8 @@
   /* Daralt/genişlet (localStorage'da hatırla) */
   function applyCollapsed(c) {
     rail.classList.toggle("collapsed", !!c);
+    // Ray artik icerigin ustune binmez: acikken icerige sag bosluk ayrilir.
+    document.body.classList.toggle("rail-docked", !c);
     if (toggleEl) toggleEl.textContent = c ? "‹" : "›";
   }
   var collapsed = false;
@@ -98,20 +100,47 @@
   function sevLabel(s) { return sevRank(s) === 2 ? "KRİTİK" : "YÜKSEK"; }
   function sevClass(s) { return sevRank(s) === 2 ? "critical" : "high"; }
 
+  /* reasons alani JSON metni gelir; ilk gerekceyi kisa haliyle dondur */
+  function firstReason(a) {
+    var r = a.reasons;
+    if (typeof r === "string") { try { r = JSON.parse(r); } catch (e) { r = [r]; } }
+    var t = String((r && r[0]) || "").split(" — ")[0];
+    return t.length > 72 ? t.slice(0, 70) + "…" : t;
+  }
+
+  /* Ayni kaynaktan gelen alarmlar tek kartta toplanir (x N) — ayni IP'nin
+     alt alta tekrarlanmasi yerine farkli tehditler gorunur. */
+  function groupByIp(list) {
+    var map = {}, out = [];
+    list.forEach(function (a) {
+      var k = a.source_ip || "—";
+      if (!map[k]) { map[k] = { top: a, count: 0 }; out.push(map[k]); }
+      map[k].count++;
+      if (sevRank(a.severity) > sevRank(map[k].top.severity)) map[k].top = a;
+    });
+    return out;
+  }
+
+  /* SOC duvari gibi: ray yalnizca son 24 saatin alarmlarini gosterir;
+     eskiler Tehdit Istihbarati / Saldiri Tekrari'nda kalir. */
+  var WINDOW_MS = 24 * 3600 * 1000;
+  function isRecent(ts) {
+    var d = parseTs(ts);
+    return !d || Date.now() - d.getTime() <= WINDOW_MS;
+  }
+
   function render(alerts) {
-    var crit = (alerts || [])
-      .filter(function (a) { return a && isCriticalHigh(a.severity); })
+    var all = (alerts || [])
+      .filter(function (a) { return a && isCriticalHigh(a.severity) && isRecent(a.timestamp); })
       .sort(function (a, b) {
-        var r = sevRank(b.severity) - sevRank(a.severity);
-        if (r !== 0) return r;
         // en yeni üstte: id (varsa) yoksa timestamp
         if (a.id != null && b.id != null) return b.id - a.id;
         return String(b.timestamp || "").localeCompare(String(a.timestamp || ""));
-      })
-      .slice(0, MAX_CARDS);
+      });
+    var crit = groupByIp(all).slice(0, MAX_CARDS);
 
-    countEl.textContent = crit.length ? String(crit.length) : "0";
-    countEl.classList.toggle("zero", crit.length === 0);
+    countEl.textContent = String(all.length);
+    countEl.classList.toggle("zero", all.length === 0);
 
     if (!crit.length) {
       lastKey = "calm";
@@ -119,21 +148,23 @@
         '<div class="ir-calm">' +
           '<div class="ir-calm-ico">🛡️</div>' +
           '<div class="ir-calm-t">Sistem sakin</div>' +
-          '<div class="ir-calm-s">kritik alarm yok</div>' +
+          '<div class="ir-calm-s">son 24 saatte kritik alarm yok</div>' +
         '</div>';
       return;
     }
 
     // içerik gerçekten değiştiyse yeniden çiz (zaman etiketi ayrıca güncellenir)
-    var key = crit.map(function (a) { return (a.id != null ? a.id : a.timestamp) + ":" + a.severity; }).join("|");
+    var key = crit.map(function (g) { var a = g.top; return (a.id != null ? a.id : a.timestamp) + ":" + g.count; }).join("|");
     if (key === lastKey) { refreshTimes(); return; }
     lastKey = key;
 
-    listEl.innerHTML = crit.map(function (a) {
+    listEl.innerHTML = crit.map(function (g) {
+      var a = g.top;
       var id = a.id != null ? a.id : (a.source_ip + "|" + a.timestamp);
       var fresh = !seen[id];
       seen[id] = true;
       var sc = sevClass(a.severity);
+      var why = firstReason(a);
       return (
         '<article class="ir-card sev-' + sc + (fresh ? " ir-enter" : "") + '" data-ts="' + esc(a.timestamp) + '">' +
           '<span class="ir-bar"></span>' +
@@ -142,7 +173,9 @@
               '<span class="ir-sev">' + sevLabel(a.severity) + '</span>' +
               '<span class="ir-time">' + esc(relTime(a.timestamp)) + '</span>' +
             '</div>' +
-            '<div class="ir-ip">' + esc(a.source_ip || "—") + '</div>' +
+            '<div class="ir-ip">' + esc(a.source_ip || "—") +
+              (g.count > 1 ? '<span class="ir-mult">×' + g.count + '</span>' : '') + '</div>' +
+            (why ? '<div class="ir-why">' + esc(why) + '</div>' : '') +
             '<div class="ir-row2">' +
               '<span class="ir-score">skor <b>' + esc(a.score != null ? a.score : "—") + '</b></span>' +
               '<span class="ir-clock">' + esc(clockPart(a.timestamp)) + '</span>' +

@@ -706,7 +706,7 @@ def build_attack_map(db_path=None, limit: int = 200) -> dict:
         })
 
     # Savunulan varlik: haritanin merkezi. Lab kurulumunda Istanbul'a
-    # sabitlendi (proje ekibinin konumu) - bu bir tahmin degil, tanimdir.
+    # sabitlendi (gelistiricinin konumu) - bu bir tahmin degil, tanimdir.
     defended_asset = {
         "name": "Arachne Sentinel (korunan yuzey)",
         "lat": 41.0, "lon": 29.0,

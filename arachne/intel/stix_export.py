@@ -78,7 +78,7 @@ def build_identity() -> dict:
         "name": IDENTITY_NAME,
         "description": (
             "Honeypot tabanli erken uyari ve saldiri tespit sistemi "
-            "(Topkapi Universitesi ogrenci arastirma projesi)"
+            "(bagimsiz arastirma projesi)"
         ),
         "identity_class": "system",
         "sectors": ["technology"],

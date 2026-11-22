@@ -192,7 +192,7 @@ footer{{max-width:1180px; margin:3.5rem auto 0; padding:0 2rem; color:var(--dim)
 </section>
 
 </div>
-<footer>Arachne Sentinel &mdash; Topkapı Üniversitesi ekip projesi &middot; sadece izole/lab ortamında kullanın</footer>
+<footer>Arachne Sentinel &mdash; bağımsız güvenlik projesi &middot; sadece izole/lab ortamında kullanın</footer>
 </body>
 </html>"""
 

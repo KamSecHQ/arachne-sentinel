@@ -23,3 +23,15 @@ arachne/native/arm64/build/
 arachne/native/tools/build/
 *.dylib
 *.o
+
+# Kisisel / basvuru / pazarlama belgeleri - acik depoya girmez
+/Arachne_Sentinel_*.pdf
+/Arachne_Sentinel_*.docx
+/Arachne_Sentinel_*.pptx
+/Arachne_Sentinel_*.png
+/LinkedIn_Gonderi_Metni.md
+/youtube/
+/graphify-out/
+/adversary_report.html
+# Yarim kalan Faz 120 calismasi (henuz tamamlanmadi)
+/arachne/waf/normalize.py

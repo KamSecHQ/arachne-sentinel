@@ -488,10 +488,10 @@ pytest tests/ -v      # 871 test
 - Ödeme sistemi / İyzico (Faz 113): [docs/PAYMENTS.md](docs/PAYMENTS.md)
 - Şebeke — radyal komuta merkezi + sesli asistan (Faz 114): [docs/ROADMAP.md](docs/ROADMAP.md)
 
-## Proje ekibi
+## Geliştirici
 
-Bu proje, Topkapı Üniversitesi Bilgi Güvenliği Teknolojisi öğrencileri
-tarafından ortak bir portföy/yarışma projesi olarak geliştirilmektedir.
+Arachne Sentinel, Emirhan Baydere tarafından bağımsız bir proje olarak
+geliştirilmektedir. İletişim: emirhanbaydere00@outlook.com
 
 ## Lisans
 

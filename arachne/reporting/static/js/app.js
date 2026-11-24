@@ -477,7 +477,7 @@
     root.innerHTML = LAYER_ORDER.map((key) => {
       const l = h[key]; if (!l) return "";
       return `<div class="layer-card ${l.operational ? "ok" : ""}">
-        <div class="lc-head"><span class="lc-dot"></span><span class="lc-name">${esc(l.label)}</span><span class="lc-phase">${esc(l.phase)}</span></div>
+        <div class="lc-head"><span class="lc-dot"></span><span class="lc-name">${esc(l.label)}</span></div>
         <div class="lc-metric">${l.metric}<span>${esc(l.metric_label)}</span></div>
         <div class="lc-detail">${esc(l.detail)}</div></div>`;
     }).join("");
@@ -768,9 +768,9 @@
     const matrix = (cov.matrix || []);
     const mtable = $("#ad-matrix");
     if (mtable) {
-      mtable.innerHTML = `<thead><tr><th>Faz</th><th>Ad</th><th>D3FEND</th><th>CSF 2.0</th><th>Karşıladığı ATT&CK</th></tr></thead>
+      mtable.innerHTML = `<thead><tr><th>Katman</th><th>D3FEND</th><th>CSF 2.0</th><th>Karşıladığı ATT&CK</th></tr></thead>
         <tbody>${matrix.map((r) =>
-          `<tr><td>${r.faz}</td><td>${esc(r.ad)}</td><td>${(r.d3fend || []).map((x) => esc(x)).join("<br>")}</td>
+          `<tr><td>${esc(r.ad)}</td><td>${(r.d3fend || []).map((x) => esc(x)).join("<br>")}</td>
             <td>${(r.csf || []).map((x) => `<span class="csf-chip on">${esc(x)}</span>`).join(" ")}</td>
             <td class="muted">${esc(r.attack_counters || "-")}</td></tr>`).join("")}</tbody>`;
     }

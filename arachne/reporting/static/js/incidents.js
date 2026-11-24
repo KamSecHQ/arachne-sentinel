@@ -63,7 +63,7 @@
       '<button class="ir-toggle" id="ir-toggle" title="Rayı gizle/göster" aria-label="Kritik alarm rayını aç/kapat">›</button>' +
     '</div>' +
     '<div class="ir-list" id="ir-list"></div>' +
-    '<div class="ir-foot" id="ir-foot">canlı · /api/state</div>';
+    '<div class="ir-foot" id="ir-foot">canlı izleme · son 24 saat</div>';
 
   var listEl = rail.querySelector("#ir-list");
   var countEl = rail.querySelector("#ir-count");

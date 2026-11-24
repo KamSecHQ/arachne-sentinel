@@ -158,10 +158,9 @@
       rec.addEventListener("result", (e) => {
         const q = (e.results[0][0].transcript || "").toLowerCase();
         let answer = "Bunu şu an yanıtlayamıyorum — web sitesinden veya carousel'den bakabilirsiniz.";
-        if (/kaç test|test sayısı/.test(q)) answer = "Depoda 802 otomatik test var, hepsi geçiyor.";
+        if (/kaç test|test sayısı/.test(q)) answer = "Depoda 878 otomatik test var, hepsi geçiyor.";
         else if (/f1|skor/.test(q)) answer = "Ölçülen F1 skoru 0 nokta 9 7 6.";
         else if (/kaç saldırı|engellen|blok/.test(q)) answer = `Bu sitede şu ana kadar ${totals.blocked_requests} istek engellendi, toplam ${totals.total_requests} istekten.`;
-        else if (/faz/.test(q)) answer = "113 geliştirme fazı tamamlandı.";
         voiceOn = true; speak(answer);
       });
       micBtn.addEventListener("click", () => { try { rec.start(); } catch (e) {} });

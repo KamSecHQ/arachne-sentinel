@@ -893,7 +893,6 @@
           <div class="lc-head">
             <span class="lc-dot"></span>
             <span class="lc-name">${escapeHtml(layer.label)}</span>
-            <span class="lc-phase">${escapeHtml(layer.phase)}</span>
           </div>
           <div class="lc-metric">${layer.metric}<span>${escapeHtml(layer.metric_label)}</span></div>
           <div class="lc-detail">${escapeHtml(layer.detail)}</div>
@@ -909,7 +908,6 @@
            title="${escapeHtml(layer.description_tr)}">
         <span class="dl-sw" style="background:rgb(${layer.color})"></span>
         <span class="dl-name">${escapeHtml(layer.name)}</span>
-        <span class="dl-phase">${escapeHtml(layer.phase)}</span>
         <span class="dl-count">${layer.interceptions}</span>
       </div>`).join("");
   }

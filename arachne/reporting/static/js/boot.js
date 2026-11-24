@@ -283,7 +283,7 @@
     ["BELLEK", "Yerel vektör bellek senkronize", 16],
     ["SENSÖR", "Sensör ağı + sağlık telemetrisi bağlandı", 26],
     ["SIEM", "Normalizasyon hattı açık", 36],
-    ["SAVUNMA", "18 savunma halkası / 80 faz yüklendi", 52],
+    ["SAVUNMA", "18 savunma halkası yüklendi", 52],
     ["ADAPTİF", "Ko-evrim motorları kalibre", 64],
     ["SOAR", "Otonom müdahale hazır", 74],
     ["BÜTÜNLÜK", "Kurcalama-kanıtı zincir doğrulandı", 84],
@@ -291,7 +291,7 @@
     ["ÇEVRİMİÇİ", "Tüm savunma katmanları nominal", 100],
   ];
   // Terminal + native pencere + asistan ile BİREBİR aynı ses (Türkçe, uyumlu).
-  const VOICE_LINE = "Komuta merkezi devrede. Seksen faz aktif. " +
+  const VOICE_LINE = "Komuta merkezi devrede. " +
     "Tüm savunma katmanları çevrimiçi. Sistem hazır.";
   const logEl = document.getElementById("boot-log");
   const barEl = document.getElementById("boot-bar-fill");

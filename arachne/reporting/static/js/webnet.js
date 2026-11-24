@@ -191,7 +191,7 @@
     if (!node) { detailEl.classList.remove("open"); return; }
     const l = node.layer;
     detailEl.innerHTML =
-      `<div class="wd-head" style="color:rgb(${l.color})">${l.name} <small>${l.phase}</small></div>` +
+      `<div class="wd-head" style="color:rgb(${l.color})">${l.name}</div>` +
       `<div class="wd-count">${l.interceptions} <span>olay bu oturumda</span></div>` +
       `<div class="wd-desc">${l.description_tr || ""}</div>`;
     detailEl.classList.add("open");

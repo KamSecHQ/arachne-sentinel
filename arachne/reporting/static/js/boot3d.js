@@ -300,7 +300,10 @@
     camera.position.x += (mx * 6 - camera.position.x) * 0.03;
     camera.position.y += ((-my * 4) - camera.position.y) * 0.03;
     camera.position.z = 34 + Math.sin(t * 0.15) * 2.2 - heat * 3.5;
-    camera.lookAt(0, rig.position.y, 0);
+    // Kamera sahne merkezine bakar; rig.position.y ile yukari kaydirilan
+    // cekirdek boylece guc dugmesinin (%42) tam arkasinda kalir. (Onceden
+    // rig'e bakiliyordu; bu kaydirmayi iptal edip cekirdegi ortaya cekiyordu.)
+    camera.lookAt(0, 0, 0);
 
     renderer.render(scene, camera);
     raf = requestAnimationFrame(frame);

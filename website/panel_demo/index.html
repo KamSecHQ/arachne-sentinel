@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Arachne Sentinel — Komuta Merkezi</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%95%B8%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="/static/css/app.css?v=55">
+<link rel="stylesheet" href="/static/css/app.css?v=56">
 <script>
 /* Faz 117: oturum dustuyse (sunucu yeniden basladi) API 401 doner -> girise yonlendir */
 (function () {
@@ -30,7 +30,7 @@
   <div class="boot-ui">
     <div class="boot-brand">
       <div class="boot-title">A R A C H N E</div>
-      <div class="boot-sub">S E N T I N E L · UNIVERSAL COGNITIVE OS · 119 FAZ</div>
+      <div class="boot-sub">S E N T I N E L · KATMANLI SİBER SAVUNMA PLATFORMU</div>
     </div>
 
     <!-- Güç düğmesi (autoplay için: tıkla → boot + ses başlar) -->
@@ -59,7 +59,7 @@
       <svg class="logo" viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="1.5">
         <circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4M5 5l3 3M16 16l3 3M19 5l-3 3M8 16l-3 3"/>
       </svg>
-      <div id="brand-text">ARACHNE<br><small id="brand-sub">SENTINEL · 119 FAZ</small></div>
+      <div id="brand-text">ARACHNE<br><small id="brand-sub">SENTINEL</small></div>
     </div>
     <!-- Faz 110: musteri profili yapilandirilmissa (bkz. arachne/customer/profile.py)
          buraya "X icin korunuyor" satiri eklenir; yapilandirilmamissa bu
@@ -106,7 +106,7 @@
         <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="5" cy="6" r="2"/><circle cx="19" cy="6" r="2"/><circle cx="12" cy="18" r="2"/><path d="M5 8v3a2 2 0 002 2h10a2 2 0 002-2V8M12 13v3"/></svg>
         Sensör Ağı</div>
 
-      <div class="nav-group-label">Adaptif Savunma · Faz 21-30</div>
+      <div class="nav-group-label">Adaptif Savunma</div>
       <div class="nav-item" data-view="adaptive">
         <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6z"/><path d="M12 7v5l3 2"/></svg>
         Adaptif Savunma <span class="badge-count zero" id="badge-adaptive">0</span></div>
@@ -125,8 +125,8 @@
   <div class="main">
     <div class="topbar">
       <div>
-        <div class="view-title" id="view-title">Genel Bakış</div>
-        <div class="view-sub" id="view-sub">Sistemin canlı durumu ve tehdit özeti</div>
+        <div class="view-title" id="view-title">Şebeke</div>
+        <div class="view-sub" id="view-sub">18 gerçek savunma katmanı — örümcek ağı geometrisiyle canlı görünüm</div>
       </div>
       <div class="spacer"></div>
       <button class="pill-link" id="sound-toggle" title="Kritik alarmda ses">🔇 Ses</button>
@@ -298,20 +298,20 @@
       <!-- ===== KURALLAR & BÜTÜNLÜK ===== -->
       <section class="view" id="view-rules">
         <div class="section-head"><h2>📋 İmza Kural Motoru, Otomatik İmza Üretimi & Bütünlük</h2></div>
-        <p class="section-desc">Faz 14 kendi YARA-benzeri kural dilimiz, Faz 16 yakalanan saldırılardan otomatik imza üretir, Faz 17 denetim kayıtlarının kurcalanıp kurcalanmadığını kanıtlar.</p>
+        <p class="section-desc">Kendi YARA-benzeri kural dilimiz; yakalanan saldırılardan otomatik imza üretimi; denetim kayıtlarının kurcalanmadığını kanıtlayan bütünlük zinciri.</p>
         <div class="rule-line"></div>
 
-        <div class="mini-h" style="margin-top:0;">Denetim Zinciri Bütünlüğü (Faz 17)</div>
+        <div class="mini-h" style="margin-top:0;">Denetim Zinciri Bütünlüğü</div>
         <div id="integrity-status"><div class="empty">Yükleniyor…</div></div>
 
-        <div class="mini-h">Otomatik Üretilen İmza Adayları (Faz 16)</div>
+        <div class="mini-h">Otomatik Üretilen İmza Adayları</div>
         <p class="section-desc" style="margin-top:0;">Yakalanan saldırılardan türetildi. <b>Otomatik aktif edilmez</b> — insan onayı gerekir (kötü bir imza meşru trafiği engelleyebilir).</p>
         <div class="table-card">
           <table><thead><tr><th>Aday İmza</th><th>Kötü Destek</th><th>Meşru Destek</th><th>Ayırt Edicilik</th><th>Durum</th></tr></thead>
           <tbody id="synth-tbody"><tr><td colspan="5" class="empty">Yükleniyor…</td></tr></tbody></table>
         </div>
 
-        <div class="mini-h">Yüklü İmza Kuralları (Faz 14)</div>
+        <div class="mini-h">Yüklü İmza Kuralları</div>
         <div class="table-card">
           <table><thead><tr><th>Kural</th><th>Şiddet</th><th>Koşul</th><th>ATT&CK</th><th>Açıklama</th></tr></thead>
           <tbody id="rules-tbody"><tr><td colspan="5" class="empty">Yükleniyor…</td></tr></tbody></table>
@@ -330,18 +330,18 @@
             <div id="blocks-list"></div>
           </div>
           <div>
-            <div class="mini-h" style="margin-top:0;">Honeytoken Tuzakları (Faz 12)</div>
+            <div class="mini-h" style="margin-top:0;">Honeytoken Tuzakları</div>
             <div class="card pad-sm" id="honeytokens-list"><div class="empty">Tuzak yok</div></div>
           </div>
         </div>
 
-        <div class="mini-h">Otomatik Müdahale Denetim Kaydı (Faz 7)</div>
+        <div class="mini-h">Otomatik Müdahale Denetim Kaydı</div>
         <div class="table-card">
           <table><thead><tr><th>Zaman</th><th>Eylem</th><th>Hedef</th><th>Playbook</th><th>Sonuç</th><th>Gerekçe</th></tr></thead>
           <tbody id="soar-tbody"><tr><td colspan="6" class="empty">Henüz müdahale yok<span class="hint">python main.py soar-demo</span></td></tr></tbody></table>
         </div>
 
-        <div class="mini-h">Aktif Savunma / Aldatma Kaydı (Faz 11)</div>
+        <div class="mini-h">Aktif Savunma / Aldatma Kaydı</div>
         <div class="table-card">
           <table><thead><tr><th>Zaman</th><th>Kaynak IP</th><th>Teknik</th><th>Detay</th></tr></thead>
           <tbody id="defense-tbody"><tr><td colspan="4" class="empty">Henüz aktif savunma eylemi yok</td></tr></tbody></table>
@@ -396,7 +396,7 @@
           </div>
         </div>
 
-        <div class="mini-h">Dört Sütunlu Eşleme <span class="muted" style="text-transform:none;font-weight:400;">(Faz → D3FEND → CSF 2.0 → karşıladığı ATT&CK)</span></div>
+        <div class="mini-h">Dört Sütunlu Eşleme <span class="muted" style="text-transform:none;font-weight:400;">(Katman → D3FEND → CSF 2.0 → karşıladığı ATT&CK)</span></div>
         <div class="card" style="padding:0;overflow:auto;"><table class="data-table" id="ad-matrix"></table></div>
       </section>
 
@@ -503,15 +503,15 @@
 <script src="/static/js/dome3d.js?v=53"></script>
 <script src="/static/js/globe3d.js?v=53"></script>
 <script src="/static/js/bunker3d.js?v=57"></script>
-<script src="/static/js/boot3d.js?v=53"></script>
-<script src="/static/js/boot.js?v=53"></script>
+<script src="/static/js/boot3d.js?v=54"></script>
+<script src="/static/js/boot.js?v=54"></script>
 <script src="/static/js/fx.js?v=53"></script>
-<script src="/static/js/command_center.js?v=53"></script>
-<script src="/static/js/webnet.js?v=1"></script>
+<script src="/static/js/command_center.js?v=54"></script>
+<script src="/static/js/webnet.js?v=2"></script>
 <script src="/static/js/assistant.js?v=56"></script>
-<script src="/static/js/app.js?v=54"></script>
+<script src="/static/js/app.js?v=55"></script>
 <script src="/static/js/views_fx.js?v=53"></script>
-<script src="/static/js/incidents.js?v=55"></script>
+<script src="/static/js/incidents.js?v=56"></script>
 <script src="/static/js/showcase.js?v=1"></script>
 </body>
 </html>

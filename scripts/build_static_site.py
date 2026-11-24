@@ -20,6 +20,7 @@ Her metin degisikligi assert ile korunur: sablon degisirse build sessizce
 yanlis bir site uretmek yerine hata verir.
 """
 import json
+import re
 import shutil
 import sys
 from pathlib import Path
@@ -92,14 +93,30 @@ def build() -> Path:
     }, ensure_ascii=False), encoding="utf-8")
 
     # Ana sayfadan kayitli komuta merkezi demosuna giris
+    # Ust menu: iki buton sagda yan yana (nav flex space-between oldugu icin
+    # tek bir kapsayiciya alinir); panel linki ikincil (cerceveli) stilde.
+    nav_cta = re.search(r'<a class="nav-cta"[^>]*>Pilot talep et</a>', html)
+    assert nav_cta, "nav-cta bulunamadi"
+    html = html.replace(nav_cta.group(0), (
+        '<style>@media (max-width:640px){.nav-panel{display:none!important}}</style>'
+        '<div style="display:flex;align-items:center;gap:10px">'
+        '<a class="nav-cta nav-panel" href="panel/" style="background:transparent;color:#52ddc7;'
+        'box-shadow:inset 0 0 0 1px rgba(82,221,199,.55)">Komuta merkezini aç</a>'
+        + nav_cta.group(0) + '</div>'), 1)
+    # Hero: en guclu kanit (calisan panel) birincil buton olur
+    hero = re.search(r'<a class="btn-primary" (href="[^"]*INTEGRATION\.md"[^>]*)>Entegrasyonu incele</a>', html)
+    assert hero, "hero butonu bulunamadi"
+    html = html.replace(hero.group(0), (
+        '<a class="btn-primary" href="panel/">Komuta merkezini aç →</a>\n            '
+        f'<a class="btn-ghost" {hero.group(1)}>Entegrasyonu incele</a>'), 1)
+    html = replace_once(html, '<a class="btn-ghost" href="#depth">Nasıl çalışır →</a>',
+                        '<a class="btn-ghost" href="#depth" style="border:0;padding-left:.2rem">Nasıl çalışır →</a>')
+
+    # Link onizlemesi (LinkedIn/WhatsApp/X): kapak gorseli + kanonik adres
     html = replace_once(
-        html, '<a class="nav-cta"',
-        '<a class="nav-cta" href="panel/" style="margin-right:10px">Komuta merkezini aç</a>'
-        '<a class="nav-cta"')
-    html = replace_once(
-        html, '>Entegrasyonu incele</a>',
-        '>Entegrasyonu incele</a>\n            '
-        '<a class="btn-ghost" href="panel/">Komuta merkezini aç →</a>')
+        html, '<meta property="og:type" content="website">',
+        '<meta property="og:type" content="website">\n'
+        + og_tags(f"https://{DOMAIN}/"))
 
     build_panel()
 
@@ -110,6 +127,19 @@ def build() -> Path:
 
 
 PANEL_SRC = ROOT / "website" / "panel_demo"   # scripts/snapshot_panel.py uretir
+OG_IMAGE = f"https://{DOMAIN}/static/og/arachne-panel.jpg"   # 1200x630, gercek panel goruntusu
+
+
+def og_tags(url: str) -> str:
+    return (
+        f'  <meta property="og:url" content="{url}">\n'
+        f'  <meta property="og:image" content="{OG_IMAGE}">\n'
+        '  <meta property="og:image:width" content="1200">\n'
+        '  <meta property="og:image:height" content="630">\n'
+        '  <meta property="og:image:alt" content="Arachne Sentinel komuta merkezi - Çelik Kubbe katmanlı savunma görünümü">\n'
+        '  <meta name="twitter:card" content="summary_large_image">\n'
+        f'  <meta name="twitter:image" content="{OG_IMAGE}">'
+    )
 
 
 def build_panel():
@@ -118,25 +148,44 @@ def build_panel():
     shutil.copytree(PANEL_SRC, panel)
     shutil.copytree(ROOT / "arachne" / "reporting" / "static", panel / "static")
     shutil.copy2(ROOT / "website" / "panel_demo_shim.js", panel / "demo-shim.js")
-    meta = json.loads((PANEL_SRC / "meta.json").read_text(encoding="utf-8"))
 
     html = (panel / "index.html").read_text(encoding="utf-8")
     html = replace_once(html, '"/static/', '"static/')
     html = replace_once(html, 'href="/report"', 'href="report.html"')
     html = replace_once(html, 'href="/api/stix"', 'href="api/stix.json"')
     html = replace_once(html, 'location.href = "/login"', 'void 0')
-    first, last = meta["first_event"][:10], meta["last_event"][:10]
+    # Demo'ya ozgu: donmus saat ve "canli" ibaresi kayitli veride yaniltici olur
+    html = replace_once(html, '<div class="clock" id="clock">', '<div class="clock" id="clock" hidden style="display:none">')
+    html = replace_once(html, '<span class="live-dot">canlı</span>', '<span class="live-dot">demo</span>')
+
+    # Kayitli demo seridi: ust ortada, kucuk; dar ekranda alta iner
     banner = (
-        '<div id="demo-banner" style="position:fixed;left:50%;bottom:10px;transform:translateX(-50%);'
-        'z-index:9999;max-width:calc(100vw - 32px);box-sizing:border-box;padding:6px 14px;border-radius:999px;'
-        'background:rgba(5,8,13,.88);border:1px solid #22d3ee55;color:#cfe8f5;'
-        'font:12px/1.4 system-ui,sans-serif;text-align:center;pointer-events:auto">'
-        f'KAYITLI DEMO · gerçek lab tatbikatı verisi ({first} → {last}) · '
-        '<a href="../" style="color:#22d3ee">arachnesentinel.com</a> · '
-        '<a href="https://github.com/KamSecHQ/arachne-sentinel" style="color:#22d3ee">GitHub</a>'
-        '</div>'
+        '<style>'
+        '#demo-banner{position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:9999;'
+        'display:flex;align-items:center;gap:10px;padding:5px 12px 5px 6px;border-radius:999px;'
+        'background:rgba(5,10,18,.82);border:1px solid rgba(34,211,238,.28);'
+        'backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);'
+        'font:600 11px/1.3 var(--font-mono,ui-monospace,monospace);letter-spacing:.06em;color:#b9d6e6;white-space:nowrap}'
+        '#demo-banner .db-tag{padding:3px 8px;border-radius:999px;background:rgba(34,211,238,.14);color:#67e8f9;letter-spacing:.12em}'
+        '#demo-banner a{color:#67e8f9;text-decoration:none}#demo-banner a:hover{text-decoration:underline}'
+        '@media (max-width:1180px){#demo-banner{top:auto;bottom:12px}}'
+        '@media (max-width:560px){#demo-banner .db-src{display:none}}'
+        '</style>'
+        '<div id="demo-banner"><span class="db-tag">KAYITLI DEMO</span>'
+        '<span class="db-src">gerçek lab tatbikatı verisi</span>'
+        '<a href="https://github.com/KamSecHQ/arachne-sentinel" target="_blank" rel="noopener">GitHub ↗</a></div>'
     )
-    html = replace_once(html, "<head>", '<head>\n<script src="demo-shim.js"></script>')
+    desc = ("Honeypot, WAF ve SOAR'ı birleştiren katmanlı savunma platformunun komuta merkezi — "
+            "gerçek lab tatbikatı verisiyle kayıtlı demo. Kurulum gerektirmez.")
+    head = (
+        '<head>\n<script src="demo-shim.js"></script>\n'
+        f'  <meta name="description" content="{desc}">\n'
+        '  <meta property="og:title" content="Arachne Sentinel — Komuta Merkezi">\n'
+        f'  <meta property="og:description" content="{desc}">\n'
+        '  <meta property="og:type" content="website">\n'
+        + og_tags(f"https://{DOMAIN}/panel/") + "\n"
+    )
+    html = replace_once(html, "<head>", head)
     html = replace_once(html, "</body>", banner + "\n</body>")
     (panel / "index.html").write_text(html, encoding="utf-8")
 
